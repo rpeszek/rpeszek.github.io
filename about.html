@@ -10,11 +10,14 @@
     </head>
     <body>
         <header>
+            <div class="motto">
+                <a href="./">hmm >>= oh!</a>
+            </div>
             <div class="logo">
                 <a href="./">Infrequent but Passionate Programming Posts</a>
             </div>
             <nav>
-                <a href="./">Home</a>
+                <!-- <a href="/">Home</a> -->
                 <a href="./about.html">About</a>
                 <!-- <a href="/contact.html">Contact</a> -->
                 <a href="./archive.html">Archive</a>
@@ -23,12 +26,21 @@
 
         <main role="main">
             <h1>About</h1>
-            <div class="line-block"><strong>Infrequent:</strong> I do not blog much.<br />
-<strong>Passionate:</strong> I will commit a post if something really bugs me or I feel very passionate about a topic that is not otherwise covered by people smarted than me.</div>
-<p>It will be about programming, most likely functional programming.</p>
-<div class="line-block"><strong>About me:</strong> Currently, I work as a Haskell Developer.<br />
+            <p><strong>Infrequent:</strong> I do not blog much.<br />
+<strong>Passionate:</strong> I will commit a post if something really bugs me or I feel very passionate about a topic that is not otherwise covered by people smarted than me<br />
+It will be about programming, most likely functional programming.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a>blog <span class="ot">=</span> <span class="kw">do</span> </span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>    liftIO <span class="op">$</span> threadDelay veryLongTime1</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a>    ideas <span class="ot">&lt;-</span> ask <span class="op">@</span><span class="dt">PriorityQueue</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a>    a <span class="ot">&lt;-</span> peek <span class="op">@</span><span class="dt">Annoyance</span> ideas</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a>    liftIO <span class="op">$</span> threadDelay veryLongTime2</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a>    file <span class="ot">&lt;-</span> writeBlog a </span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a>    liftIO <span class="op">$</span> threadDelay sleepOnIt </span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a>    publish file</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a>    blog</span></code></pre></div>
+<p><strong>About me:</strong> Currently, I work as a Haskell Developer.<br />
 I have a long history of mainstream programming work, mostly using Java and friends (Groovy, JS, C#, …).<br />
-My pet projects use Haskell and friends (Idris, Purescript, Elm, Scalaz, …).</div>
+My pet projects use Haskell and friends (Idris, Purescript, Elm, Scalaz, …).</p>
         </main>
 
         <footer>
