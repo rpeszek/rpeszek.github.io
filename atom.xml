@@ -36,7 +36,7 @@ This post treats the term <em>error</em> colloquially, it does not try to distin
 <p><code>Maybe</code> typically represents data that can be <em>missing</em> or a computation that can result in an <em>unknown error</em>.<br />
 What you typically care about is <em>what data is missing</em> and <em>what is the error</em>.</p>
 <p><em>Code correctness</em>, <em>reasoning about code</em> are, arguably, the defining aspects of FP. <em>Reasoning about code</em> typically refers to some advanced use of the type system or formal methods. IMO “reasoning about code” should start with reasoning about errors and corner cases (like missing data). This is why the use of <code>Maybe</code> needs to be examined and questioned. In my experience this aspect of reasoning about code is often overlooked.</p>
-<p>Reasoning about errors is not easy. Type system can’t help with errors that bypass it (e.g. <code>error :: String -&gt; a</code>). It can’t help with exceptions which were intentionally suppressed into <code>Nothing</code> either (the focus of this post). And there are other complexities beyond the scope of this post.</p>
+<p>Reasoning about errors is not easy. The type system can’t help with errors that bypass it (e.g. <code>error :: String -&gt; a</code>). It can’t help with exceptions which were intentionally suppressed into <code>Nothing</code> <em>(the focus of this post)</em>. And, there are other complexities.</p>
 <p>My points / pleas are:</p>
 <ul>
 <li>The ecosystem would be better off without offering convenience combinators that return <code>Maybe</code> if an equivalent returning <code>Either</code> exists</li>
@@ -117,9 +117,9 @@ To work around this issue I ended up resorting to implementing <code>fromMultipa
 <p>In just one project, that saved me hours in both new development and troubleshooting cost.<br />
 For a more complex multipart form that implements both <code>FromMultipart</code> and <code>ToMultipart</code> by hand, verifying that <code>fromMultipart . toMultipart</code> is the identity would have been very hard without some information about errors. If the multipart is called from a different program, different language …</p>
 <p><strong>Convenience Combinators:</strong><br />
-It should be noted that many popular libraries offer convenience <code>Maybe</code> functions even though it is very easy to write this natural transformation:</p>
+It should be noted that many popular packages offer convenience <code>Maybe</code> functions even though it is very easy to write this natural transformation:</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a><span class="ot">unExplain ::</span> <span class="dt">Either</span> err a <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a</span></code></pre></div>
-<p>Why is that? Why not just provide <code>Either</code> versions? Looking at <em>aeson</em> as example:</p>
+<p>Why is that? Why not just provide <code>Either</code> versions? Looking at <em>aeson</em> as an example:</p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true"></a><span class="ot">decode ::</span> <span class="dt">FromJSON</span> a <span class="ot">=&gt;</span> <span class="dt">ByteString</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true"></a><span class="ot">eitherDecode ::</span> <span class="dt">FromJSON</span> a <span class="ot">=&gt;</span> <span class="dt">ByteString</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">String</span> a </span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true"></a><span class="ot">parseEither ::</span> (a <span class="ot">-&gt;</span> <span class="dt">Parser</span> b) <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">String</span> b </span>
@@ -135,14 +135,14 @@ It should be noted that many popular libraries offer convenience <code>Maybe</co
 </blockquote>
 <p>Overuse of <code>mzero</code> in parsing code is as bad as the overuse of <code>Maybe</code>.</p>
 <h3 id="cut-catmaybes">Cut <code>catMaybes</code></h3>
-<p>I am yet to see a real world example where the replacement of</p>
+<p>I am yet to see a code where replacing</p>
 <div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true"></a><span class="ot">catMaybes ::</span> [<span class="dt">Maybe</span> a] <span class="ot">-&gt;</span> [a]</span></code></pre></div>
 <p>with</p>
 <div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true"></a><span class="ot">partitionEithers ::</span> [<span class="dt">Either</span> e a] <span class="ot">-&gt;</span> ([e], [a])</span></code></pre></div>
-<p>would not improve the code robustness.</p>
+<p>would not improve its robustness.</p>
 <p>I question use of <code>catMaybes</code> in production code.</p>
 <h3 id="hkd-pattern">HKD pattern</h3>
-<p>Higher-Kinded Data pattern is super cool and can be very useful. It would take me quite a bit of space to describe it here, fortunatelly this post does it form me: <a href="https://reasonablypolymorphic.com/blog/higher-kinded-data/">_add_blank_target reasonablypolymorphic on HKD pattern</a>. My example follows <em>reasonablypolymorphic</em> blog closely.</p>
+<p>Higher-Kinded Data pattern is super cool and can be very useful. This post explains what it is: <a href="https://reasonablypolymorphic.com/blog/higher-kinded-data/">_add_blank_target reasonablypolymorphic on HKD pattern</a>. My example follows <em>reasonablypolymorphic</em> blog closely.</p>
 <p>In nutshell, we can create a record type like</p>
 <div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Person</span> f <span class="ot">=</span> <span class="dt">Person</span> { </span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true"></a><span class="ot">    pName ::</span> f <span class="dt">String</span></span>
@@ -156,7 +156,7 @@ For example, we can hoist <code>forall a . f a -&gt; g a</code> functions to <co
 The post descibes, a completely generic, validation function that, when restricted to our <code>Person</code> type, looks like this:</p>
 <div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true"></a><span class="ot">validate ::</span> <span class="dt">Person</span> <span class="dt">Maybe</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> (<span class="dt">Person</span> <span class="dt">Identity</span>)</span></code></pre></div>
 <p>I hate when this is done to me: it took 5 minutes to enter the information, the submit button is grayed out and I see no way to move forward. Typically, when that happens, it is caused by a JavaScript error.</p>
-<p>In this example it is not a programming bug, it is a design decision: a very sophisticated way to check that user entered all fields that does not provide information about which fields were missed.<br />
+<p>In this example it is not a programming bug, it is a design decision: a very sophisticated way to check that user entered all fields that does not provide information about which fields they missed.<br />
 Web form data entry aside, I challenge you to find one meaningful example where the above <code>validate</code> is useful. Maybe a data science code that processes massive amount of data and requires all fields to be present to be useful? All examples I can come up with seem far-fetched and still would benefit from having <code>Either</code>.</p>
 <p>Questions I am asking:</p>
 <ul>
@@ -176,7 +176,7 @@ A meaningful validation would have a type</p>
 <p>Checkout the documentation for the <a href="https://hackage.haskell.org/package/barbies">_add_blank_target barbies</a> package, it comes with exactly this example! Notice, some boilerplate work is still needed to annotate missing values with field information:</p>
 <div class="sourceCode" id="cb15"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true"></a><span class="ot">addFieldInfo ::</span>  <span class="dt">Person</span> <span class="dt">Maybe</span> <span class="ot">-&gt;</span> <span class="dt">Person</span> (<span class="dt">Either</span> <span class="dt">FieldInfo</span>) </span></code></pre></div>
 <p><code>addFieldInfo</code> would need to happen outside of the <em>HKD pattern</em>.<br />
-One can argue that a better solution would be to never ever use <code>Person Maybe</code> and convert user form data entry directly to <code>Person (Either FieldInfo)</code>.</p>
+One can argue that a better solution would be to not use <code>Person Maybe</code> and convert user form data entry directly to <code>Person (Either FieldInfo)</code>.</p>
 <h3 id="traversable-with-maybe"><code>Traversable</code> with <code>Maybe</code></h3>
 <p><em>barbies</em> validation of <code>Person</code> required a traversal of the <em>HKD</em> type. So, maybe, we should consider a somewhat simpler design where fields are unified into one type. Keeping up with the <em>reasonablypolymorphic</em> example:</p>
 <div class="sourceCode" id="cb16"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true"></a><span class="ot">{-## LANGUAGE DeriveFunctor ##-}</span></span>
@@ -219,7 +219,7 @@ Here is my attempt at debunking some of them.</p>
 <span id="cb20-4"><a href="#cb20-4" aria-hidden="true"></a>test10YearOld <span class="ot">=</span> emptyPerson {pAge <span class="ot">=</span> <span class="dt">Identity</span> <span class="dv">10</span>}</span>
 <span id="cb20-5"><a href="#cb20-5" aria-hidden="true"></a>test <span class="ot">=</span> isDrinkinAge test10YearOld</span></code></pre></div>
 <p>I do not like this approach. It feels like a poorly typed code.</p>
-<p>It also reminds me of <code>null</code> and hence the <em>Java Bean</em> title. (<a href="https://stackoverflow.com/questions/1612334/difference-between-dto-vo-pojo-javabeans">_add_blank_target Java Bean</a>, was a popular pattern in Java ecosystem, a <em>Bean</em> needs to have an empty constructor, a <em>setter</em> / <em>getter</em> method for each field. <em>null</em> fields can be considered as a code reuse mechanism: programs need fewer “classes” of “objects” if some fields can be left as <em>null</em>.)</p>
+<p>It also reminds me of <code>null</code> and hence the <em>Java Bean</em> reference. (<em>null</em> fields can be considered as a code reuse mechanism: programs need fewer “classes” of “objects” if some fields can be left as <em>null</em>. <a href="https://stackoverflow.com/questions/1612334/difference-between-dto-vo-pojo-javabeans">_add_blank_target Java Bean</a>, was a popular pattern in the Java ecosystem, a <em>Bean</em> needs to have an empty constructor, and a <em>setter</em> / <em>getter</em> method for each field. It seems very similar to a record type with lots of <code>Maybe</code> fields.)</p>
 <p>An easy improvement would be to create <code>Age</code> type</p>
 <div class="sourceCode" id="cb21"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true"></a><span class="kw">newtype</span> <span class="dt">Age</span> <span class="ot">=</span> <span class="dt">Age</span> <span class="dt">Int</span> </span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true"></a></span>
@@ -291,14 +291,14 @@ If you are using it with <code>Maybe</code>, then you do not care about the erro
 <li><p><code>Maybe</code> is more expressive. Examples: <code>Alternative</code> instance; to use <code>Monad</code>, <code>Applicative</code> with <code>Either err</code> you need to unify on the <code>err</code> type which is extra work.</p></li>
 <li><p>Sophisticated abstractions can obscure common sense. <code>Maybe</code> is likely to fit the abstraction more often and easier than <code>Either</code>.</p></li>
 </ol>
-<p>Oversimplifications are nothing new in mathematical modeling. Anyone who studied, for example, mathematical physics has seen a lot of hair raisingly scary oversimplifications. Code design appears not that different.</p>
+<p>Oversimplifications are nothing new in mathematical modeling. Anyone who studied, for example, mathematical physics has seen a lot of crazy oversimplifications. Code design appears not that different.</p>
 <ol start="5" type="1">
 <li><p>Non production code. Lots of Haskell code is about CS research. Lots of Haskell code is about pet projects. Such code does not need to be maintained in production. <code>Maybe</code> is good enough.</p></li>
 <li><p>Developer can disambiguate the reason for <code>Nothing</code> so <code>Either</code> is redundant. This is not an overuse case and is justified.</p></li>
 </ol>
 <p>I started with link to <a href="https://www.michaelpj.com/blog/2021/01/02/elementary-programming.html">_add_blank_target Elementary Programming</a> post and want to end with it. Would more explicit “elementary” programs help in spotting obvious things like error information loss? I think they could. Starting from requirements and going back to most elementary solution would probably never arrive at:</p>
 <div class="sourceCode" id="cb27"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true"></a><span class="ot">mapMaybe ::</span> (a <span class="ot">-&gt;</span> <span class="dt">Maybe</span> b) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> <span class="dt">Maybe</span> [b]</span></code></pre></div>
-<p>if the requirements cared about errors. I am not necessarily advocating for avoiding abstractions, just for not forgetting about errors on the way. Don’t throw the baby out with the bathwater</p>
+<p>if the requirements cared about errors. I am not necessarily advocating for avoiding abstractions, just for not forgetting about errors on the way. Don’t throw the baby out with the bathwater.</p>
 <p>I am sure I do not have a full understanding of why and how <code>Maybe</code> is overused. The intent of this post is to try to start a discussion.</p>
 <p>Discussion links:</p>
 <ul>
