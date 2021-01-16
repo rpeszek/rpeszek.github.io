@@ -1,0 +1,341 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"
+    xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <channel>
+        <title>Infrequent, Pragmatic, Lambda Blog</title>
+        <link>https://rpeszek.github.io/</link>
+        <description><![CDATA[Infrequent, Pragmatic, Lambda Blog Feed]]></description>
+        <atom:link href="https://rpeszek.github.io//RSS.xml" rel="self"
+                   type="application/rss+xml" />
+        <lastBuildDate>Sat, 16 Jan 2021 00:00:00 UT</lastBuildDate>
+        <item>
+    <title>Maybe Considered Harmful</title>
+    <link>https://rpeszek.github.io//posts/2021-01-16-maybe-harmful.html</link>
+    <description><![CDATA[<article>
+    <section class="header">
+        Posted on January 16, 2021
+        
+            by Robert Peszek
+        
+    </section>
+    <section>
+        <h4 id="motivating-references">Motivating References:</h4>
+<p>I was very happy to find Michael Snoyman’s <a href="https://www.snoyman.com/blog/2020/10/haskell-bad-parts-1/">_add_blank_target Haskell The Bad Parts</a> series.<br />
+I was also motivated by <a href="https://www.michaelpj.com/blog/2021/01/02/elementary-programming.html">_add_blank_target Elementary Programming</a> post (<a href="https://www.reddit.com/r/haskell/comments/kst0d3/elementary_programming/">_add_blank_target reddit</a>).</p>
+<p><strong>Similar:</strong> <a href="https://www.reddit.com/r/haskell/comments/jxj8i/data_maybe_harmful/">_add_blank_target reddit data_maybe_harmful</a></p>
+<p>This post is Haskell specific.<br />
+This post treats the term <em>error</em> colloquially, it does not try to distinguish between <a href="https://wiki.haskell.org/Error_vs._Exception">_add_blank_target <em>exceptions</em> and <em>errors</em></a>.</p>
+<h2 id="nutshell">Nutshell</h2>
+<p><code>Maybe</code> is the functional answer to <code>null</code> - the <a href="https://en.wikipedia.org/wiki/Tony_Hoare">_add_blank_target billion dollar mistake</a>. I claim that using <code>Maybe</code> can still be problematic.</p>
+<p>IMO <code>Maybe</code> is often overused. I have started to question the use of <code>Maybe</code> every time I see it in the code base I maintain. The result is either accepting its usage or rewriting the code to use <code>Either</code>. This approach has been effective in creating a more robust code. I am not claiming that <code>Maybe</code> has no place in well written code, only that its use should be closely examined. I have seen brilliant code that has been hard to maintain because of its overuse of <code>Maybe</code>. This post shares a prospective of someone who maintains a complex Haskell code base.</p>
+<p><code>Maybe</code> improves over <code>null</code>. But it does not supersede it. Languages that have <code>null</code> also have easy access to logging, stack traces etc.</p>
+<p><code>Maybe</code> typically represents data that can be <em>missing</em> or a computation that can result in an <em>unknown error</em>.<br />
+What you typically care about is <em>what data is missing</em> and <em>what is the error</em>.</p>
+<p><em>Code correctness</em>, <em>reasoning about code</em> are, arguably, the defining aspects of FP. <em>Reasoning about code</em> typically refers to some advanced use of the type system or formal methods. IMO “reasoning about code” should start with reasoning about errors and corner cases (like missing data). This is why the use of <code>Maybe</code> needs to be examined and questioned. In my experience this aspect of reasoning about code is often overlooked.</p>
+<p>Reasoning about errors is not easy. Type system can’t help with errors that bypass it (e.g. <code>error :: String -&gt; a</code>). It can’t help with exceptions which were intentionally suppressed into <code>Nothing</code> either (the focus of this post). And there are other complexities beyond the scope of this post.</p>
+<p>My points / pleas are:</p>
+<ul>
+<li>The ecosystem would be better off without offering convenience combinators that return <code>Maybe</code> if an equivalent returning <code>Either</code> exists</li>
+<li>Examples, tutorials, blog posts should favor <code>Either</code> over <code>Maybe</code></li>
+<li>Developers should be careful about not overusing <code>Maybe</code></li>
+</ul>
+<h2 id="error-clarity-rule">Error Clarity Rule</h2>
+<p><em>What does <code>Nothing</code> mean? If the reason behind it can be disambiguated to one root cause, then I consider the use of <code>Maybe</code> justified. Otherwise, I question it use.</em></p>
+<p>Consider this code:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Data.Map</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Prelude</span> <span class="kw">hiding</span> (lookup)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a><span class="kw">type</span> <span class="dt">Key</span> <span class="ot">=</span> <span class="dt">String</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a><span class="kw">type</span> <span class="dt">Value</span> <span class="ot">=</span> <span class="op">...</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a><span class="co">-- OK</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a><span class="ot">phone ::</span> <span class="dt">Map</span> <span class="dt">Key</span> <span class="dt">Value</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Value</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a>phone <span class="ot">=</span> <span class="fu">lookup</span> <span class="st">&quot;phone&quot;</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true"></a><span class="co">-- OK</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true"></a><span class="ot">email ::</span> <span class="dt">Map</span> <span class="dt">Key</span> <span class="dt">Value</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Value</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true"></a>email <span class="ot">=</span> <span class="fu">lookup</span> <span class="st">&quot;email&quot;</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true"></a></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true"></a><span class="co">-- OK</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true"></a><span class="ot">creditCardNum ::</span> <span class="dt">Map</span> <span class="dt">Key</span> <span class="dt">Value</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Value</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true"></a>creditCardNum <span class="ot">=</span> <span class="fu">lookup</span> <span class="st">&quot;card-number&quot;</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true"></a></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">FormData</span> <span class="ot">=</span> <span class="dt">FormData</span> {</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true"></a><span class="ot">   fdPhone ::</span> <span class="dt">Value</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true"></a>   ,<span class="ot"> fdEmail ::</span> <span class="dt">Value</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true"></a>   ,<span class="ot"> fdCardNum ::</span> <span class="dt">Value</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true"></a>   }</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true"></a></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true"></a><span class="co">-- less OK</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true"></a><span class="ot">formData ::</span> <span class="dt">Map</span> <span class="dt">Key</span> <span class="dt">Value</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">FormData</span>  </span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true"></a>formData <span class="fu">map</span> <span class="ot">=</span> <span class="dt">FormData</span> <span class="op">&lt;$&gt;</span> phone <span class="fu">map</span> <span class="op">&lt;*&gt;</span> email <span class="fu">map</span> <span class="op">&lt;*&gt;</span> creditCardNum <span class="fu">map</span> </span></code></pre></div>
+<p>you can clearly explain the first 3 functions:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="ot">explain ::</span> err <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a <span class="ot">-&gt;</span> <span class="dt">Either</span> err a</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a>explain <span class="ot">=</span> <span class="op">...</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Err</span> <span class="ot">=</span> <span class="dt">MissingEmail</span> <span class="op">|</span> <span class="dt">MissingPhone</span> <span class="op">|</span> <span class="dt">MissingCardNum</span> </span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true"></a><span class="ot">email&#39; ::</span> <span class="dt">Map</span> <span class="dt">Key</span> <span class="dt">Value</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">Err</span> <span class="dt">Value</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true"></a>email&#39; <span class="ot">=</span> explain <span class="dt">MissingEmail</span> <span class="op">.</span> email</span></code></pre></div>
+<p>How do I explain <code>formData</code>? I am stuck with:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">UnknownFieldMissing</span> <span class="ot">=</span> <span class="dt">UnknownFieldMissing</span> </span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a><span class="ot">formData&#39; ::</span> <span class="dt">Map</span> <span class="dt">Key</span> <span class="dt">Value</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">Err</span> <span class="dt">Value</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a>formData&#39; <span class="ot">=</span> explain <span class="dt">UnknownFieldMissing</span> <span class="op">.</span> formData</span></code></pre></div>
+<p>and that “Unknown” is not a field name.<br />
+The bigger the record the bigger problem this is.</p>
+<p>This post provides real-world examples of similar problems.</p>
+<h2 id="harmful-real-world-examples">Harmful Real-World Examples</h2>
+<p>These are in no particular order, other than my presentation reuses types defined earlier.</p>
+<h3 id="maybe-on-hackage"><code>Maybe</code> on Hackage</h3>
+<p>If you used older versions of <a href="https://hackage.haskell.org/package/servant-multipart">_add_blank_target servant-multipart</a> you are familiar with</p>
+<p><em>status code 400, message “fromMultipart returned Nothing”</em>.</p>
+<p>You must have noticed that your logs have been silent as well.<br />
+The fix was implemented in 0.11.6</p>
+<p>New version (much better):</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="co">-- version 0.11.6</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a><span class="kw">class</span> <span class="dt">FromMultipart</span> tag a <span class="kw">where</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a><span class="ot">   fromMultipart ::</span> <span class="dt">MultipartData</span> tag <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">String</span> a</span></code></pre></div>
+<p>Old version:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="co">-- version 0.11.5</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a><span class="kw">class</span> <span class="dt">FromMultipart</span> tag a <span class="kw">where</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a><span class="ot">  fromMultipart ::</span> <span class="dt">MultipartData</span> tag <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a</span></code></pre></div>
+<p>Any typo, missed form field, wrong form field type submitted from the calling program resulted in a meaningless 400 error.<br />
+To work around this issue I ended up resorting to implementing <code>fromMultipart</code> in <code>Either MultiformError</code> monad and converting it to <code>Maybe</code> with something like that:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a><span class="ot">loggedMultipartMaybe ::</span>  <span class="dt">Either</span> <span class="dt">MultipartException</span> a <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a>loggedMultipartMaybe (<span class="dt">Left</span> err) <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true"></a>    <span class="kw">let</span> logDetails <span class="ot">=</span> <span class="op">...</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true"></a>    <span class="fu">seq</span> </span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true"></a>      (debugLogger logDetails) <span class="co">-- uses unsafePeformIO to match your logging style</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true"></a>      <span class="dt">Nothing</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true"></a>loggedMultipartMaybe (<span class="dt">Right</span> r) <span class="ot">=</span> <span class="dt">Just</span> r </span></code></pre></div>
+<p>to, at least, get some logs.</p>
+<p>In just one project, that saved me hours in both new development and troubleshooting cost.<br />
+For a more complex multipart form that implements both <code>FromMultipart</code> and <code>ToMultipart</code> by hand, verifying that <code>fromMultipart . toMultipart</code> is the identity would have been very hard without some information about errors. If the multipart is called from a different program, different language …</p>
+<p><strong>Convenience Combinators:</strong><br />
+It should be noted that many popular libraries offer convenience <code>Maybe</code> functions even though it is very easy to write this natural transformation:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a><span class="ot">unExplain ::</span> <span class="dt">Either</span> err a <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a</span></code></pre></div>
+<p>Why is that? Why not just provide <code>Either</code> versions? Looking at <em>aeson</em> as example:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true"></a><span class="ot">decode ::</span> <span class="dt">FromJSON</span> a <span class="ot">=&gt;</span> <span class="dt">ByteString</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true"></a><span class="ot">eitherDecode ::</span> <span class="dt">FromJSON</span> a <span class="ot">=&gt;</span> <span class="dt">ByteString</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">String</span> a </span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true"></a><span class="ot">parseEither ::</span> (a <span class="ot">-&gt;</span> <span class="dt">Parser</span> b) <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">String</span> b </span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true"></a><span class="ot">parseMaybe ::</span> (a <span class="ot">-&gt;</span> <span class="dt">Parser</span> b) <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">Maybe</span> b </span></code></pre></div>
+<p>the name <code>decode</code> is suggestive of being the one commonly used.</p>
+<p>Having <code>aeason</code> in the spotlight, I like this part of their <a href="https://hackage.haskell.org/package/aeson-1.5.5.1/docs/Data-Aeson-Types.html##v:parse">_add_blank_target documentation</a>:</p>
+<blockquote>
+<p><em>The basic ways to signal a failed conversion are as follows:</em></p>
+<ul>
+<li><em>fail yields a custom error message: it is the recommended way of reporting a failure;</em></li>
+<li><em>empty (or mzero) is uninformative: use it when the error is meant to be caught by some (&lt;|&gt;);</em></li>
+</ul>
+</blockquote>
+<p>Overuse of <code>mzero</code> in parsing code is as bad as the overuse of <code>Maybe</code>.</p>
+<h3 id="cut-catmaybes">Cut <code>catMaybes</code></h3>
+<p>I am yet to see a real world example where the replacement of</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true"></a><span class="ot">catMaybes ::</span> [<span class="dt">Maybe</span> a] <span class="ot">-&gt;</span> [a]</span></code></pre></div>
+<p>with</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true"></a><span class="ot">partitionEithers ::</span> [<span class="dt">Either</span> e a] <span class="ot">-&gt;</span> ([e], [a])</span></code></pre></div>
+<p>would not improve the code robustness.</p>
+<p>I question use of <code>catMaybes</code> in production code.</p>
+<h3 id="hkd-pattern">HKD pattern</h3>
+<p>Higher-Kinded Data pattern is super cool and can be very useful. It would take me quite a bit of space to describe it here, fortunatelly this post does it form me: <a href="https://reasonablypolymorphic.com/blog/higher-kinded-data/">_add_blank_target reasonablypolymorphic on HKD pattern</a>. My example follows <em>reasonablypolymorphic</em> blog closely.</p>
+<p>In nutshell, we can create a record type like</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Person</span> f <span class="ot">=</span> <span class="dt">Person</span> { </span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true"></a><span class="ot">    pName ::</span> f <span class="dt">String</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true"></a>  ,<span class="ot"> pAge  ::</span> f <span class="dt">Int</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true"></a>  <span class="co">-- imagine a lot more fields here</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true"></a>  } </span></code></pre></div>
+<p>parametrized by a type of kind <code>* -&gt; *</code> like <code>Maybe</code> or <code>Identity</code>. All or some of the fields in that record type have an <code>f</code> in front of them.<br />
+<em>HKD Patter</em> is about using generic programming to transform that record based on operations that work on the fields.<br />
+For example, we can hoist <code>forall a . f a -&gt; g a</code> functions to <code>hkd f -&gt; hkd g</code> (here <code>Person f -&gt; Person g</code>).</p>
+<p>Imagine that <code>Person</code> has a long list of fields and there is a web form for entering them.<br />
+The post descibes, a completely generic, validation function that, when restricted to our <code>Person</code> type, looks like this:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true"></a><span class="ot">validate ::</span> <span class="dt">Person</span> <span class="dt">Maybe</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> (<span class="dt">Person</span> <span class="dt">Identity</span>)</span></code></pre></div>
+<p>I hate when this is done to me: it took 5 minutes to enter the information, the submit button is grayed out and I see no way to move forward. Typically, when that happens, it is caused by a JavaScript error.</p>
+<p>In this example it is not a programming bug, it is a design decision: a very sophisticated way to check that user entered all fields that does not provide information about which fields were missed.<br />
+Web form data entry aside, I challenge you to find one meaningful example where the above <code>validate</code> is useful. Maybe a data science code that processes massive amount of data and requires all fields to be present to be useful? All examples I can come up with seem far-fetched and still would benefit from having <code>Either</code>.</p>
+<p>Questions I am asking:</p>
+<ul>
+<li>Would you expect a production code somewhere out there that validates user input using HKD pattern and actually uses <code>Maybe</code>?</li>
+<li>Did <em>reasonablypolymorphic</em> confuse or simplify things by using <code>Maybe</code> in its example?</li>
+</ul>
+<p>In that blog post <code>Maybe</code> is not just in the <code>validate</code> function. The post defines the whole <code>GValidate</code> boilerplate that assumes <code>Maybe</code>.</p>
+<p>Fortunately, the approach can be generalized to other <code>f</code> types.<br />
+A meaningful validation would have a type</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">FieldInfo</span> <span class="ot">=</span> <span class="op">...</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true"></a></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true"></a><span class="ot">validate ::</span> <span class="dt">Person</span> <span class="dt">Maybe</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> [<span class="dt">FieldInfo</span>] (<span class="dt">Person</span> <span class="dt">Identity</span>)</span></code></pre></div>
+<p>This is arguably more work to do and beyond what <em>HKD pattern</em> can offer. However, it is quite possible to do something like this generically:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">FieldInfo</span> <span class="ot">=</span> <span class="op">...</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true"></a></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true"></a><span class="ot">validate ::</span> <span class="dt">Person</span> (<span class="dt">Either</span> <span class="dt">FieldInfo</span>) <span class="ot">-&gt;</span> <span class="dt">Either</span> [<span class="dt">FieldInfo</span>] (<span class="dt">Person</span> <span class="dt">Identity</span>)</span></code></pre></div>
+<p>Checkout the documentation for the <a href="https://hackage.haskell.org/package/barbies">_add_blank_target barbies</a> package, it comes with exactly this example! Notice, some boilerplate work is still needed to annotate missing values with field information:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true"></a><span class="ot">addFieldInfo ::</span>  <span class="dt">Person</span> <span class="dt">Maybe</span> <span class="ot">-&gt;</span> <span class="dt">Person</span> (<span class="dt">Either</span> <span class="dt">FieldInfo</span>) </span></code></pre></div>
+<p><code>addFieldInfo</code> would need to happen outside of the <em>HKD pattern</em>.<br />
+One can argue that a better solution would be to never ever use <code>Person Maybe</code> and convert user form data entry directly to <code>Person (Either FieldInfo)</code>.</p>
+<h3 id="traversable-with-maybe"><code>Traversable</code> with <code>Maybe</code></h3>
+<p><em>barbies</em> validation of <code>Person</code> required a traversal of the <em>HKD</em> type. So, maybe, we should consider a somewhat simpler design where fields are unified into one type. Keeping up with the <em>reasonablypolymorphic</em> example:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true"></a><span class="ot">{-## LANGUAGE DeriveFunctor ##-}</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true"></a><span class="ot">{-## LANGUAGE DeriveFoldable ##-}</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true"></a><span class="ot">{-## LANGUAGE DeriveTraversable ##-}</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true"></a></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Person&#39;</span> a <span class="ot">=</span> <span class="dt">Person&#39;</span> { </span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true"></a><span class="ot">    pName&#39; ::</span> a</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true"></a>  ,<span class="ot"> pAge&#39;  ::</span> a</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true"></a>  <span class="co">-- imagine a lot more fields here</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true"></a>  } <span class="kw">deriving</span> (<span class="op">...</span>, <span class="dt">Functor</span>, <span class="dt">Foldable</span>, <span class="dt">Traversable</span>)</span></code></pre></div>
+<p>And “now we are cooking with gas”!</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">FieldData</span> <span class="ot">=</span> <span class="op">...</span> <span class="co">-- unifying type for Person&#39; fields</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true"></a></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true"></a><span class="ot">validateMaybe ::</span> <span class="dt">Person&#39;</span> (<span class="dt">Maybe</span> <span class="dt">FieldData</span>) <span class="ot">-&gt;</span> <span class="dt">Maybe</span> (<span class="dt">Person&#39;</span> <span class="dt">FieldData</span>)</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true"></a>validateMaybe <span class="ot">=</span> <span class="fu">traverse</span> <span class="fu">id</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true"></a></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true"></a><span class="ot">validateEither ::</span> <span class="dt">Person&#39;</span> (<span class="dt">Either</span> <span class="dt">FieldInfo</span> <span class="dt">FieldData</span>) <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">FieldInfo</span> (<span class="dt">Person&#39;</span> <span class="dt">FieldData</span>)</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true"></a>validateEither <span class="ot">=</span> <span class="fu">traverse</span> <span class="fu">id</span></span></code></pre></div>
+<p>New <code>validateEither</code> is not as good as the <em>barbies</em> version, it gives user only one of the fields they missed.<br />
+IMO <code>validateMaybe</code> is useless for data entry form validation.</p>
+<p>The <code>validateMaybe</code> example is here for a reason. It directly mimics the example discussed in <a href="https://www.michaelpj.com/blog/2021/01/02/elementary-programming.html">_add_blank_target Elementary Programming</a>, which used</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true"></a><span class="ot">mapMaybe ::</span> (a <span class="ot">-&gt;</span> <span class="dt">Maybe</span> b) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> <span class="dt">Maybe</span> [b]</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true"></a>mapMaybe <span class="ot">=</span> <span class="fu">traverse</span></span></code></pre></div>
+<p>as its only example.</p>
+<p><code>Maybe</code> is viral.</p>
+<h2 id="questioning-record-types-with-all-maybe-fields">Questioning Record Types with all <code>Maybe</code> Fields</h2>
+<p>Besides being a natural fit for data coming in from something like a web form, there are other reasons for designing record types with many <code>Maybe</code> fields.<br />
+Here is my attempt at debunking some of them.</p>
+<h3 id="recreating-java-beans-with-maybe">Recreating <em>Java Beans</em> with <code>Maybe</code> ;)</h3>
+<p>Defining record types with many <code>Maybe</code> fields allows to construct such records easily if you care about only some of the fields.</p>
+<p>This can be done via some <code>empty</code> defaulting mechanism (I will use the <code>Person</code> type defined above to serve as example):</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true"></a><span class="ot">emptyPerson ::</span> <span class="dt">Person</span> <span class="dt">Maybe</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true"></a>emptyPerson <span class="ot">=</span> <span class="dt">Person</span> <span class="dt">Nothing</span> <span class="dt">Nothing</span></span></code></pre></div>
+<p>or with a use of <code>Monoid</code> and <code>mempty</code>. <code>emptyPerson</code> could be defined in a generic way as well (see <a href="https://hackage.haskell.org/package/hkd-default">_add_blank_target hkd-default</a>).</p>
+<p>Say, your code cares about <code>pAge</code> only, you can just set <code>pAge</code>:</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true"></a><span class="ot">isDrinkingAge ::</span> <span class="dt">Person</span> <span class="dt">Identity</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true"></a>isDrinkingAge p <span class="ot">=</span> runIdentity (pAge p) <span class="op">&gt;=</span> <span class="dv">21</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true"></a></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true"></a>test10YearOld <span class="ot">=</span> emptyPerson {pAge <span class="ot">=</span> <span class="dt">Identity</span> <span class="dv">10</span>}</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true"></a>test <span class="ot">=</span> isDrinkinAge test10YearOld</span></code></pre></div>
+<p>I do not like this approach. It feels like a poorly typed code.</p>
+<p>It also reminds me of <code>null</code> and hence the <em>Java Bean</em> title. (<a href="https://stackoverflow.com/questions/1612334/difference-between-dto-vo-pojo-javabeans">_add_blank_target Java Bean</a>, was a popular pattern in Java ecosystem, a <em>Bean</em> needs to have an empty constructor, a <em>setter</em> / <em>getter</em> method for each field. <em>null</em> fields can be considered as a code reuse mechanism: programs need fewer “classes” of “objects” if some fields can be left as <em>null</em>.)</p>
+<p>An easy improvement would be to create <code>Age</code> type</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true"></a><span class="kw">newtype</span> <span class="dt">Age</span> <span class="ot">=</span> <span class="dt">Age</span> <span class="dt">Int</span> </span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true"></a></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Person&#39;&#39;</span> f <span class="ot">=</span> <span class="dt">Person&#39;&#39;</span> { </span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true"></a>  <span class="op">...</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true"></a>  ,<span class="ot"> pAge&#39;&#39;  ::</span> f <span class="dt">Age</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true"></a>  <span class="co">-- imagine a lot more fields here</span></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true"></a>  } </span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true"></a></span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true"></a><span class="ot">isDrinkingAge&#39; ::</span> <span class="dt">Age</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span></span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true"></a>isDrinkingAge&#39; (<span class="dt">Age</span> a) <span class="ot">=</span> a <span class="op">&gt;=</span> <span class="dv">21</span></span></code></pre></div>
+<p>If we feel strongly about checking age on the <code>Person</code> type, we can use Haskell’s ability to program with polymorphic fields:</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true"></a><span class="ot">{-## LANGUAGE TypeApplications ##-}</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true"></a><span class="ot">{-## LANGUAGE DataKinds ##-}</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true"></a><span class="ot">{-## LANGUAGE FlexibleContexts ##-}</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true"></a><span class="ot">{-## LANGUAGE DuplicateRecordFields ##-}</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true"></a></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">GHC.Records</span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true"></a></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true"></a><span class="ot">isDrinkingAge ::</span> <span class="dt">HasField</span> <span class="st">&quot;pAge&quot;</span> p (<span class="dt">Identity</span> <span class="dt">Int</span>) <span class="ot">=&gt;</span> p <span class="ot">-&gt;</span> <span class="dt">Bool</span></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true"></a>isDrinkingAge p <span class="ot">=</span> runIdentity (getField <span class="op">@</span> <span class="st">&quot;pAge&quot;</span> p) <span class="op">&gt;=</span> <span class="dv">21</span></span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true"></a></span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true"></a><span class="kw">newtype</span> <span class="dt">AgeTest</span> <span class="ot">=</span> <span class="dt">AgeTest</span> {<span class="ot"> pAge ::</span> <span class="dt">Identity</span> <span class="dt">Int</span>}</span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true"></a></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true"></a>test40YearOld <span class="ot">=</span> isDrinkingAge <span class="op">$</span> <span class="dt">AgeTest</span> (<span class="dt">Identity</span> <span class="dv">40</span>)</span></code></pre></div>
+<p>IMO creating record types with lots of <code>Maybe</code> fields for the benefit of easy construction is not a good pattern.</p>
+<h3 id="maybe-first-monoid-fields"><em>Maybe-First</em> <code>Monoid</code> fields</h3>
+<p><code>Maybe (First _)</code> is a valid <code>Monoid</code>.<br />
+Using Maybe-First semantics, <code>mappend</code> selects the first non-<code>Nothing</code> element. Appending can be implemented as:</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Data.Semigroup</span> (<span class="dt">First</span> (..))</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true"></a></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true"></a>a <span class="op">&lt;&gt;</span> b <span class="ot">=</span> <span class="fu">fmap</span> getFirst <span class="op">$</span> <span class="fu">fmap</span> <span class="dt">First</span> a <span class="op">&lt;&gt;</span> <span class="fu">fmap</span> <span class="dt">First</span> b</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true"></a></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true"></a><span class="co">-- or in more &quot;elemenary&quot; way as:</span></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true"></a></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true"></a><span class="dt">Nothing</span> <span class="op">&lt;&gt;</span> b <span class="ot">=</span> b</span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true"></a>a <span class="op">&lt;&gt;</span> <span class="dt">Nothing</span> <span class="ot">=</span> a</span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true"></a>a <span class="op">&lt;&gt;</span> b <span class="ot">=</span> a</span></code></pre></div>
+<p>You can use this approach on each field to define <code>Monoid</code> instances for large record types that consist of <code>Maybe</code> fields.<br />
+This pattern provides a convenient defaulting mechanism and allows to set groups of fields at once using <code>mappend</code>.</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true"></a>overrides <span class="op">&lt;&gt;</span> record</span></code></pre></div>
+<p>This approach can also result in very weird data combinations if one is not careful:</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true"></a>gd <span class="ot">=</span> (<span class="fu">mempty</span><span class="ot"> ::</span> <span class="dt">Person</span> <span class="dt">Maybe</span>) {pName <span class="ot">=</span> <span class="st">&quot;grandpa&quot;</span>} <span class="co">-- missing age</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true"></a>baby <span class="ot">=</span> (<span class="fu">mempty</span><span class="ot"> ::</span> <span class="dt">Person</span> <span class="dt">Maybe</span>) {pName <span class="ot">=</span> <span class="dt">Just</span> <span class="st">&quot;baby&quot;</span>, pAge <span class="ot">=</span> <span class="dt">Just</span> <span class="dv">1</span>} </span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true"></a></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true"></a>grampatoddler <span class="ot">=</span> gd <span class="op">&lt;&gt;</span> baby <span class="co">-- it is easy to create surprising data</span></span></code></pre></div>
+<p>The reverse: <code>First (Maybe _)</code> <code>Monoid</code> instance is far less convenient to use but is much less surprising.</p>
+<p>I do not think that <code>Maybe-First</code> <code>Monoid</code> is necessarily bad. There is simply a trade-off between the conveniences it offers and its gotchas. I prefer designs that provide more safety over accidental bugs.</p>
+<h3 id="alternative-typeclass"><code>Alternative</code> typeclass</h3>
+<p><code>Alternaive</code> <code>(&lt;|&gt;)</code> is very convenient tool often used with parsers. It can be dangerous on its own merit.<br />
+For example, consider code like this:</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true"></a>secificComputation <span class="op">&lt;|&gt;</span> bestEffortComputation</span></code></pre></div>
+<p>The specs may change and you will never learn that <code>secificComputation</code> no longer works because <code>bestEffortComputation</code> effectively hides the issue.<br />
+IMO maintainable code using <code>&lt;|&gt;</code> should avoid including “catch all” elements.</p>
+<p>The main concern about <code>&lt;|&gt;</code> is that it can silence errors in your code that you would benefit from knowing about (a real-world maintainer experience).<br />
+Paraphrasing Prachett’s Granny Weatherwax: it is not about the code you want, it is about the code you need.</p>
+<p>There is currently no <code>Alternative</code> instance for <code>Either err</code> but there is one for <code>Maybe</code>. This creates temptation to <code>unExplain</code> the <code>err</code> …<br />
+If you are using it with <code>Maybe</code>, then you do not care about the error anyway.</p>
+<h2 id="good-uses-of-maybe">Good uses of Maybe</h2>
+<p>I think the following old design principle (Postel’s law) is still valid (on the implementation side)</p>
+<p><em>Lenient input, Strict Output</em>.</p>
+<p>This means <code>Maybe</code> is great as input parameter, less so in the result. The above <em>Error Clarity Rule</em> should be the overriding factor here. If the call-site can disambiguate what <code>Nothing</code> is, then <code>Maybe</code> results are fine.</p>
+<p>In particular, <em>prisms</em> are typically used on not nested coproducts, thus, the call-site can disambiguate at which level the pattern match failed. <code>lookup</code> in <code>Data.Map</code>, <code>find</code> for a <code>Foldabe</code> are all perfectly good choices for a <code>Maybe</code> result type.</p>
+<h2 id="why-maybe-is-overused-possible-explanations">Why <code>Maybe</code> is Overused? Possible Explanations</h2>
+<p>IMO these are the main causes of the overuse:</p>
+<ol type="1">
+<li><p>Using <code>Maybe</code> is simpler that <code>Either</code>. If doing the right thing takes more time and effort it will often not be done.</p></li>
+<li><p>Coding with <code>Maybe</code> is terser. Coding with <code>Maybe</code> may, thus, seem more elegant.</p></li>
+<li><p><code>Maybe</code> is more expressive. Examples: <code>Alternative</code> instance; to use <code>Monad</code>, <code>Applicative</code> with <code>Either err</code> you need to unify on the <code>err</code> type which is extra work.</p></li>
+<li><p>Sophisticated abstractions can obscure common sense. <code>Maybe</code> is likely to fit the abstraction more often and easier than <code>Either</code>.</p></li>
+</ol>
+<p>Oversimplifications are nothing new in mathematical modeling. Anyone who studied, for example, mathematical physics has seen a lot of hair raisingly scary oversimplifications. Code design appears not that different.</p>
+<ol start="5" type="1">
+<li><p>Non production code. Lots of Haskell code is about CS research. Lots of Haskell code is about pet projects. Such code does not need to be maintained in production. <code>Maybe</code> is good enough.</p></li>
+<li><p>Developer can disambiguate the reason for <code>Nothing</code> so <code>Either</code> is redundant. This is not an overuse case and is justified.</p></li>
+</ol>
+<p>I started with link to <a href="https://www.michaelpj.com/blog/2021/01/02/elementary-programming.html">_add_blank_target Elementary Programming</a> post and want to end with it. Would more explicit “elementary” programs help in spotting obvious things like error information loss? I think they could. Starting from requirements and going back to most elementary solution would probably never arrive at:</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true"></a><span class="ot">mapMaybe ::</span> (a <span class="ot">-&gt;</span> <span class="dt">Maybe</span> b) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> <span class="dt">Maybe</span> [b]</span></code></pre></div>
+<p>if the requirements cared about errors. I am not necessarily advocating for avoiding abstractions, just for not forgetting about errors on the way. Don’t throw the baby out with the bathwater</p>
+<p>I am sure I do not have a full understanding of why and how <code>Maybe</code> is overused. The intent of this post is to try to start a discussion.</p>
+<p>Discussion links:</p>
+<ul>
+<li>github <a href="https://github.com/rpeszek/rpeszek.github.io/discussions">_add_blank_target discussions</a></li>
+<li>reddit - TODO</li>
+</ul>
+    </section>
+</article>
+]]></description>
+    <pubDate>Sat, 16 Jan 2021 00:00:00 UT</pubDate>
+    <guid>https://rpeszek.github.io//posts/2021-01-16-maybe-harmful.html</guid>
+    <dc:creator>Robert Peszek</dc:creator>
+</item>
+<item>
+    <title>Why I stopped "Opinions and Programming" blog</title>
+    <link>https://rpeszek.github.io//posts/2021-01-10-OldBlog.html</link>
+    <description><![CDATA[<article>
+    <section class="header">
+        Posted on January 10, 2021
+        
+            by Robert Peszek
+        
+    </section>
+    <section>
+        <p>I used to blog here: <a href="http://rpeszek.blogspot.com/">_add_blank_target Opinions and Programming</a>.</p>
+<p>My most read blogs were the <em>I don’t like Hibernate and Grails</em> series. It presented some lessons learned from using Grails in anger. Here are the direct links: the series started with <a href="http://rpeszek.blogspot.com/2014/08/i-dont-like-hibernate-and-grails-part-1.html">_add_blank_target Part 1</a> and ended with <a href="http://rpeszek.blogspot.com/2014/10/i-dont-like-hibernategrails-part-11_31.html">_add_blank_target Part 11</a>. This series topped the list of most read Groovy language blogs (according to <a href="http://groovyblogs.org">_add_blank_target groovyblogs.org</a>) for several months back in 2014.</p>
+<p><em>Opinions and Programming</em> site commemorates my programming journey and my fascination with functional programming. Includes my old posts about <a href="https://github.com/rpeszek/fpiglet">_add_blank_target <em>figlet</em></a> (functional programming library I wrote for Groovy) staring from <a href="http://rpeszek.blogspot.com/2013/06/making-groovy-more-functional-fpiglet.html">_add_blank_target this old post</a> to <a href="http://rpeszek.blogspot.com/2013/08/monadic-comprehensions-in-groovy-and.html">_add_blank_target Monadic Comprehensions in Groovy/Fpiglet</a>. Functional programming never caught on in Groovy, <em>fpiglet</em> was one of the first attempts. I also done functional side trips like a <a href="http://rpeszek.blogspot.com/2013/10/functional-groovy-y-combinator-learning.html">_add_blank_target Groovy take on Y-combinator</a>.</p>
+<p>More recent blogs were more and more focused on Haskell. I have stopped contributing to this blog in 2017. There are many excellent Haskell blogs out there already.</p>
+<p>Looking at stats for these blogs was a very interesting exercise. The stats for FP posts were very poor. The difference in number of views between my posts related to mainstream Groovy/Grails and my posts related to functional programming was 10X or bigger. Functional programming remains a niche part within the programming profession. Any estimates I have seen about mainstream vs functional programming jobs show FP to be less than 1% of job market. I believe spamming bots and accidental hits were the reasons why I have seen only a 10X reduction in number of viewer visits. Whatever the actual stats were, the small viewership contributed to my decision to stop blogging.</p>
+<p>Playing with code is so much more fun that writing about it. But I still settled on a hybrid. I switched to literate Haskell programs and deployed these as <em>wiki</em> pages on my github projects:<br />
+<a href="https://github.com/rpeszek/notes-milewski-ctfp-hs/wiki">_add_blank_target Milewski’s Category Theory for Programmers notes</a><br />
+<a href="https://github.com/rpeszek/IdrisTddNotes/wiki">_add_blank_target Idris TTD book notes</a>.<br />
+These seemed better than blog to me. The wiki introduction to my CTFP notes ended up copied on the old blog site <a href="http://rpeszek.blogspot.com/2018/02/">_add_blank_target Why read CPFP?</a> but it was just a pandoc copy of the corresponding wiki page.</p>
+<p>I still have occasional need to vent my technical thoughts and concerns. For this reason I decided to move my blog here, closer to my github pet projects.</p>
+    </section>
+</article>
+]]></description>
+    <pubDate>Sun, 10 Jan 2021 00:00:00 UT</pubDate>
+    <guid>https://rpeszek.github.io//posts/2021-01-10-OldBlog.html</guid>
+    <dc:creator>Robert Peszek</dc:creator>
+</item>
+
+    </channel>
+</rss>
