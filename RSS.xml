@@ -7,20 +7,19 @@
         <description><![CDATA[Infrequent, Pragmatic, Lambda Blog Feed]]></description>
         <atom:link href="https://rpeszek.github.io//RSS.xml" rel="self"
                    type="application/rss+xml" />
-        <lastBuildDate>Sat, 16 Jan 2021 00:00:00 UT</lastBuildDate>
+        <lastBuildDate>Sun, 17 Jan 2021 00:00:00 UT</lastBuildDate>
         <item>
-    <title>Maybe Considered Harmful</title>
-    <link>https://rpeszek.github.io//posts/2021-01-16-maybe-harmful.html</link>
+    <title>Maybe Overuse, Stories About Error Information Loss</title>
+    <link>https://rpeszek.github.io//posts/2021-01-17-maybe-overuse.html</link>
     <description><![CDATA[<article>
     <section class="header">
-        Posted on January 16, 2021
+        Posted on January 17, 2021
         
             by Robert Peszek
         
     </section>
     <section>
-        <p><strong>… or stories about error information loss </strong></p>
-<h4 id="motivating-references">Motivating References:</h4>
+        <h4 id="motivating-references">Motivating References:</h4>
 <p>I was very happy to find Michael Snoyman’s <a href="https://www.snoyman.com/blog/2020/10/haskell-bad-parts-1/">_add_blank_target Haskell The Bad Parts</a> series.<br />
 I was also motivated by <a href="https://www.michaelpj.com/blog/2021/01/02/elementary-programming.html">_add_blank_target Elementary Programming</a> post (<a href="https://www.reddit.com/r/haskell/comments/kst0d3/elementary_programming/">_add_blank_target reddit</a>).</p>
 <p><strong>Similar:</strong> <a href="https://www.reddit.com/r/haskell/comments/jxj8i/data_maybe_harmful/">_add_blank_target reddit data_maybe_harmful</a></p>
@@ -315,6 +314,26 @@ I do not advocate avoiding abstractions, just do not forget errors on the way. D
 <li>github <a href="https://github.com/rpeszek/rpeszek.github.io/discussions">_add_blank_target discussions</a></li>
 <li><a href="https://www.reddit.com/r/haskell/comments/kyo4xk/maybe_considered_harmful/">_add_blank_target reddit</a></li>
 </ul>
+    </section>
+</article>
+]]></description>
+    <pubDate>Sun, 17 Jan 2021 00:00:00 UT</pubDate>
+    <guid>https://rpeszek.github.io//posts/2021-01-17-maybe-overuse.html</guid>
+    <dc:creator>Robert Peszek</dc:creator>
+</item>
+<item>
+    <title>Maybe Considered Harmful (deleted)</title>
+    <link>https://rpeszek.github.io//posts/2021-01-16-maybe-harmful.html</link>
+    <description><![CDATA[<article>
+    <section class="header">
+        Posted on January 16, 2021
+        
+            by Robert Peszek
+        
+    </section>
+    <section>
+        <p><strong>… or stories about error information loss </strong></p>
+<p>Due to the negative reaction to the title (<a href="https://www.reddit.com/r/haskell/comments/kyo4xk/maybe_considered_harmful/gji0235?utm_source=share&amp;utm_medium=web2x&amp;context=3">_add_blank_target reddit</a>) this has been re-posted as <a href="/posts/2021-01-17-maybe-overuse.html">Maybe Overuse, Stories About Error Information Loss</a>.</p>
     </section>
 </article>
 ]]></description>
