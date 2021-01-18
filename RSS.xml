@@ -17,6 +17,15 @@
         
             by Robert Peszek
         
+        
+          <br /> Last Modified on January 18, 2021
+        
+        
+        <div class="changelog"> <div>Revision History: <ul> <li> (Jan 18, 2021) Added <a href="#monadfail-and-maybe">MonadFail</a> subsection to <a href="#maybe-on-hackage">Maybe on Hackage</a></li> </ul> </div></div>
+        
+    </section>
+    <section>
+
     </section>
     <section>
         <div class="toc"><div class="header">Table of Contents</div>
@@ -34,8 +43,8 @@
 <ul>
 <li><a href="#recreating-java-beans-with-maybe">Recreating <em>Java Beans</em> with <code>Maybe</code> ;)</a></li>
 <li><a href="#maybe-first-monoid-fields"><em>Maybe-First</em> <code>Monoid</code> fields</a></li>
-<li><a href="#alternative-typeclass"><code>Alternative</code> typeclass</a></li>
 </ul></li>
+<li><a href="#alternative-typeclass"><code>Alternative</code> typeclass</a></li>
 <li><a href="#good-uses-of-maybe">Good uses of Maybe</a></li>
 <li><a href="#why-maybe-is-overused-possible-explanations">Why <code>Maybe</code> is Overused? Possible Explanations</a></li>
 </ul>
@@ -108,6 +117,7 @@ The bigger the record, the bigger the problem.</p>
 <h2 id="harmful-real-world-examples">Harmful Real-World Examples</h2>
 <p>These are in no particular order, other than this presentation reuses types defined earlier.</p>
 <h3 id="maybe-on-hackage"><code>Maybe</code> on Hackage</h3>
+<h4 id="servant-multipart-example"><em>servant-multipart</em> example:</h4>
 <p>If you used older versions of <a href="https://hackage.haskell.org/package/servant-multipart" target="_blank">servant-multipart</a> you are familiar with</p>
 <p><em>status code 400, message “fromMultipart returned Nothing”</em>.</p>
 <p>You must have noticed that your logs have been silent as well.<br />
@@ -150,6 +160,16 @@ For a more complex multipart form that implements both <code>FromMultipart</code
 </ul>
 </blockquote>
 <p>Overuse of <code>mzero</code> in parsing code is as bad as the overuse of <code>Maybe</code>.</p>
+<h4 id="monadfail-and-maybe"><code>MonadFail</code> and <code>Maybe</code>:</h4>
+<p>Number of packages try to be polymorphic and use <code>MonadFail</code> constraint to provide information about unexpected errors (e.g. <em>time</em>, <em>mongoDB</em>). Sadly <em>base</em> provides no standard way to retrieve this information. The <a href="https://gitlab.haskell.org/ghc/ghc/-/issues/12160" target="_blank">ticket</a> to add <code>Either String</code> instance is a no-go for now.</p>
+<p>The packages who use <code>MonadFail</code> do not offer convenience <code>MonadFail</code> monads either. It seems wrong and asymmetric to force the caller to define type for retrieving error information.</p>
+<p>But <code>MonadFail</code> has <code>Maybe</code> instance! I strongly believe in <em>make writing good code easy, bad code hard</em> design principle. This is clearly violated here.</p>
+<p>Also, notice this part of documentation (in <em>base</em> Control.Monad.Fail):</p>
+<blockquote>
+<p>If your Monad is also MonadPlus, a popular definition is</p>
+<p><code>fail _ = mzero</code></p>
+</blockquote>
+<p><em>(quiet sob)</em></p>
 <h3 id="cut-catmaybes">Cut <code>catMaybes</code></h3>
 <p>Replacing</p>
 <div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true"></a><span class="ot">catMaybes ::</span> [<span class="dt">Maybe</span> a] <span class="ot">-&gt;</span> [a]</span></code></pre></div>
@@ -304,7 +324,7 @@ This pattern provides a convenient defaulting mechanism and allows to set groups
 <span id="cb26-4"><a href="#cb26-4" aria-hidden="true"></a>grampatoddler <span class="ot">=</span> gd <span class="op">&lt;&gt;</span> baby <span class="co">-- it is easy to create surprising data</span></span></code></pre></div>
 <p>The reverse: <code>First (Maybe _)</code> <code>Monoid</code> instance is far less convenient to use but is much less surprising.</p>
 <p>I do not think that <code>Maybe-First</code> <code>Monoid</code> is necessarily bad. There is simply a trade-off between the conveniences it offers and its gotchas. I prefer designs that provide more safety over accidental bugs.</p>
-<h3 id="alternative-typeclass"><code>Alternative</code> typeclass</h3>
+<h2 id="alternative-typeclass"><code>Alternative</code> typeclass</h2>
 <p><code>Alternaive</code> <code>(&lt;|&gt;)</code> is very convenient tool often used with parsers. It can be dangerous on its own merit. It can suppress error information in questionable ways if overused.</p>
 <p>There is currently no <code>Alternative</code> instance for <code>Either err</code> but there is one for <code>Maybe</code>. This creates temptation to <code>unExplain</code> the <code>err</code> …</p>
 <h2 id="good-uses-of-maybe">Good uses of Maybe</h2>
@@ -352,6 +372,11 @@ I do not advocate avoiding abstractions, just do not forget errors on the way. D
         
             by Robert Peszek
         
+        
+        
+    </section>
+    <section>
+
     </section>
     <section>
         <p><strong>… or stories about error information loss </strong></p>
@@ -372,6 +397,11 @@ I do not advocate avoiding abstractions, just do not forget errors on the way. D
         
             by Robert Peszek
         
+        
+        
+    </section>
+    <section>
+
     </section>
     <section>
         <p>I used to blog here: <a href="http://rpeszek.blogspot.com/" target="_blank">Opinions and Programming</a>.</p>
