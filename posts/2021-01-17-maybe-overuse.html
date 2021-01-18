@@ -11,6 +11,7 @@
         <link rel="alternate" type="application/rss+xml" href="/RSS.xml" title="rss"/> -->
         <link rel="stylesheet" href="../css/default.css" />
         <link rel="stylesheet" href="../css/syntax.css" /> 
+        
     </head>
     <body>
         <header>
@@ -38,12 +39,33 @@
         
     </section>
     <section>
-        <h4 id="motivating-references">Motivating References:</h4>
+        <div class="toc"><div class="header">Table of Contents</div>
+<ul>
+<li><a href="#nutshell">Nutshell</a></li>
+<li><a href="#error-clarity-rule">Error Clarity Rule</a></li>
+<li><a href="#harmful-real-world-examples">Harmful Real-World Examples</a>
+<ul>
+<li><a href="#maybe-on-hackage"><code>Maybe</code> on Hackage</a></li>
+<li><a href="#cut-catmaybes">Cut <code>catMaybes</code></a></li>
+<li><a href="#hkd-pattern">HKD pattern</a></li>
+<li><a href="#traversable-with-maybe"><code>Traversable</code> with <code>Maybe</code></a></li>
+</ul></li>
+<li><a href="#questioning-record-types-with-all-maybe-fields">Questioning Record Types with all <code>Maybe</code> Fields</a>
+<ul>
+<li><a href="#recreating-java-beans-with-maybe">Recreating <em>Java Beans</em> with <code>Maybe</code> ;)</a></li>
+<li><a href="#maybe-first-monoid-fields"><em>Maybe-First</em> <code>Monoid</code> fields</a></li>
+<li><a href="#alternative-typeclass"><code>Alternative</code> typeclass</a></li>
+</ul></li>
+<li><a href="#good-uses-of-maybe">Good uses of Maybe</a></li>
+<li><a href="#why-maybe-is-overused-possible-explanations">Why <code>Maybe</code> is Overused? Possible Explanations</a></li>
+</ul>
+</div>
+<h4 id="motivating-references">Motivating References:</h4>
 <p>I was very happy to find Michael Snoyman’s <a href="https://www.snoyman.com/blog/2020/10/haskell-bad-parts-1/" target="_blank">Haskell The Bad Parts</a> series.<br />
 I was also motivated by <a href="https://www.michaelpj.com/blog/2021/01/02/elementary-programming.html" target="_blank">Elementary Programming</a> post (<a href="https://www.reddit.com/r/haskell/comments/kst0d3/elementary_programming/" target="_blank">reddit</a>).</p>
 <p><strong>Similar:</strong> <a href="https://www.reddit.com/r/haskell/comments/jxj8i/data_maybe_harmful/" target="_blank">reddit data_maybe_harmful</a></p>
 <p>This post is Haskell specific.<br />
-This post treats the term error colloquially, it does not try to distinguish between <a href="https://wiki.haskell.org/Error_vs._Exception" target="_blank"><em>exceptions</em> and <em>errors</em></a>. I particular, the term <em>error information</em> is used here to mean the content of <code>err</code> in <code>Either err</code>.</p>
+This post treats the term error colloquially, it does not distinguish between <a href="https://wiki.haskell.org/Error_vs._Exception" target="_blank"><em>exceptions</em> and <em>errors</em></a>. In particular, <em>error information loss</em> refers to exceptions not errors.</p>
 <h2 id="nutshell">Nutshell</h2>
 <p><code>Maybe</code> is the functional answer to <code>null</code> - the <a href="https://en.wikipedia.org/wiki/Tony_Hoare" target="_blank">billion dollar mistake</a>. I claim that using <code>Maybe</code> can still be problematic.</p>
 <p>IMO <code>Maybe</code> is often overused. I have started to question the use of <code>Maybe</code> every time I see it in the code base I maintain. The result is either accepting its usage or rewriting the code to use <code>Either</code>. This approach has been effective in creating more robust code. I am not claiming that <code>Maybe</code> has no place in a well written code, only that its use should be closely examined. I have seen brilliant code that has been hard to maintain because of its overuse of <code>Maybe</code>. This post shares a perspective of someone who maintains a complex Haskell code base.</p>
@@ -333,6 +355,7 @@ I do not advocate avoiding abstractions, just do not forget errors on the way. D
 <li>github <a href="https://github.com/rpeszek/rpeszek.github.io/discussions" target="_blank">discussions</a></li>
 <li><a href="https://www.reddit.com/r/haskell/comments/kyo4xk/maybe_considered_harmful/" target="_blank">reddit</a></li>
 </ul>
+
     </section>
 </article>
 
