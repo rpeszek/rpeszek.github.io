@@ -182,7 +182,7 @@ For a more complex multipart form that implements both <code>FromMultipart</code
 <p>Overuse of <code>mzero</code> in parsing code is as bad as the overuse of <code>Maybe</code>.</p>
 <h4 id="monadfail-and-maybe"><code>MonadFail</code> and <code>Maybe</code>:</h4>
 <p>Number of packages try to be polymorphic and use <code>MonadFail</code> constraint to provide information about unexpected errors (e.g. <em>time</em>, <em>mongoDB</em>). Sadly <em>base</em> provides no standard way to retrieve this information. The <a href="https://gitlab.haskell.org/ghc/ghc/-/issues/12160" target="_blank">ticket</a> to add <code>Either String</code> instance is a no-go for now.</p>
-<p>The packages who use <code>MonadFail</code> do not offer convenience <code>MonadFail</code> monads either. It seems wrong and asymmetric to force the caller to define type for retrieving error information.</p>
+<p>The packages which use <code>MonadFail</code> do not offer convenience <code>MonadFail</code> monads either. It seems wrong and asymmetric to force the caller to define their type for retrieving error information.</p>
 <p>But <code>MonadFail</code> has <code>Maybe</code> instance! I strongly believe in <em>make writing good code easy, bad code hard</em> design principle. This is clearly violated here.</p>
 <p>Also, notice this part of documentation (in <em>base</em> Control.Monad.Fail):</p>
 <blockquote>
