@@ -8,8 +8,420 @@
         <name>Robert Peszek</name>
         <email>rpeszek.io@gmail.com</email>
     </author>
-    <updated>2021-01-17T00:00:00Z</updated>
+    <updated>2021-02-13T00:00:00Z</updated>
     <entry>
+    <title>Is Alternative a Wrong Abstraction for Handling Failures?</title>
+    <link href="https://rpeszek.github.io//posts/2021-02-13-alternative.html" />
+    <id>https://rpeszek.github.io//posts/2021-02-13-alternative.html</id>
+    <published>2021-02-13T00:00:00Z</published>
+    <updated>2021-02-13T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<article>
+    <section class="header">
+        Posted on February 13, 2021
+        
+            by Robert Peszek
+        
+        
+        
+        
+        <div class="info">Tags: <a title="All pages tagged 'Haskell'." href="../tags/Haskell.html">Haskell</a>, <a title="All pages tagged 'Maintainability'." href="../tags/Maintainability.html">Maintainability</a>, <a title="All pages tagged 'Correctness'." href="../tags/Correctness.html">Correctness</a>, <a title="All pages tagged 'GeneralFunctionalProgramming'." href="../tags/GeneralFunctionalProgramming.html">GeneralFunctionalProgramming</a></div>
+        
+    </section>
+    <section>
+
+    </section>
+    <section>
+        <div class="toc"><div class="header">Table of Contents</div>
+<ul>
+<li><a href="#nutshell">Nutshell</a></li>
+<li><a href="#pessimists-intro-to-alternative">Pessimist’s Intro to <code>Alternative</code></a></li>
+<li><a href="#alternative-laws-pessimistically">Alternative Laws, Pessimistically</a></li>
+<li><a href="#real-world-alternative-optimism-with-experience">Real-World <code>Alternative</code> (Optimism with Experience)</a>
+<ul>
+<li><a href="#failure-at-the-end">Failure at the end</a></li>
+<li><a href="#permissive-computation-at-the-end">Permissive computation at the end</a></li>
+</ul></li>
+<li><a href="#pessimistic-instances">Pessimistic Instances</a>
+<ul>
+<li><a href="#either-e-a"><code>Either [e] a</code></a></li>
+<li><a href="#a-decent-blueprint-either-e-e-a">A Decent Blueprint: <code>Either [e] ([e], a)</code></a></li>
+<li><a href="#code-example">Code Example</a></li>
+<li><a href="#extending-either-e-e-a">Extending <code>Either [e] ([e], a)</code></a></li>
+</ul></li>
+<li><a href="#rethinking-the-typeclass-itself">Rethinking the Typeclass Itself</a></li>
+<li><a href="#alternative-beyond-parsing"><code>Alternative</code> Beyond Parsing</a></li>
+<li><a href="#relevant-work-on-hackage">Relevant work on Hackage</a></li>
+<li><a href="#conclusions-thoughts">Conclusions, Thoughts</a></li>
+</ul>
+</div>
+<p><strong><em>subtitle:</em> A Constructive <del>Criticism</del> Pessimism about the Alternative Typeclass</strong></p>
+<p>Code for this project can be found in my <a href="https://github.com/rpeszek/experiments" target="_blank">experiments</a> repo (<a href="https://github.com/rpeszek/experiments/tree/master/alternative" target="_blank">alternative</a> folder).<br />
+This is my second post dedicated to the <em>error information loss</em> in Haskell (the first was about <a href="https://rpeszek.github.io/posts/2021-01-17-maybe-overuse.html" target="_blank">Maybe Overuse</a>).</p>
+<h2 id="nutshell">Nutshell</h2>
+<p><code>Alternative</code> is a popular functional programming concept and the name of a frequently used Haskell typeclass. <code>Alternative</code> helps in writing elegant, concise code. <code>Alternative</code> instances are also known for producing confusing errors. In this post, we do a deep dive into the alternative thinking only about the errors.</p>
+<p>I realized that there is an interesting connection between <code>Alternative</code> and optimism:<br />
+Thinking about <em>the glass being half empty or half full</em>, look at this computation: <code>a &lt;|&gt; b</code> and assume that <code>a</code> fails and <code>b</code> succeeds.<br />
+<em>A half empty glass</em> makes us think about the failure of <code>a</code>:<br />
+<em>Why</em> did <code>a</code> fail?<br />
+Would it not be better if some <code>a</code> failures caused the whole computation to fail?…<br />
+<em>A half full glass</em> makes us ignore the failure and focus on <code>b</code>… this is exactly the semantics of <code>&lt;|&gt;</code>.<br />
+A half full glass is not what you always want.</p>
+<p>My goal is to consider the <code>Alternative</code> typeclass, its laws, and its instances from the point of view of the errors. This “pessimistic” viewpoint yields an interesting prospective on the use of <code>Alternative</code> and on its limitations.<br />
+My second goal is to show a useful instance that is missing in the standard library and is different from the instances I have found in Hackage. This instances is pessimistically constructed to preserve the failure information.<br />
+My third goal is to briefly consider a possibility of rethinking the <code>Alternative</code> typeclass itself.</p>
+<p>This is a long post. You may prefer to pick a section you consider interesting and backtrack from it. The information is largely self-contained (except for referring to the laws).</p>
+<p>I am using the term <em>error</em> colloquially, the correct term is <em>exception</em>. <em>Exception information loss</em> just does not have a ring to it.</p>
+<h2 id="pessimists-intro-to-alternative">Pessimist’s Intro to <code>Alternative</code></h2>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">class</span> <span class="dt">Applicative</span> f <span class="ot">=&gt;</span> <span class="dt">Alternative</span> f <span class="kw">where</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a><span class="ot">  empty ::</span> f a</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a><span class="ot">  (&lt;|&gt;) ::</span> f a <span class="ot">-&gt;</span> f a <span class="ot">-&gt;</span> f a</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a><span class="ot">  some ::</span> f a <span class="ot">-&gt;</span> f [a] <span class="co">-- optional</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a><span class="ot">  many ::</span> f a <span class="ot">-&gt;</span> f [a] <span class="co">-- optional</span></span></code></pre></div>
+<p><em>Optimist, First Look</em>:</p>
+<ul>
+<li><code>empty</code> typically represents a failed computation</li>
+<li><code>(&lt;|&gt;)</code> combines 2 alternatives returning one that is successful. The most common approach is to return the left-to-right first success. This is called left-bias, I like to think about it as <em>right-catch semantics</em>.</li>
+<li><code>some</code> and <code>many</code> run the computation until first failure and return the successful results, <code>some</code> expects at least one success, otherwise it will fail. <code>some</code> and <code>many</code> are a nod towards parsers or other computations that change state. <code>some</code> and <code>many</code> are likely to yield bottom (e.g. <code>many (Just 1)</code> does not terminate).</li>
+</ul>
+<p><code>Alternative</code> is the <code>Monoid</code> for the <code>* -&gt; *</code> types, <code>empty</code> representing <code>mempty</code> and <code>&lt;|&gt;</code> representing <code>mappend</code>. This equivalence is “witnessed” by the <a href="https://hackage.haskell.org/package/base-4.14.1.0/docs/Data-Monoid.html#t:Alt" target="_blank"><code>Data.Monoid.Alt</code></a> monoid instance. The left-bias semantics is equivalent to the <a href="https://hackage.haskell.org/package/base-4.14.1.0/docs/Data-Monoid.html#t:First." target="_blank"><code>Data.Monoid.First</code></a> monoid.</p>
+<p>The definition of <code>Alternative</code> begs this question: Why the <code>Applicative</code> superclass? As far as I know this is because the intended use of <code>empty</code> and <code>&lt;|&gt;</code> is in the applicative context. More on this later.</p>
+<p>As we know, <code>MonadPlus</code> provides a similar semantics for monads. <code>Alternative</code> and <code>MonadPlus</code> are most commonly used with parsers. You are likely to use it with <em>aeson</em>, <em>parsec</em> / <em>megaparsec</em>, <em>attoparsec</em>, etc.<br />
+In this post the focus is the <code>Alternative</code> with the typical right-catching, left-biased <code>&lt;|&gt;</code> and the examples typically use <em>attoparsec</em>.</p>
+<p><em>Pessimist, First Look</em>:</p>
+<ul>
+<li><code>empty</code> does not accept any error information. It represents a failure of some unknown reason.<br />
+I consider this problematic and an oversimplification.<br />
+Unless we introduce a zero-information (let me call it <em>noOp</em>) failure, this probably will bite.<br />
+I will leave it to you to ponder philosophical questions about <em>noOp</em> (e.g. <code>Left []</code>) failure.<br />
+What does: nothing went wrong but the computation failed mean?<br />
+</li>
+<li><code>(&lt;|&gt;)</code> semantics is unclear about error information.</li>
+<li><code>some</code> and <code>many</code> provide no error information about the failure that ended the production of the result list. I will not discuss <code>some</code> or <code>many</code> in this post.</li>
+</ul>
+<p>A somewhat popular behavior is: If all alternatives fail, then the error information comes from the last tried computation. Examples of alternatives that behave this way are: <em>attoparsec</em> <code>Parser</code>, <em>aeson</em> <code>Parser</code>, <code>IO</code>.</p>
+<p>I am not that deeply familiar with GHC internals. However, as a black box, the GHC compiler often behaves in a very similar way. For example, GHC message could indicate a problem with unifying types; it may suggest that my function needs to be applied to more arguments; … while the real issue is that I am missing a typeclass instance somewhere or something else is happening that is completely not related to the error message. From time to time, GHC will throw Haskell developers for a loop.<br />
+With many of the <code>Alternative</code> instances, we are likely to do the same to out users.</p>
+<p><strong>Side-Note:</strong> <em>parsec</em> and <em>megaparsec</em> packages implemented sophisticated ways to provide better error messages by looking at things like longest parsed path. Lack of backtracking is what makes the <em>(maga)parsec</em> <code>Parser</code> not a lawful <em>Alternative/MonadPlus</em>. The <em>megaparsec</em> haddock suggest adding <code>try</code> to improve the lawfulness. Adding <code>try</code> can mess up error messages. There appears to be an interesting pragmatic trade-off: <em>good error messages</em> vs <em>more lawful alternative behavior</em>.<br />
+A great, related, reading is: <a href="http://blog.ezyang.com/2014/05/parsec-try-a-or-b-considered-harmful/" target="_blank">Parsec: “try a &lt;|&gt; b” considered harmful</a>.</p>
+<p>A random advice from a discussion about <em>attoparsec</em> errors:</p>
+<blockquote>
+<p><em>The trick is to use the parsers library, which lets you switch out parsing backends. You can prototype with the trifecta library (which has good error messages) and then switch to attoparsec when you’re done</em></p>
+</blockquote>
+<p>(I assume that the author was thinking about parsing something, like a standard protocol, where user input cannot cause errors.)<br />
+So, this is clearly a bit of a mess and we are looking for crazy workarounds. I will delve deeper into alternative error outputs by looking at the alternative laws next.</p>
+<h2 id="alternative-laws-pessimistically">Alternative Laws, Pessimistically</h2>
+<p>The required laws (copied from <a href="https://wiki.haskell.org/Typeclassopedia#Laws_6" target="_blank">Typeclassopedia</a>, see also <a href="https://en.wikibooks.org/wiki/Haskell/Alternative_and_MonadPlus#Alternative_and_MonadPlus_laws" target="_blank">Haskell wikibooks</a>) are:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a>empty <span class="op">&lt;|&gt;</span> u  <span class="ot">=</span>  u    <span class="co">-- (1)</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a>u <span class="op">&lt;|&gt;</span> empty  <span class="ot">=</span>  u    <span class="co">-- (2)</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a>u <span class="op">&lt;|&gt;</span> (v <span class="op">&lt;|&gt;</span> w)  <span class="ot">=</span>  (u <span class="op">&lt;|&gt;</span> v) <span class="op">&lt;|&gt;</span> w  <span class="co">-- (3)</span></span></code></pre></div>
+<p>Note that these laws do not link <code>Applicative</code> and <code>Alternative</code> in any way. That happens in the following, optional, set of laws:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a>f <span class="op">&lt;*&gt;</span> empty <span class="ot">=</span> empty                        <span class="co">-- (4) Rigth Zero</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a>(a <span class="op">&lt;|&gt;</span> b) <span class="op">&lt;*&gt;</span> c <span class="ot">=</span> (a <span class="op">&lt;*&gt;</span> c) <span class="op">&lt;|&gt;</span> (b <span class="op">&lt;*&gt;</span> c)  <span class="co">-- (5) Left Distribution</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a>a <span class="op">&lt;*&gt;</span> (b <span class="op">&lt;|&gt;</span> c) <span class="ot">=</span> (a <span class="op">&lt;*&gt;</span> b) <span class="op">&lt;|&gt;</span> (a <span class="op">&lt;*&gt;</span> c)  <span class="co">-- (6) Right Distribution</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a>(<span class="fu">pure</span> a) <span class="op">&lt;|&gt;</span> x <span class="ot">=</span> <span class="fu">pure</span> a                    <span class="co">-- (7) Left catch</span></span></code></pre></div>
+<p>For example, when writing a parser you may decide to use one of these approaches:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a>p1 <span class="ot">=</span> <span class="dt">Employee</span> <span class="op">&lt;$&gt;</span> employeeIdParser <span class="op">&lt;*&gt;</span> (nameParser1 <span class="op">&lt;|&gt;</span> nameParser2)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a>p2 <span class="ot">=</span> (<span class="dt">Employee</span> <span class="op">&lt;$&gt;</span> employeeIdParser <span class="op">&lt;*&gt;</span> nameParser1) <span class="op">&lt;|&gt;</span> (<span class="dt">Employee</span> <span class="op">&lt;$&gt;</span> employeeIdParser <span class="op">&lt;*&gt;</span> nameParser2)</span></code></pre></div>
+<p>it is good to know that these approaches are equivalent.</p>
+<p>The laws are strong enough to restrict what failures can be (this is not necessarily a bad thing). For example, <em>(1)</em> and <em>(4)</em> prevent expressing the concept of a critical failure. A sane definition would be: <code>f</code> is a critical failure if <code>f &lt;|&gt; a = f</code> and <code>f &lt;*&gt; a = f</code> for any <code>a</code>.<br />
+<code>empty</code> cannot represent a critical failure because of <em>(1)</em><br />
+non-<code>empty</code> cannot represent a critical failure because of <em>(4)</em>.<br />
+Critical failures are simply not what <code>Alternative</code> is about and that is OK.</p>
+<p><em>Pessimist’s Concerns</em>:</p>
+<ul>
+<li><code>empty</code> typically represents a failure. <em>(4)</em> is problematic if you want to have other possible failures (e.g. failures with different error messages):<br />
+<code>otherFailure &lt;*&gt; empty</code> is likely to be <code>otherFailure</code> not <code>empty</code>.<br />
+<em>(1 - 3)</em> force a monoidal structure on the failure type. That seems to be overly restrictive and questionable (e.g. what is <code>empty</code> error?). A semigroup structure would make much more sense here.<br />
+</li>
+<li>Note that any instance of <code>Alternative</code> that tries to accumulate failures is likely to have a problem satisfying the distribution laws <em>(5,6)</em>, as the <em>rhs</em> combines 4 potential failures and <em>lhs</em> combines 3.<br />
+Would you expect <em>(5,6)</em> to hold in the context of a failure (e.g. parser error messages)? My answer is: I do not! Violating these laws is not necessarily a bad thing. The end result is that the programmer needs to make an explicit choice between <code>p1</code> and <code>p2</code> selecting one with the more desirable error output. The trade-off is similar to one made by the <em>monad_validate</em> package linked at the end of this article.</li>
+</ul>
+<p>Let me return to the basic laws, particularly <em>(2)</em>: <code>u &lt;|&gt; empty  =  u</code>:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Attoparsec.ByteString</span> <span class="kw">as</span> <span class="dt">A</span> </span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a><span class="ot">testSuccess ::</span> <span class="dt">A.Parser</span> a <span class="ot">-&gt;</span> <span class="dt">A.Result</span> a</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true"></a>testSuccess p <span class="ot">=</span> A.parse p <span class="st">&quot;foo&quot;</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true"></a></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true"></a><span class="ot">testFail ::</span> <span class="dt">A.Parser</span> a <span class="ot">-&gt;</span> <span class="dt">A.Result</span> a</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true"></a>testFail p <span class="ot">=</span> A.parse p <span class="st">&quot;bar&quot;</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true"></a></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true"></a>u <span class="ot">=</span> A.string <span class="st">&quot;foo&quot;</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true"></a></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true"></a>lhs <span class="ot">=</span> u <span class="op">&lt;|&gt;</span> empty</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true"></a>rhs <span class="ot">=</span> u</span></code></pre></div>
+<p>Here are the results:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a><span class="co">-- &gt;&gt;&gt; testFail lhs</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a><span class="co">-- Fail &quot;bar&quot; [] &quot;Failed reading: empty&quot;</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true"></a><span class="co">-- &gt;&gt;&gt;  testFail rhs</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true"></a><span class="co">-- Fail &quot;bar&quot; [] &quot;string&quot;</span></span></code></pre></div>
+<p>So we broke the required second law. Incidentally, we would not be able to break this law using <code>testSuccess</code>.<br />
+This should not be surprising, (1-3) imply a monoidal structure on failures and this is not what <em>attoparsec</em> does.</p>
+<p><em>attoparsec</em> gets a lot of blame for its error output. Let’s try the <code>IO</code> alternative:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a>uIO <span class="ot">=</span> <span class="fu">fail</span> <span class="st">&quot;foo&quot;</span><span class="ot"> ::</span> <span class="dt">IO</span> a</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true"></a></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true"></a>lhsIO <span class="ot">=</span> uIO <span class="op">&lt;|&gt;</span> empty</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true"></a>rhsIO <span class="ot">=</span> uIO</span></code></pre></div>
+<p>ghci:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true"></a><span class="op">&gt;&gt;&gt;</span> lhsIO</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true"></a><span class="op">***</span> <span class="dt">Exception</span><span class="op">:</span> user <span class="fu">error</span> (mzero)</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true"></a><span class="op">&gt;&gt;&gt;</span> rhsIO</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true"></a><span class="op">***</span> <span class="dt">Exception</span><span class="op">:</span> user <span class="fu">error</span> (foo)</span></code></pre></div>
+<p>We see the same issue.</p>
+<p>One way to look at this, and I believe this is how some programmers are looking at this issue, is that any failure with any error message is considered equivalent to <code>empty</code>. The laws hold if the error information is ignored. Somewhat of a downer if you care about errors.</p>
+<p><strong>Side-Note:</strong> Numerous instances of <code>Alternative</code> manage to satisfy <em>(2)</em>.<br />
+That includes <code>ExceptT</code>, the <code>Validatation</code> type listed at the end of this post. Here is the law working for ‘trifecta’</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Text.Trifecta</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true"></a>u <span class="ot">=</span> string <span class="st">&quot;foo&quot;</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true"></a>lhs <span class="ot">=</span> parseTest (u <span class="op">&lt;|&gt;</span> empty) <span class="st">&quot;bar&quot;</span><span class="ot"> ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true"></a>rhs <span class="ot">=</span> parseTest u <span class="st">&quot;bar&quot;</span><span class="ot"> ::</span> <span class="dt">IO</span> ()</span></code></pre></div>
+<p>ghci:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true"></a><span class="op">&gt;&gt;&gt;</span> lhs</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true"></a>(interactive)<span class="op">:</span><span class="dv">1</span><span class="op">:</span><span class="dv">1</span><span class="op">:</span> <span class="fu">error</span><span class="op">:</span> expected<span class="op">:</span> <span class="st">&quot;foo&quot;</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true"></a><span class="dv">1</span> <span class="op">|</span> bar<span class="op">&lt;</span><span class="dt">EOF</span><span class="op">&gt;</span> </span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true"></a>  <span class="op">|</span> <span class="op">^</span>        </span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true"></a><span class="op">&gt;&gt;&gt;</span> rhs</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true"></a>(interactive)<span class="op">:</span><span class="dv">1</span><span class="op">:</span><span class="dv">1</span><span class="op">:</span> <span class="fu">error</span><span class="op">:</span> expected<span class="op">:</span> <span class="st">&quot;foo&quot;</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true"></a><span class="dv">1</span> <span class="op">|</span> bar<span class="op">&lt;</span><span class="dt">EOF</span><span class="op">&gt;</span> </span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true"></a>  <span class="op">|</span> <span class="op">^</span>    </span></code></pre></div>
+<p>We will see the blueprint <code>Monoid</code> fix for <em>(2)</em> in the <a href="#either-e-a"><code>Either [e] a</code></a> section.</p>
+<h2 id="real-world-alternative-optimism-with-experience">Real-World <code>Alternative</code> (Optimism with Experience)</h2>
+<p>Here are some examples of problems arising from the use of <code>Alternative</code> semantics</p>
+<h3 id="failure-at-the-end">Failure at the end</h3>
+<p>Laws are important, functional programmers use laws (sometimes even subconsciously) when thinking about, implementing, or designing the code. The second law tells us that we can slap a computation that always errors out at the end without messing things up.</p>
+<p>Consider this (a slightly adjusted real-world) situation: your app needs to talk to an external website which can decide to do A, B, or C and will reply with A, B, or C json message. Based on what happened, your app will need to do different things. You need to parse the reply to know how to proceed.<br />
+The good news is that only A and B are needed in the short term, C can wait. For now, you are only required to tell the user when C happens.</p>
+<p>This should be <em>aeson</em> but I keep <em>attoparsec</em> for consistency (the behavior is the same):</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true"></a>parseReply <span class="ot">=</span> parseA <span class="op">&lt;|&gt;</span> parseB <span class="op">&lt;|&gt;</span> parseC </span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true"></a>  <span class="kw">where</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true"></a>    parseA <span class="ot">=</span> <span class="op">...</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true"></a>    parseB <span class="ot">=</span> <span class="op">...</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true"></a>    parseC <span class="ot">=</span> <span class="fu">fail</span> <span class="st">&quot;C is not supported yet!&quot;</span></span></code></pre></div>
+<p>The external website changed how they report A, now when A is processed <code>parseA</code> fails, the user sees: “C is not supported yet!”.</p>
+<p>The following would be a slightly better code, the user would see <code>parseB</code> error message instead:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true"></a>parseReply <span class="ot">=</span> parseC <span class="op">&lt;|&gt;</span> parseA <span class="op">&lt;|&gt;</span> parseB </span></code></pre></div>
+<p><em>(sigh)</em></p>
+<p>One way out is to parse A, B, and C separately and handle the results (and the parsing errors) outside of the <code>Parser</code>.</p>
+<p>The other design risk is in thinking about the second law as ‘stable’: We will not disturb the computation too much if we append (add at the end of the <code>&lt;|&gt;</code> chain) a very restrictive parser that fails most of the time.<br />
+An example would be fixing an existing parser <code>p</code> with a missed corner case parser, <code>p &lt;|&gt; cornerCaseP</code>. Errors from <code>p</code> are now almost not visible.</p>
+<p>So would <code>cornerCaseP &lt;|&gt; p</code> be a better solution? Next section covers that case.</p>
+<h3 id="permissive-computation-at-the-end">Permissive computation at the end</h3>
+<p>This is the example I started with. Consider code like this:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true"></a>specificComputation <span class="op">&lt;|&gt;</span> bestEffortComputation</span></code></pre></div>
+<p>The specs may change and you will never learn that <code>specificComputation</code> no longer works because <code>bestEffortComputation</code> effectively hides the issue.</p>
+<p>The way out is to run <code>specificComputation</code> and <code>bestEffortComputation</code> separately and handle results (e.g. parsing errors if the computation is a parser) outside, or come up with a different way of not using the alternative.</p>
+<p><em>Failure at the end</em> situation improves a bit with certain (other than <em>aeson</em> or <em>attoparsec</em>) alternatives, <em>Permissive computation at the end</em> does not seem to have a good available solution.</p>
+<h2 id="pessimistic-instances">Pessimistic Instances</h2>
+<p>It would be ideal if the following property was true:</p>
+<p><em>If a typeclass A is defined in the <strong>base</strong> package and A has something to do with failures, then there exist at least one instance of <em>A</em> in the <strong>base</strong> allowing to recover the error information</em></p>
+<p><code>MonadFail</code> fails this property (especially when combined with <code>MonadPlus</code>: <a href="https://rpeszek.github.io/posts/2021-01-17-maybe-overuse.html#monadfail-and-maybe" target="_blank">Maybe Overuse - MonadFail</a>).</p>
+<p><code>Alternative</code> fails it as well.</p>
+<p>Can we come up with <code>Alternative</code> instances that do a decent job of maintaining error information? It seems that the answer is yes.</p>
+<h3 id="either-e-a"><code>Either [e] a</code></h3>
+<p>This is a warm-up.</p>
+<p>This instance is not new. It matches the <code>ExceptT</code> alternative instance from <em>transformers</em> / <em>mtl</em>. It uses standard <code>Either</code> monad and this is a <code>MonadPlus</code> (with a somewhat questionable right-zero law):</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true"></a><span class="kw">instance</span> <span class="dt">Monoid</span> e <span class="ot">=&gt;</span> <span class="dt">Alternative</span> (<span class="dt">Either</span> e) <span class="kw">where</span> </span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true"></a>    empty  <span class="ot">=</span> <span class="dt">Left</span> <span class="fu">mempty</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true"></a>    <span class="dt">Left</span> e1 <span class="op">&lt;|&gt;</span> <span class="dt">Left</span> e2 <span class="ot">=</span> <span class="dt">Left</span> <span class="op">$</span> e1 <span class="op">&lt;&gt;</span> e2</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true"></a>    (<span class="dt">Left</span> _) <span class="op">&lt;|&gt;</span> r <span class="ot">=</span> r</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true"></a>    r <span class="op">&lt;|&gt;</span> _ <span class="ot">=</span> r</span></code></pre></div>
+<p><em>(Note: transformers package has a conflicting instance in the deprecated <code>Control.Monad.Trans.Error</code> module, in a real code a <code>newtype</code> would be needed to avoid this conflict)</em></p>
+<p>I have included <code>Monoid e =&gt; Alternative (Either e)</code> instance as a warm-up and to discuss the laws.</p>
+<p><strong>Laws:</strong><br />
+The required <em>(1-3)</em> laws are satisfied without resorting to any sort of questionable reasoning that treats all errors as <code>empty</code>. However, <code>empty</code> represents a <em>noOp failure</em> computation (somewhat questionable meaning).</p>
+<p>Optional <em>(4 Right Zero)</em> law (<code>f &lt;*&gt; empty = empty</code>) is questionable (consider <code>f = Left e</code> with a non-trivial <code>e</code>).<br />
+<em>(7 Left Catch)</em> is OK.<br />
+As we have predicted, the distribution laws are not satisfied.<br />
+<em>(5)</em> is NOT satisfied:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true"></a>(f <span class="op">&lt;|&gt;</span> g) <span class="op">&lt;*&gt;</span> a <span class="ot">=</span> (f <span class="op">&lt;*&gt;</span> a) <span class="op">&lt;|&gt;</span> (g <span class="op">&lt;*&gt;</span> a) </span></code></pre></div>
+<p>If <code>f</code> and <code>g</code> represent successful computation and <code>a</code> is a list of errors then the <em>rhs</em> has twice as many errors as the <em>lhs</em>.</p>
+<p><em>(6)</em> is not satisfied either:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true"></a>f <span class="op">&lt;*&gt;</span> (b <span class="op">&lt;|&gt;</span> c) <span class="ot">=</span> (f <span class="op">&lt;*&gt;</span> b) <span class="op">&lt;|&gt;</span> (f <span class="op">&lt;*&gt;</span> c) </span></code></pre></div>
+<p>If <code>f</code> represents a failed computation then <em>rhs</em> will duplicate <code>f</code> errors.<br />
+This looks like a bigger problem than it really is. The <em>lhs</em> and <em>rhs</em> contain the same amount of error information.</p>
+<p>So, overall, <code>Either [e] a</code> has done quite well as an alternative!</p>
+<h3 id="a-decent-blueprint-either-e-e-a">A Decent Blueprint: <code>Either [e] ([e], a)</code></h3>
+<p>What would really be nice, is to have a standard “right-catch with warnings” <code>Alternative</code> instance (please let me know if you have seen it somewhere on Hackage):</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true"></a><span class="kw">newtype</span> <span class="dt">ErrWarn</span> e w a <span class="ot">=</span> <span class="dt">EW</span> {<span class="ot">runEW ::</span> <span class="dt">Either</span> e (w, a)} <span class="kw">deriving</span> (<span class="dt">Eq</span>, <span class="dt">Show</span>, <span class="dt">Functor</span>)</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true"></a>  </span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true"></a><span class="kw">instance</span> (<span class="dt">Monoid</span> e) <span class="ot">=&gt;</span> <span class="dt">Alternative</span> (<span class="dt">ErrWarn</span> e e) <span class="kw">where</span> </span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true"></a>    empty  <span class="ot">=</span> <span class="dt">EW</span> <span class="op">$</span> <span class="dt">Left</span> <span class="fu">mempty</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true"></a>    <span class="dt">EW</span> (<span class="dt">Left</span> e1) <span class="op">&lt;|&gt;</span> <span class="dt">EW</span> (<span class="dt">Left</span> e2) <span class="ot">=</span> <span class="dt">EW</span> (<span class="dt">Left</span> <span class="op">$</span> e1 <span class="op">&lt;&gt;</span> e2)</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true"></a>    <span class="dt">EW</span> (<span class="dt">Left</span> e1) <span class="op">&lt;|&gt;</span> <span class="dt">EW</span> (<span class="dt">Right</span> (w2, r)) <span class="ot">=</span> <span class="dt">EW</span> <span class="op">$</span> <span class="dt">Right</span> (e1 <span class="op">&lt;&gt;</span> w2, r) <span class="co">-- coupling between @Either e@ and @(e,)@</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true"></a>    r<span class="op">@</span>(<span class="dt">EW</span> (<span class="dt">Right</span> _)) <span class="op">&lt;|&gt;</span> _ <span class="ot">=</span> r</span></code></pre></div>
+<p>This approach, when computing <code>a &lt;|&gt; b</code>, does not try to compute <code>b</code> if <code>a</code> succeeds. Thus, this instance matches the common left bias semantics. The approach accumulates all errors encountered up to the point of the first success and returns them as warnings.<br />
+This is a lawful <code>Alternative</code> (satisfies required laws <em>(1-3)</em>) and it does not rely on any questionable unification of <code>empty</code> with non-trivial errors.</p>
+<p>I now feel justified using <code>Monoid e</code> constraint. Empty failure makes no sense, but empty warnings make a lot of sense!</p>
+<p>But wait! To have <code>Alternative</code> we need <code>Applicative</code>. It is possible to implement <code>Applicative</code> for this type in more than one way, one even leads to a valid <code>Monad</code> and <code>MonadPlus</code> (with the right-zero caveat discussed above).<br />
+That approach is equivalent to <code>WriterT w (Except e)</code>, it does not try to <code>&lt;*&gt;</code>-accumulate <code>e</code>-s, it only accumulates <code>w</code>-s:</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true"></a><span class="kw">instance</span> (<span class="dt">Monoid</span> w) <span class="ot">=&gt;</span> <span class="dt">Applicative</span> (<span class="dt">ErrWarn</span> e w) <span class="kw">where</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true"></a>    <span class="fu">pure</span> x <span class="ot">=</span> <span class="dt">EW</span> <span class="op">$</span> <span class="dt">Right</span> (<span class="fu">mempty</span>, x)</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true"></a>    <span class="dt">EW</span> (<span class="dt">Left</span> e) <span class="op">&lt;*&gt;</span> _ <span class="ot">=</span> <span class="dt">EW</span> <span class="op">$</span> <span class="dt">Left</span> e</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true"></a>    <span class="dt">EW</span> (<span class="dt">Right</span> (u, f)) <span class="op">&lt;*&gt;</span> <span class="dt">EW</span> (<span class="dt">Right</span> (v, x)) <span class="ot">=</span> <span class="dt">EW</span> (<span class="dt">Right</span> (u <span class="op">&lt;&gt;</span> v, f x))</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true"></a>    <span class="dt">EW</span> (<span class="dt">Right</span> (u, f)) <span class="op">&lt;*&gt;</span> <span class="dt">EW</span> (<span class="dt">Left</span> e)  <span class="ot">=</span> <span class="dt">EW</span> <span class="op">$</span> <span class="dt">Left</span> e</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true"></a></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true"></a><span class="kw">instance</span> (<span class="dt">Monoid</span> w) <span class="ot">=&gt;</span> <span class="dt">Monad</span> (<span class="dt">ErrWarn</span> e w) <span class="kw">where</span> </span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true"></a>    <span class="dt">EW</span> (<span class="dt">Left</span> e) <span class="op">&gt;&gt;=</span> _  <span class="ot">=</span> <span class="dt">EW</span> <span class="op">$</span> <span class="dt">Left</span> e</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true"></a>    <span class="dt">EW</span> (<span class="dt">Right</span> (u, x)) <span class="op">&gt;&gt;=</span> k <span class="ot">=</span> </span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true"></a>        <span class="kw">case</span> k x <span class="kw">of</span> </span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true"></a>            <span class="dt">EW</span> (<span class="dt">Right</span> (v, b)) <span class="ot">-&gt;</span> <span class="dt">EW</span> (<span class="dt">Right</span> (u <span class="op">&lt;&gt;</span> v, b))</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true"></a>            <span class="dt">EW</span> (<span class="dt">Left</span> e) <span class="ot">-&gt;</span> <span class="dt">EW</span> (<span class="dt">Left</span> e)</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true"></a></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true"></a><span class="kw">instance</span> (<span class="dt">Monoid</span> e) <span class="ot">=&gt;</span> <span class="dt">MonadPlus</span> (<span class="dt">ErrWarn</span> e e)    </span></code></pre></div>
+<p>Please note the small difference. Standard <em>transformers</em> / <em>mtl</em> <code>ExeptT</code> and <code>WriterT</code> both support <code>Alternative</code></p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true"></a> (<span class="dt">Monad</span> m, <span class="dt">Monoid</span> e) <span class="ot">=&gt;</span> <span class="dt">Alternative</span> (<span class="dt">ExceptT</span> e m)	</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true"></a> (<span class="dt">Monoid</span> w, <span class="dt">Alternative</span> m) <span class="ot">=&gt;</span> <span class="dt">Alternative</span> (<span class="dt">WriterT</span> w m) <span class="co">-- Monoid only used to define @empty@</span></span></code></pre></div>
+<p>but in a decoupled way, <code>ErrWarn</code> couples these two by “writing” <code>e</code>-s.</p>
+<p>This instance exhibits similar problems with matching the <code>&lt;*&gt;</code> semantics as the <code>Monoid e =&gt; Either e</code> instance from the previous section (i.e. <em>(5,6)</em> are not satisfied). Overall it is a very well behaved alternative.</p>
+<h3 id="code-example">Code Example</h3>
+<p>Here is a very convoluted (and not very good) parsing code that is intended only to demonstrate how <code>ErrWarn</code> works. This code creates a natural transformation from the <em>attoparsec</em> parser to <code>ErrWarn</code> and compares the error outputs from both.</p>
+<p>This code will parse <em>ByteStrings</em> like “id last-first-name dept boss2” to produce, if successful, a hard-coded <em>id, name, department, and boss name</em>:</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true"></a>idP <span class="ot">=</span> <span class="dv">123</span> <span class="ot">`onKeyword`</span> <span class="st">&quot;id&quot;</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true"></a>nameP1 <span class="ot">=</span> <span class="st">&quot;Smith John&quot;</span>  <span class="ot">`onKeyword`</span> <span class="st">&quot;last-first-name&quot;</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true"></a>nameP2 <span class="ot">=</span> <span class="fu">fail</span> <span class="st">&quot;first-last-name not implemented yet&quot;</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true"></a>deptP <span class="ot">=</span>  <span class="st">&quot;Billing&quot;</span> <span class="ot">`onKeyword`</span> <span class="st">&quot;dept&quot;</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true"></a>bossP1 <span class="ot">=</span> <span class="st">&quot;Jim K&quot;</span> <span class="ot">`onKeyword`</span> <span class="st">&quot;boss1&quot;</span>     </span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true"></a>bossP2 <span class="ot">=</span> <span class="st">&quot;Kim J&quot;</span> <span class="ot">`onKeyword`</span> <span class="st">&quot;boss2&quot;</span>    </span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true"></a>bossP3 <span class="ot">=</span> <span class="fu">pure</span> <span class="st">&quot;Mij K bosses everyone&quot;</span> </span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true"></a></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true"></a><span class="ot">onKeyword ::</span> a <span class="ot">-&gt;</span> <span class="dt">B.ByteString</span> <span class="ot">-&gt;</span> <span class="dt">AT.Parser</span> <span class="dt">B.ByteString</span> a</span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true"></a>onKeyword val key <span class="ot">=</span> <span class="fu">const</span> val <span class="op">&lt;$&gt;</span> A.manyTill ACh.anyChar</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true"></a>                    (A.lookAhead <span class="op">$</span> A.string key)</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true"></a>                    <span class="op">A.&lt;?&gt;</span> <span class="fu">show</span> key</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true"></a></span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Employee</span> <span class="ot">=</span> <span class="dt">Employee</span> {</span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true"></a><span class="ot">    id ::</span> <span class="dt">Int</span></span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true"></a>    ,<span class="ot"> name ::</span> <span class="dt">String</span></span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true"></a>    ,<span class="ot"> dept  ::</span> <span class="dt">String</span></span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true"></a>    ,<span class="ot"> boss ::</span> <span class="dt">String</span></span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true"></a>   } <span class="kw">deriving</span> <span class="dt">Show</span></span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true"></a></span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true"></a><span class="ot">emplP ::</span> <span class="dt">A.Parser</span> <span class="dt">B.ByteString</span> <span class="dt">Employee</span></span>
+<span id="cb20-22"><a href="#cb20-22" aria-hidden="true"></a>emplP <span class="ot">=</span> </span>
+<span id="cb20-23"><a href="#cb20-23" aria-hidden="true"></a>   <span class="dt">Employee</span> </span>
+<span id="cb20-24"><a href="#cb20-24" aria-hidden="true"></a>   <span class="op">&lt;$&gt;</span> idP</span>
+<span id="cb20-25"><a href="#cb20-25" aria-hidden="true"></a>   <span class="op">&lt;*&gt;</span> (nameP1 <span class="op">&lt;|&gt;</span> nameP2)</span>
+<span id="cb20-26"><a href="#cb20-26" aria-hidden="true"></a>   <span class="op">&lt;*&gt;</span> deptP</span>
+<span id="cb20-27"><a href="#cb20-27" aria-hidden="true"></a>   <span class="op">&lt;*&gt;</span> (bossP1 <span class="op">&lt;|&gt;</span> bossP2 <span class="op">&lt;|&gt;</span> bossP3) </span>
+<span id="cb20-28"><a href="#cb20-28" aria-hidden="true"></a></span>
+<span id="cb20-29"><a href="#cb20-29" aria-hidden="true"></a><span class="ot">emplP' ::</span> <span class="dt">B.ByteString</span> <span class="ot">-&gt;</span> <span class="dt">ErrWarn</span> [<span class="dt">String</span>] [<span class="dt">String</span>] <span class="dt">Employee</span></span>
+<span id="cb20-30"><a href="#cb20-30" aria-hidden="true"></a>emplP' txt <span class="ot">=</span> </span>
+<span id="cb20-31"><a href="#cb20-31" aria-hidden="true"></a>   <span class="dt">Employee</span> </span>
+<span id="cb20-32"><a href="#cb20-32" aria-hidden="true"></a>   <span class="op">&lt;$&gt;</span> ew idP </span>
+<span id="cb20-33"><a href="#cb20-33" aria-hidden="true"></a>   <span class="op">&lt;*&gt;</span> (ew nameP1  <span class="op">&lt;|&gt;</span> ew nameP2 )</span>
+<span id="cb20-34"><a href="#cb20-34" aria-hidden="true"></a>   <span class="op">&lt;*&gt;</span> ew deptP </span>
+<span id="cb20-35"><a href="#cb20-35" aria-hidden="true"></a>   <span class="op">&lt;*&gt;</span> (ew bossP1  <span class="op">&lt;|&gt;</span> ew bossP2 <span class="op">&lt;|&gt;</span> ew bossP3)</span>
+<span id="cb20-36"><a href="#cb20-36" aria-hidden="true"></a>   <span class="kw">where</span></span>
+<span id="cb20-37"><a href="#cb20-37" aria-hidden="true"></a><span class="ot">        ew ::</span> <span class="dt">A.Parser</span> a  <span class="ot">-&gt;</span> <span class="dt">ErrWarn</span> [<span class="dt">String</span>] [<span class="dt">String</span>] a</span>
+<span id="cb20-38"><a href="#cb20-38" aria-hidden="true"></a>        ew p <span class="ot">=</span> singleErr <span class="op">$</span> A.parseOnly p txt</span>
+<span id="cb20-39"><a href="#cb20-39" aria-hidden="true"></a></span>
+<span id="cb20-40"><a href="#cb20-40" aria-hidden="true"></a><span class="ot">        singleErr ::</span> <span class="dt">Either</span> e a <span class="ot">-&gt;</span> <span class="dt">ErrWarn</span> [e] [e] a</span>
+<span id="cb20-41"><a href="#cb20-41" aria-hidden="true"></a>        singleErr (<span class="dt">Left</span> e) <span class="ot">=</span> <span class="dt">EW</span> <span class="op">$</span> <span class="dt">Left</span> [e]</span>
+<span id="cb20-42"><a href="#cb20-42" aria-hidden="true"></a>        singleErr (<span class="dt">Right</span> r) <span class="ot">=</span> <span class="dt">EW</span> <span class="op">$</span> <span class="dt">Right</span> ([], r)</span></code></pre></div>
+<p>Trying it with a good input:</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true"></a><span class="co">-- &gt;&gt;&gt; A.parseOnly emplP &quot;id last-first-name dept boss1&quot;</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true"></a><span class="co">-- Right (Employee {id = 123, name = &quot;Smith John&quot;, dept = &quot;Billing&quot;, boss = &quot;Jim K&quot;})</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true"></a></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true"></a><span class="co">-- &gt;&gt;&gt; emplP' &quot;id last-first-name dept boss1&quot;</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true"></a><span class="co">-- EW {runEW = Right ([],Employee {id = 123, name = &quot;Smith John&quot;, dept = &quot;Billing&quot;, boss = &quot;Jim K&quot;})}</span></span></code></pre></div>
+<p>Trying <a href="#failure-at-the-end">failure at the end</a> situation (typo in <code>"last-first-name"</code>):</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true"></a><span class="co">-- &gt;&gt;&gt; A.parseOnly emplP &quot;id last-firs-name dept boss2&quot;</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true"></a><span class="co">-- Left &quot;Failed reading: first-last-name not implemented yet&quot;</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true"></a></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true"></a><span class="co">-- &gt;&gt;&gt; runEW $ emplP' &quot;id last-firs-name dept boss2&quot;</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true"></a><span class="co">-- Left [&quot;\&quot;last-first-name\&quot;: not enough input&quot;,&quot;Failed reading: first-last-name not implemented yet&quot;]</span></span></code></pre></div>
+<p>(A similar benefit can be achieved by using one of the Hackage <em>validation</em> packages listed at the end of this post or using the <code>ExceptT</code> alternative.)</p>
+<p>Trying <a href="#permissive-computation-at-the-end">permissive computation at the end</a> situation (<code>"boss"</code> parsing error):</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true"></a><span class="co">-- &gt;&gt;&gt; A.parseOnly emplP &quot;id last-first-name dept boss&quot;</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true"></a><span class="co">-- Right (Employee {id = 123, name = &quot;Smith John&quot;, dept = &quot;Billing&quot;, boss = &quot;Mij K bosses everyone&quot;})</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true"></a></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true"></a><span class="co">-- &gt;&gt;&gt;runEW $ emplP' &quot;id last-first-name dept boss&quot;</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true"></a><span class="co">-- Right ([&quot;\&quot;boss1\&quot;: not enough input&quot;,&quot;\&quot;boss2\&quot;: not enough input&quot;],Employee {id = 123, name = &quot;Smith John&quot;, dept = &quot;Billing&quot;, boss = &quot;Mij K bosses everyone&quot;})</span></span></code></pre></div>
+<p>(A similar benefit cannot be achieved by using a <em>validation</em> package from the list at the end of this post or a <em>transformers</em> stack. Please let me know if something like this exists elsewhere.)</p>
+<p>We are no longer being thrown for a loop!</p>
+<h3 id="extending-either-e-e-a">Extending <code>Either [e] ([e], a)</code></h3>
+<p>The <em>right-catch with warnings</em> semantics of <code>Either [e] ([e], a)</code> is a decent principled computation that can be extended to other types. For example, a similar semantics could find its way into some parser internals.</p>
+<p>I have created several prototype alternative instances (including a primitive <code>WarnParser</code> parser and <code>ErrWarnT</code> transformer) that follow the same semantics, they can be found in the linked <a href="https://github.com/rpeszek/experiments/tree/master/alternative" target="_blank">repo</a>.</p>
+<p><code>ErrWarnT</code> allows to program in a <code>ErrWarnT e e f</code> alternative (e.g. <code>ErrWarnT e e Parser</code>) and annotate additional error information on <code>f</code> (e.g. during parsing). This allows, for example, to <em>pattern match on errors</em> to figure out which alternatives in <code>&lt;|&gt;</code> have failed even if the overall computation has succeeded.<br />
+<code>WarnParser</code> accumulates <code>&lt;|&gt;</code> similar errors and warnings out of the box.</p>
+<h2 id="rethinking-the-typeclass-itself">Rethinking the Typeclass Itself</h2>
+<p>Is <code>Alternative</code> a wrong abstraction for what it is trying to do? I think it is. IMO any abstraction intended for handling failures should include failures in its semantics. <code>Alternative</code> typeclass does not do that.</p>
+<p><code>Alternative</code> is widely used and replacing it would, probably, be very hard or even impossible. Replacement would be useful only if the ecosystem accepts it.</p>
+<p>One conceptually simple improvement would be to split <code>Alternative</code> to mimic the <code>Semigoup</code> / <code>Monoid</code> split (<em>semigroupoids</em> has <code>Data.Functor.Alt</code> which seems to fit the bill).<br />
+This would clean up some instances like <code>ExceptT</code> (the above <a href="#either-e-a"><code>Either [e]</code></a>) or <a href="#relevant-work-on-hackage"><code>Validation</code></a> by reducing the need for questionable <code>empty</code> definitions like <code>Left []</code>. Incidentally, this is be the opposite of the <a href="https://wiki.haskell.org/MonadPlus_reform_proposal" target="_blank"><code>MonadZero</code></a> proposal.</p>
+<p>I would really like to see <code>e</code>-s in the typeclass definition:</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true"></a><span class="kw">class</span> <span class="dt">Applicative</span> f <span class="ot">=&gt;</span> <span class="dt">Semigroup1</span> f <span class="kw">where</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true"></a><span class="ot">   (&lt;|&gt;)  ::</span> f a <span class="ot">-&gt;</span> f a <span class="ot">-&gt;</span> f a </span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true"></a></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true"></a><span class="kw">class</span> <span class="dt">Applicative</span> (f e) <span class="ot">=&gt;</span> <span class="dt">Semigroup2</span> e f <span class="kw">where</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true"></a><span class="ot">   (&lt;||&gt;)  ::</span> f e a <span class="ot">-&gt;</span> f e a <span class="ot">-&gt;</span> f e a </span></code></pre></div>
+<p>The linked <a href="https://github.com/rpeszek/experiments/tree/master/alternative" target="_blank">repo</a> contains some loose replacement ideas for <code>Alternative</code> and <code>MonadPlus</code>. It is a work in progress.</p>
+<h2 id="alternative-beyond-parsing"><code>Alternative</code> Beyond Parsing</h2>
+<p>It should be mentioned that there are instances of <code>Alternative</code> such as the list <code>[]</code>, or <code>ZipList</code> where failures are not a concern. Sorting algorithms using MonadPlus are thumbs up. Examples like <code>LogicT</code> or other backtracking search mechanisms should be in the same boat (at least from the failure point of view, other aspects can be questionable and fascinating <a href="https://stackoverflow.com/questions/15722906/must-mplus-always-be-associative-haskell-wiki-vs-oleg-kiselyov" target="_blank">stackoverflow on mplus associativity</a>).</p>
+<p>Also, these instances are rather cool.<br />
+Languages like JavaScript, Python, Groovy have a concept of <em>truthiness</em>. <em>Truthy</em> <em>Falsy</em> are a thing and come with a Boolean algebra of sorts. Try evaluating this in you browser’s console:</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true"></a><span class="op">&gt;</span> <span class="st">&quot;hello&quot;</span> <span class="op">||</span> <span class="st">&quot;&quot;</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true"></a><span class="st">&quot;hello&quot;</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true"></a><span class="op">&gt;</span> <span class="st">&quot;&quot;</span> <span class="op">||</span> <span class="st">&quot;hello&quot;</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true"></a><span class="st">&quot;hello&quot;</span></span></code></pre></div>
+<p><em>Truthiness</em> is questionable because the Boolean algebra laws (like <code>a || b = b || a</code>) no longer hold.</p>
+<p>Now try these in ghci:</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true"></a><span class="op">&gt;&gt;&gt;</span> <span class="st">&quot;&quot;</span> <span class="op">&lt;|&gt;</span> <span class="st">&quot;hello&quot;</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true"></a><span class="st">&quot;hello&quot;</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true"></a><span class="op">&gt;&gt;&gt;</span> <span class="st">&quot;hello&quot;</span> <span class="op">&lt;|&gt;</span> <span class="st">&quot;&quot;</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true"></a><span class="st">&quot;hello&quot;</span></span></code></pre></div>
+<p>Alternative is a principled version of the <em>truthiness</em>. The laws properly state the algebra limitations.<br />
+As we have seen, the problem is in going with this generalization too far.</p>
+<p><em>async</em> package uses <code>&lt;|&gt;</code> to return result form the computation that finishes first. This seems a good use to me.</p>
+<p>Several types like <code>ExceptT</code>, <code>Validation</code> (see <a href="#relevant-work-on-hackage">hackage section</a> below) allow to use user defined monoid error types. <code>mempty</code> may not have much sense as an error, but this setup offers interesting options for accumulating errors. For example, using it with <code>Data.Monoid.Max</code> could be very interesting.</p>
+<p><strong>Not so good:</strong><br />
+An interesting case is the <code>STM</code> monad. <code>a &lt;|&gt; b</code> is used to chain computations that may want to <code>retry</code>. I imagine, composing <code>STM</code> computations this way is rare. If you wanted to communicate why <code>a</code> has decided to retry, how would you do that? I consider <code>STM</code> use of alternatives problematic.</p>
+<p><code>IO</code> itself is an <code>Alternative</code> and uses <code>&lt;|&gt;</code> as a <code>catch</code> that throws away the error information. I dislike the <code>IO</code> instance. “Launching missiles” and not knowing what went wrong seems not ideal.</p>
+<h2 id="relevant-work-on-hackage">Relevant work on Hackage</h2>
+<p><a href="https://hackage.haskell.org/package/free" target="_blank"><em>free</em></a> package contains a semantic (free) version of <em>Alternative</em>.</p>
+<p><a href="https://hackage.haskell.org/package/semigroupoids-5.3.5/docs/Data-Functor-Alt.html" target="_blank"><em>semigroupoids</em></a> offers <em>Alt</em> that is just a <em>Functor</em> and does not need to have <code>empty</code>.</p>
+<p><a href="https://hackage.haskell.org/package/transformers-0.5.6.2" target="_blank"><em>transformers</em></a> ExceptT implements <code>Alternative</code> which accumulates “Lefts”.</p>
+<p>A list of interesting packages that implement <code>Monoid</code>-like semantics for <code>Applicative</code> (most also implement <code>Alternative</code>) to accumulate errors provided by <a href="https://www.reddit.com/user/affinehyperplane/" target="_blank">u/affinehyperplane</a> on <a href="https://www.reddit.com/r/haskell/comments/kyo4xk/maybe_considered_harmful/gji7fmx?utm_source=share&amp;utm_medium=web2x&amp;context=3" target="_blank">reddit</a>:</p>
+<p><a href="https://hackage.haskell.org/package/either-5.0.1.1/docs/Data-Either-Validation.html" target="_blank"><em>either</em></a> defines <code>Either</code> like <code>Validation e a</code> applicative, both <code>&lt;|&gt;</code> and <code>&lt;*&gt;</code> accumulate errors<br />
+<a href="https://hackage.haskell.org/package/validation-1.1/docs/Data-Validation.html" target="_blank"><em>validation</em></a> defines a similar <code>Validation</code> type, it does not define alternative instance.<br />
+<a href="https://hackage.haskell.org/package/validation-selective-0.1.0.0/docs/Validation.html" target="_blank"><em>validation-selective</em></a> defines a similar <code>Validation</code> type loaded with (non-monad) instances<br />
+<a href="https://hackage.haskell.org/package/monad-validate-1.2.0.0/docs/Control-Monad-Validate.html" target="_blank"><em>monad-validate</em></a> provides an interesting and very useful validation <em>monad</em> transformer (this is lawful if you do not compare error outputs) that can accumulate errors, it does not implement <code>Alternative</code>.</p>
+<p>In the context of parsers, it should be noted that packages like <em>trifecta</em>, <em>(mega)parsec</em> do nice job returning error messages when <code>&lt;|&gt;</code> fails.</p>
+<p>A good references about Alternative and MonadPlus in general is the <a href="https://wiki.haskell.org/Typeclassopedia#Failure_and_choice:_Alternative.2C_MonadPlus.2C_ArrowPlus" target="_blank">Typeclassopedia</a> and <a href="https://en.wikibooks.org/wiki/Haskell/Alternative_and_MonadPlus" target="_blank">wikibooks</a>, both contain interesting links.</p>
+<p>There are many stackoverflow answers about Haskell solutions to accumulating errors. These typically refer to some of the packages in the above list, I am not linking them here.<br />
+There are many, many discussions about error output from different parsing libraries. These are typically focused on criticizing a particular package (typically <em>attoparsec</em>) not the <code>Alternative</code> typeclass itself.<br />
+I am sure, this list is not complete. Please let me know if you see a relevant work elsewhere.</p>
+<h2 id="conclusions-thoughts">Conclusions, Thoughts</h2>
+<p>It is possible to implement instances that do a decent error management but it feels like this is accomplished despite of the <code>Alternative</code> typeclass definition and its laws. To answer my title: IMO <code>Alternative</code> is a wrong abstraction for managing computational failures.</p>
+<p>The more I program in Haskell the more I view Functional Programming as a branch of Applied Mathematics.<br />
+Criticizing mathematical abstractions does not make much sense. Criticism of how well an abstraction fits is application if a fair game.</p>
+<p>Why errors are being overlooked? I assembled a possible list when writing about the <a href="https://rpeszek.github.io/posts/2021-01-17-maybe-overuse.html#why-maybe-is-overused-possible-explanations" target="_blank">Maybe Overuse</a> and that list seems to translate well to the alternative typeclass. For example, code using <code>&lt;|&gt;</code> is very terse, something with a stronger error semantics will most likely be more verbose; coding with <code>&lt;|&gt;</code> is simple, stronger error semantics will likely be more complex …<br />
+I could be wrong on this: the original usages of MonadPlus were probably related to sorting/searching and lists. Alternative computations with more complex error structure were probably introduced later? … and, the instances ended up outgrowing the typeclass?</p>
+<p>The <em>pessimist</em> theme was partially inspired by the following two concepts:<br />
+<a href="https://link.springer.com/referenceworkentry/10.1007%2F978-94-007-0753-5_2219#:~:text=Definition,favor%20positive%20information%20in%20reasoning." target="_blank"><em>Positivity Bias</em></a> and, its opposite, the <a href="https://en.wikipedia.org/wiki/Negativity_bias" target="_blank"><em>Negativity Bias</em></a> are psychological notions that, I believe, have a deep relevance to the programming in general.<br />
+<em>Positivity Bias</em> includes a <em>tendency to favor positive information in reasoning</em> and, by definition, will make you think about “happy path” and “sunny day scenarios”.<br />
+<em>Negativity Bias</em> includes a <em>tendency to favor negative information in reasoning</em> and, by definition, will make you consider “rainy day scenarios”, corner cases, error handling, error information.<br />
+I think we should embrace some form of <em>pessimism</em> and put in on the pedestal next to the principled construction.</p>
+<p>I hope this post will motivate more discussion about the <em>error information</em> handling in Haskell.<br />
+My particular interest is in discussing:</p>
+<ul>
+<li>your views about rethinking the <code>Alternative</code> typeclass</li>
+<li>your views on pessimism in programming</li>
+<li>your views on the error information loss in Haskell code</li>
+<li>is <code>ErrWarn</code> somewhere on Hackage and I did not see it?</li>
+<li>other interesting <code>Alternative</code> instances that care about errors</li>
+<li>obviously, anything that I got wrong</li>
+</ul>
+<p>reddit discussion (TODO)<br />
+github <a href="https://github.com/rpeszek/rpeszek.github.io/discussions/1" target="_blank">discussions</a></p>
+<p>Thank you for reading!</p>
+
+    </section>
+</article>
+]]></summary>
+</entry>
+<entry>
     <title>Maybe Overuse, Stories About Error Information Loss</title>
     <link href="https://rpeszek.github.io//posts/2021-01-17-maybe-overuse.html" />
     <id>https://rpeszek.github.io//posts/2021-01-17-maybe-overuse.html</id>
@@ -26,6 +438,9 @@
         
         
         <div class="changelog"> <div>Revision History: <ul> <li> (Jan 18, 2021) Added <a href="#monadfail-and-maybe">MonadFail</a> subsection to <a href="#maybe-on-hackage">Maybe on Hackage</a></li> </ul> </div></div>
+        
+        
+        <div class="info">Tags: <a title="All pages tagged 'Haskell'." href="../tags/Haskell.html">Haskell</a>, <a title="All pages tagged 'Correctness'." href="../tags/Correctness.html">Correctness</a>, <a title="All pages tagged 'Maintainability'." href="../tags/Maintainability.html">Maintainability</a></div>
         
     </section>
     <section>
@@ -378,6 +793,9 @@ I do not advocate avoiding abstractions, just do not forget errors on the way. D
         
         
         
+        
+        <div class="info">Tags: </div>
+        
     </section>
     <section>
 
@@ -402,6 +820,9 @@ I do not advocate avoiding abstractions, just do not forget errors on the way. D
             by Robert Peszek
         
         
+        
+        
+        <div class="info">Tags: <a title="All pages tagged 'announcement'." href="../tags/announcement.html">announcement</a></div>
         
     </section>
     <section>
