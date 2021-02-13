@@ -413,7 +413,7 @@ My particular interest is in discussing:</p>
 <li>other interesting <code>Alternative</code> instances that care about errors</li>
 <li>obviously, anything that I got wrong</li>
 </ul>
-<p>reddit discussion (TODO)<br />
+<p><a href="https://www.reddit.com/r/haskell/comments/lj3h47/is_alternative_a_wrong_abstraction_for_handling/" target="_blank">reddit</a> discussion<br />
 github <a href="https://github.com/rpeszek/rpeszek.github.io/discussions/1" target="_blank">discussions</a></p>
 <p>Thank you for reading!</p>
 
