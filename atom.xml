@@ -23,7 +23,7 @@
         
         
         
-        <div class="changelog"> <div>Revision History: <ul> <li> (Feb 13, 2021) Edited <a href="#pessimistic-instances">Pessimistic Instances</a> top section</li> <li> (Feb 14, 2021) <a href="#pessimists-intro-to-alternative">Intro</a> adds a clarification paragraph linking failures to instances (prompted by reddit) </li> </ul> </div></div>
+        <div class="changelog"> <div>Revision History: <ul> <li> (Feb 13, 2021) Edited <a href="#pessimistic-instances">Pessimistic Instances</a> top section</li> <li> (Feb 14, 2021) <a href="#pessimists-intro-to-alternative">Intro</a> adds a clarification paragraph linking failures to instances (prompted by reddit), <a href="#nutshell">Nutshell</a></li> clearly lists goals </ul> </div></div>
         
         
         <div class="info">Tags: <a title="All pages tagged 'Haskell'." href="../tags/Haskell.html">Haskell</a>, <a title="All pages tagged 'Maintainability'." href="../tags/Maintainability.html">Maintainability</a>, <a title="All pages tagged 'Correctness'." href="../tags/Correctness.html">Correctness</a>, <a title="All pages tagged 'GeneralFunctionalProgramming'." href="../tags/GeneralFunctionalProgramming.html">GeneralFunctionalProgramming</a></div>
@@ -61,16 +61,20 @@
 This is my second post dedicated to the <em>error information loss</em> in Haskell (the first was about <a href="https://rpeszek.github.io/posts/2021-01-17-maybe-overuse.html" target="_blank">Maybe Overuse</a>).</p>
 <h2 id="nutshell">Nutshell</h2>
 <p><code>Alternative</code> is a popular functional programming concept and the name of a frequently used Haskell typeclass. <code>Alternative</code> helps in writing elegant, concise code. <code>Alternative</code> instances are also known for producing confusing errors. In this post, we do a deep dive into the alternative thinking only about the errors.</p>
+<p>The goals for this post are:</p>
+<ul>
+<li>discuss how <code>Alternative</code> laws impact the instance ability to keep error information</li>
+<li>provide examples of how some <code>Alternative</code> instances can get programmers in trouble</li>
+<li>show a ‘blueprint’ <a href="#a-decent-blueprint-either-e-e-a"><code>Either [e] ([e],_)</code></a> instance with a strong ability to preserve error information. This blueprint can be extended to a transformer, parser, etc.</li>
+<li>very briefly discuss extending or rethinking the <code>Alternative</code> typeclass itself</li>
+</ul>
 <p>I realized that there is an interesting connection between many <code>Alternative</code> instances and optimism:<br />
 Thinking about <em>the glass being half empty or half full</em>, look at this computation: <code>a &lt;|&gt; b</code> and assume that <code>a</code> fails and <code>b</code> succeeds.<br />
 <em>A half empty glass</em> makes us think about the failure of <code>a</code>:<br />
 <em>Why</em> did <code>a</code> fail?<br />
 Would it not be better if some <code>a</code> failures caused the whole computation to fail?…<br />
 <em>A half full glass</em> makes us ignore the failure and focus on <code>b</code>… this is exactly the semantics of <code>&lt;|&gt;</code>.<br />
-A half full glass is not what you always want.</p>
-<p>My goal is to consider the <code>Alternative</code> typeclass, its laws, and its instances from the point of view of the errors. This “pessimistic” viewpoint yields an interesting prospective on the use of <code>Alternative</code> and on its limitations.<br />
-My second goal is to show a useful instance that is missing in the standard library and is different from the instances I have found in Hackage. This instances is pessimistically constructed to preserve the failure information.<br />
-My third goal is to briefly consider a possibility of rethinking the <code>Alternative</code> typeclass itself.</p>
+A half full glass is not what you always want and this post looks at the alternative, its laws, and its instances from a “pessimistic” viewpoint or the errors.</p>
 <p>This is a long post. You may prefer to pick a section you consider interesting and backtrack from it. The information is largely self-contained (except for referring to the laws).</p>
 <p>I am using the term <em>error</em> colloquially, the correct term is <em>exception</em>. <em>Exception information loss</em> just does not have a ring to it.</p>
 <h2 id="pessimists-intro-to-alternative">Pessimist’s Intro to <code>Alternative</code></h2>
