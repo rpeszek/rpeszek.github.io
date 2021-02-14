@@ -70,7 +70,7 @@ Thinking about <em>the glass being half empty or half full</em>, look at this co
 <em>Why</em> did <code>a</code> fail?<br />
 Would it not be better if some <code>a</code> failures caused the whole computation to fail?…<br />
 <em>A half full glass</em> makes us ignore the failure and focus on <code>b</code>… this is exactly the semantics of <code>&lt;|&gt;</code>.<br />
-A half full glass is not what you always want and this post looks at the alternative, its laws, and its instances from a “pessimistic” viewpoint or the errors.</p>
+A half full glass is not what you always want. This post looks at the alternative, its laws, and its instances from the “pessimistic” point of view. In this post pessimism is defined as, simply, thinking about the errors.</p>
 <p>This is a long post. You may prefer to pick a section you consider interesting and backtrack from it. The information is largely self-contained (except for referring to the laws).</p>
 <p>I am using the term <em>error</em> colloquially, the correct term is <em>exception</em>. <em>Exception information loss</em> just does not have a ring to it.</p>
 <h2 id="pessimists-intro-to-alternative">Pessimist’s Intro to <code>Alternative</code></h2>
