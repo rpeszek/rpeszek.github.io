@@ -23,6 +23,8 @@
         
         
         
+        <div class="changelog"> <div>Revision History: <ul> <li> (Feb 13, 2021) Edited <a href="#pessimistic-instances">Pessimistic Instances</a> top section</li> </ul> </div></div>
+        
         
         <div class="info">Tags: <a title="All pages tagged 'Haskell'." href="../tags/Haskell.html">Haskell</a>, <a title="All pages tagged 'Maintainability'." href="../tags/Maintainability.html">Maintainability</a>, <a title="All pages tagged 'Correctness'." href="../tags/Correctness.html">Correctness</a>, <a title="All pages tagged 'GeneralFunctionalProgramming'." href="../tags/GeneralFunctionalProgramming.html">GeneralFunctionalProgramming</a></div>
         
@@ -216,7 +218,7 @@ An example would be fixing an existing parser <code>p</code> with a missed corne
 <p>It would be ideal if the following property was true:</p>
 <p><em>If a typeclass A is defined in the <strong>base</strong> package and A has something to do with failures, then there exist at least one instance of <em>A</em> in the <strong>base</strong> allowing to recover the error information</em></p>
 <p><code>MonadFail</code> fails this property (especially when combined with <code>MonadPlus</code>: <a href="https://rpeszek.github.io/posts/2021-01-17-maybe-overuse.html#monadfail-and-maybe" target="_blank">Maybe Overuse - MonadFail</a>).</p>
-<p><code>Alternative</code> fails it as well.</p>
+<p><code>Alternative</code> <del>fails it as well</del>. (<strong>EDIT Feb 13, 2021</strong>: It has been pointed out to me on <a href="https://www.reddit.com/r/haskell/comments/lj3h47/is_alternative_a_wrong_abstraction_for_handling/gnas3y2?utm_source=share&amp;utm_medium=web2x&amp;context=3" target="_blank">reddit by u/gcross</a> that this is <strong>not a fair criticism</strong>. <em>base</em> typeclass definition does not really claim any relationship to failures. I stand corrected on this. I still think that it would be very nice to have error information friendly instance of Alternative in <em>base</em>.)</p>
 <p>Can we come up with <code>Alternative</code> instances that do a decent job of maintaining error information? It seems that the answer is yes.</p>
 <h3 id="either-e-a"><code>Either [e] a</code></h3>
 <p>This is a warm-up.</p>
