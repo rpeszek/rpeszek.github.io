@@ -23,7 +23,7 @@
         
         
         
-        <div class="changelog"> <div>Revision History: <ul> <li> (Feb 13, 2021) Edited <a href="#pessimistic-instances">Pessimistic Instances</a> top section</li> <li> (Feb 14, 2021) <a href="#pessimists-intro-to-alternative">Intro</a> adds a clarification paragraph linking failures to instances (prompted by reddit), <a href="#nutshell">Nutshell</a></li> clearly lists goals </ul> </div></div>
+        <div class="changelog"> <div>Revision History: <ul> <li> (Feb 13, 2021) Edited <a href="#pessimistic-instances">Pessimistic Instances</a> top section</li> <li> (Feb 14, 2021) <a href="#pessimists-intro-to-alternative">Intro</a> adds a clarification paragraph linking failures to instances (prompted by reddit), <a href="#nutshell">Nutshell</a> clearly lists goals </li> <li> (Feb 15, 2021) Added <a href="#readers-response">Reader's Response</a> section</li> </ul> </div></div>
         
         
         <div class="info">Tags: <a title="All pages tagged 'Haskell'." href="../tags/Haskell.html">Haskell</a>, <a title="All pages tagged 'Maintainability'." href="../tags/Maintainability.html">Maintainability</a>, <a title="All pages tagged 'Correctness'." href="../tags/Correctness.html">Correctness</a>, <a title="All pages tagged 'GeneralFunctionalProgramming'." href="../tags/GeneralFunctionalProgramming.html">GeneralFunctionalProgramming</a></div>
@@ -53,7 +53,10 @@
 <li><a href="#rethinking-the-typeclass-itself">Rethinking the Typeclass Itself</a></li>
 <li><a href="#alternative-beyond-parsing"><code>Alternative</code> Beyond Parsing</a></li>
 <li><a href="#relevant-work-on-hackage">Relevant work on Hackage</a></li>
-<li><a href="#conclusions-thoughts">Conclusions, Thoughts</a></li>
+<li><a href="#conclusions-thoughts">Conclusions, Thoughts</a>
+<ul>
+<li><a href="#readers-response">Reader’s Response</a></li>
+</ul></li>
 </ul>
 </div>
 <p><strong><em>subtitle:</em> A Constructive <del>Criticism</del> Pessimism about the Alternative Typeclass</strong></p>
@@ -424,6 +427,21 @@ My particular interest is in discussing:</p>
 <p><a href="https://www.reddit.com/r/haskell/comments/lj3h47/is_alternative_a_wrong_abstraction_for_handling/" target="_blank">reddit</a> discussion<br />
 github <a href="https://github.com/rpeszek/rpeszek.github.io/discussions/1" target="_blank">discussions</a></p>
 <p>Thank you for reading!</p>
+<h3 id="readers-response">Reader’s Response</h3>
+<p>Common critical response on reddit (2021-02-25) can be summarized as: Alternative should not be used like this and there are better ways of writing such code.</p>
+<blockquote>
+<p>“it seems a bit odd, to me, to criticize and talk about rethinking a typeclass because it does something that it was never intended to do”<br />
+“people should be using a typeclass designed for handling errors”<br />
+“maybe you are asking too much to Alternative”</p>
+</blockquote>
+<p>The <code>ErrWarn</code> blueprint or other instances with strong error information preserving abilities were not discussed.</p>
+<p>There appears to be mixed response to the error information loss being a problem in general. Some readers claim that this is not a problem, some seem to share my concern.</p>
+<p><strong>Author’s Defense</strong></p>
+<p>I agree with the: “Alternative should not be used like this”.</p>
+<p>Alternative is an example of an abstraction that is very easy to use, it makes coding fast.<br />
+It will be (and I have seen it) used in ways similar to what I described in this post.</p>
+<p>Any code (alternative or not) producing confusing error output is a concern.<br />
+IMO, every abstraction and every instance needs to be concerned about the error output quality and every instance needs to be designed for handling errors.</p>
 
     </section>
 </article>
