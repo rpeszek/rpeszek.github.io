@@ -440,7 +440,8 @@ github <a href="https://github.com/rpeszek/rpeszek.github.io/discussions/1" targ
 <p><strong>Author’s Defense</strong></p>
 <p>I agree with the: “Alternative should not be used like this”.</p>
 <p>Alternative is an example of an abstraction that is very easy to use, it makes coding fast.<br />
-It will be (and I have seen it) used in ways similar to what I described in this post.</p>
+It most likely will end up being used (I have seen it) in ways similar to what I described in this post.<br />
+It is important that the developers are aware of the gotchas that come with some of the instances of this abstraction.</p>
 <p>Any code (alternative or not) producing confusing error output is a concern.<br />
 IMO, every abstraction and every instance needs to be concerned about the error output quality. <em>Not being designed for error handling</em> should not be a thing.</p>
 
