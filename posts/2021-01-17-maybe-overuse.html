@@ -38,13 +38,13 @@
             by Robert Peszek
         
         
-          <br /> Last Modified on January 18, 2021
+          <br /> Last Modified on February 17, 2021
         
         
-        <div class="changelog"> <div>Revision History: <ul> <li> (Jan 18, 2021) Added <a href="#monadfail-and-maybe">MonadFail</a> subsection to <a href="#maybe-on-hackage">Maybe on Hackage</a></li> </ul> </div></div>
+        <div class="changelog"> <div>Revision History: <ul> <li> (2021.01.18) Added <a href="#monadfail-and-maybe">MonadFail</a> subsection to <a href="#maybe-on-hackage">Maybe on Hackage</a> </li> <li> (2021.02.17-now) <a href="#more-links">More Links</a> (list of related links)</li> </ul> </div></div>
         
         
-        <div class="info">Tags: <a title="All pages tagged 'Haskell'." href="../tags/Haskell.html">Haskell</a>, <a title="All pages tagged 'Correctness'." href="../tags/Correctness.html">Correctness</a>, <a title="All pages tagged 'Maintainability'." href="../tags/Maintainability.html">Maintainability</a></div>
+        <div class="info">Tags: <a title="All pages tagged 'Haskell'." href="../tags/Haskell.html">Haskell</a>, <a title="All pages tagged 'error-messages'." href="../tags/error-messages.html">error-messages</a>, <a title="All pages tagged 'maintainability'." href="../tags/maintainability.html">maintainability</a></div>
         
     </section>
     <section>
@@ -70,6 +70,7 @@
 <li><a href="#alternative-typeclass"><code>Alternative</code> typeclass</a></li>
 <li><a href="#good-uses-of-maybe">Good uses of Maybe</a></li>
 <li><a href="#why-maybe-is-overused-possible-explanations">Why <code>Maybe</code> is Overused? Possible Explanations</a></li>
+<li><a href="#more-links">More Links</a></li>
 </ul>
 </div>
 <h4 id="motivating-references">Motivating References:</h4>
@@ -348,7 +349,7 @@ This pattern provides a convenient defaulting mechanism and allows to set groups
 <p>The reverse: <code>First (Maybe _)</code> <code>Monoid</code> instance is far less convenient to use but is much less surprising.</p>
 <p>I do not think that <code>Maybe-First</code> <code>Monoid</code> is necessarily bad. There is simply a trade-off between the conveniences it offers and its gotchas. I prefer designs that provide more safety over accidental bugs.</p>
 <h2 id="alternative-typeclass"><code>Alternative</code> typeclass</h2>
-<p><code>Alternaive</code> <code>(&lt;|&gt;)</code> is very convenient tool often used with parsers. It can be dangerous on its own merit. It can suppress error information in questionable ways if overused.</p>
+<p><code>Alternaive</code> <code>(&lt;|&gt;)</code> is very convenient tool often used with parsers. It can be dangerous on its own merit. It can suppress error information in questionable ways if overused (I wrote a separate <a href="https://rpeszek.github.io/posts/2021-02-13-alternative.html" target="_blank">post</a> about it).</p>
 <p>There is currently no <code>Alternative</code> instance for <code>Either err</code> but there is one for <code>Maybe</code>. This creates temptation to <code>unExplain</code> the <code>err</code> …</p>
 <h2 id="good-uses-of-maybe">Good uses of Maybe</h2>
 <p>I think the following old design principle (Postel’s law) is still valid (on the implementation side)</p>
@@ -377,6 +378,12 @@ I do not advocate avoiding abstractions, just do not forget errors on the way. D
 <ul>
 <li>github <a href="https://github.com/rpeszek/rpeszek.github.io/discussions" target="_blank">discussions</a></li>
 <li><a href="https://www.reddit.com/r/haskell/comments/kyo4xk/maybe_considered_harmful/" target="_blank">reddit</a></li>
+</ul>
+<h2 id="more-links">More Links</h2>
+<p>(Links and information added later, after the original post)</p>
+<ul>
+<li><p><a href="https://www.parsonsmatt.org/2018/11/03/trouble_with_typed_errors.html" target="_blank">The Trouble with Typed Errors</a> - My post is often read as “Use Either” (I would prefer just “Do not overuse Maybe”). Matt Parsons’s great post talks about problems with monolithic error types and more. Extensible errors is important topic worth its own github awesome page.</p></li>
+<li><p><a href="https://haskellweekly.news/episode/35.html" target="_blank">Haskell Weekly Podcast</a> has explored my post. Thank you so much!</p></li>
 </ul>
 
     </section>

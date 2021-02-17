@@ -22,11 +22,13 @@
             by Robert Peszek
         
         
+          <br /> Last Modified on February 17, 2021
         
-        <div class="changelog"> <div>Revision History: <ul> <li> (2021.02.13) Edited <a href="#pessimistic-instances">Pessimistic Instances</a> top section</li> <li> (2021.02.14) <a href="#pessimists-intro-to-alternative">Intro</a> adds a clarification paragraph linking failures to instances (prompted by reddit), <a href="#nutshell">Nutshell</a> clearly lists goals </li> <li> (2021.02.15-16) Added <a href="#readers-response">Reader's Response</a> section</li> <li> (2021.02.16) Laws&colon; clarified some text</li> </ul> </div></div>
+        
+        <div class="changelog"> <div>Revision History: <ul> <li> (2021.02.13) Edited <a href="#pessimistic-instances">Pessimistic Instances</a> top section</li> <li> (2021.02.14) <a href="#pessimists-intro-to-alternative">Intro</a> adds a clarification paragraph linking failures to instances (prompted by reddit), <a href="#nutshell">Nutshell</a> clearly lists goals </li> <li> (2021.02.15-16) Added <a href="#readers-response">Reader's Response</a> section</li> <li> (2021.02.16) Laws&colon; clarified some text</li> <li> (2021.02.17) <a href="#rethinking-the-typeclass-itself">Rethinking</a> section reworded a little</li> </ul> </div></div>
         
         
-        <div class="info">Tags: <a title="All pages tagged 'Haskell'." href="../tags/Haskell.html">Haskell</a>, <a title="All pages tagged 'Maintainability'." href="../tags/Maintainability.html">Maintainability</a>, <a title="All pages tagged 'Correctness'." href="../tags/Correctness.html">Correctness</a>, <a title="All pages tagged 'GeneralFunctionalProgramming'." href="../tags/GeneralFunctionalProgramming.html">GeneralFunctionalProgramming</a></div>
+        <div class="info">Tags: <a title="All pages tagged 'Haskell'." href="../tags/Haskell.html">Haskell</a>, <a title="All pages tagged 'error-messages'." href="../tags/error-messages.html">error-messages</a>, <a title="All pages tagged 'maintainability'." href="../tags/maintainability.html">maintainability</a>, <a title="All pages tagged 'correctness'." href="../tags/correctness.html">correctness</a></div>
         
     </section>
     <section>
@@ -79,6 +81,7 @@ Would it not be better if some <code>a</code> failures caused the whole computat
 <em>A half full glass</em> makes us ignore the failure and focus on <code>b</code>… this is exactly the semantics of <code>&lt;|&gt;</code>.<br />
 A half full glass is not what you always want. This post looks at the alternative, its laws, and its instances from the “pessimistic” point of view. In this post pessimism is defined as, simply, thinking about the errors.</p>
 <p>This is a long post. You may prefer to pick a section you consider interesting and backtrack from it. The information is largely self-contained (except for referring to the laws).</p>
+<p>Implementing good error messages is not trivial. This post should not be viewed as criticism but as a challenge.</p>
 <p>I am using the term <em>error</em> colloquially, the correct term is <em>exception</em>. <em>Exception information loss</em> just does not have a ring to it.</p>
 <h2 id="pessimists-intro-to-alternative">Pessimist’s Intro to <code>Alternative</code></h2>
 <div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">class</span> <span class="dt">Applicative</span> f <span class="ot">=&gt;</span> <span class="dt">Alternative</span> f <span class="kw">where</span></span>
@@ -110,8 +113,8 @@ What does: nothing went wrong but the computation failed mean?<br />
 <li><code>some</code> and <code>many</code> provide no error information about the failure that ended the production of the result list. I will not discuss <code>some</code> or <code>many</code> in this post.</li>
 </ul>
 <p>A somewhat popular behavior is: If all alternatives fail, then the error information comes from the last tried computation. Examples of alternatives that behave this way are: <em>attoparsec</em> <code>Parser</code>, <em>aeson</em> <code>Parser</code>, <code>IO</code>.</p>
-<p>I am not that deeply familiar with GHC internals. However, as a black box, the GHC compiler often behaves in a very similar way. For example, GHC message could indicate a problem with unifying types; it may suggest that my function needs to be applied to more arguments; … while the real issue is that I am missing a typeclass instance somewhere or something else is happening that is completely not related to the error message. From time to time, GHC will throw Haskell developers for a loop.<br />
-With many of the <code>Alternative</code> instances, we are likely to do the same to out users.</p>
+<p>I am not that deeply familiar with GHC internals. However, as a black box, the GHC compiler often behaves in a very similar way. For example, GHC message could indicate a problem with unifying types; it may suggest that my function needs to be applied to more arguments; … while the real issue is that I am missing a typeclass instance somewhere or something else is happening that is completely not related to the error message. Generating useful compiler messages must be very hard and this is not a criticism of GHC but a familiar UX example.<br />
+From time to time, GHC will throw Haskell developers for a loop.</p>
 <p><strong>Side-Note:</strong> <em>parsec</em> and <em>megaparsec</em> packages implemented sophisticated ways to provide better error messages by looking at things like longest parsed path. Lack of backtracking is what makes the <em>(maga)parsec</em> <code>Parser</code> not a fully lawful <em>Alternative/MonadPlus</em> (violating <em>right zero</em>). The <em>megaparsec</em> haddock suggest adding <code>try</code> to improve the lawfulness. Adding <code>try</code> can mess up error messages. There appears to be an interesting pragmatic trade-off: <em>good error messages</em> vs <em>more lawful alternative behavior</em>.<br />
 A great, related, reading is: <a href="http://blog.ezyang.com/2014/05/parsec-try-a-or-b-considered-harmful/" target="_blank">Parsec: “try a &lt;|&gt; b” considered harmful</a>.</p>
 <p>A random advice from a discussion about <em>attoparsec</em> errors:</p>
@@ -358,8 +361,8 @@ That approach is equivalent to <code>WriterT w (Except e)</code>, it does not tr
 <p><code>ErrWarnT</code> allows to program in a <code>ErrWarnT e e f</code> alternative (e.g. <code>ErrWarnT e e Parser</code>) and annotate additional error information on <code>f</code> (e.g. during parsing). This allows, for example, to <em>pattern match on errors</em> to figure out which alternatives in <code>&lt;|&gt;</code> have failed even if the overall computation has succeeded.<br />
 <code>WarnParser</code> accumulates <code>&lt;|&gt;</code> similar errors and warnings out of the box.</p>
 <h2 id="rethinking-the-typeclass-itself">Rethinking the Typeclass Itself</h2>
-<p>Is <code>Alternative</code> a wrong abstraction for what it is trying to do? I think it is. IMO any abstraction intended for handling failures should include failures in its semantics. <code>Alternative</code> typeclass does not do that.</p>
-<p><code>Alternative</code> is widely used and replacing it would, probably, be very hard or even impossible. Replacement would be useful only if the ecosystem accepts it.</p>
+<p>Is <code>Alternative</code> a wrong abstraction for alternating failing computations? I think it is. IMO any abstraction used for working with failures should include failures in its semantics. <code>Alternative</code> typeclass does not do that.</p>
+<p><code>Alternative</code> is widely used and creating an ‘alternative’ to it will, probably, be very hard or even impossible. That typeclass would be useful only if the ecosystem accepted it.</p>
 <p>One conceptually simple improvement would be to split <code>Alternative</code> to mimic the <code>Semigoup</code> / <code>Monoid</code> split (<em>semigroupoids</em> has <code>Data.Functor.Alt</code> which seems to fit the bill).<br />
 This would clean up some instances like <code>ExceptT</code> (the above <a href="#either-e-a"><code>Either [e]</code></a>) or <a href="#relevant-work-on-hackage"><code>Validation</code></a> by reducing the need for questionable <code>empty</code> definitions like <code>Left []</code>. Incidentally, this would be the opposite of the <a href="https://wiki.haskell.org/MonadPlus_reform_proposal" target="_blank"><code>MonadZero</code></a> proposal.</p>
 <p>I would really like to see <code>e</code>-s in the typeclass definition:</p>
@@ -462,13 +465,13 @@ IMO, every abstraction and every instance needs to be concerned about the error 
             by Robert Peszek
         
         
-          <br /> Last Modified on January 18, 2021
+          <br /> Last Modified on February 17, 2021
         
         
-        <div class="changelog"> <div>Revision History: <ul> <li> (Jan 18, 2021) Added <a href="#monadfail-and-maybe">MonadFail</a> subsection to <a href="#maybe-on-hackage">Maybe on Hackage</a></li> </ul> </div></div>
+        <div class="changelog"> <div>Revision History: <ul> <li> (2021.01.18) Added <a href="#monadfail-and-maybe">MonadFail</a> subsection to <a href="#maybe-on-hackage">Maybe on Hackage</a> </li> <li> (2021.02.17-now) <a href="#more-links">More Links</a> (list of related links)</li> </ul> </div></div>
         
         
-        <div class="info">Tags: <a title="All pages tagged 'Haskell'." href="../tags/Haskell.html">Haskell</a>, <a title="All pages tagged 'Correctness'." href="../tags/Correctness.html">Correctness</a>, <a title="All pages tagged 'Maintainability'." href="../tags/Maintainability.html">Maintainability</a></div>
+        <div class="info">Tags: <a title="All pages tagged 'Haskell'." href="../tags/Haskell.html">Haskell</a>, <a title="All pages tagged 'error-messages'." href="../tags/error-messages.html">error-messages</a>, <a title="All pages tagged 'maintainability'." href="../tags/maintainability.html">maintainability</a></div>
         
     </section>
     <section>
@@ -494,6 +497,7 @@ IMO, every abstraction and every instance needs to be concerned about the error 
 <li><a href="#alternative-typeclass"><code>Alternative</code> typeclass</a></li>
 <li><a href="#good-uses-of-maybe">Good uses of Maybe</a></li>
 <li><a href="#why-maybe-is-overused-possible-explanations">Why <code>Maybe</code> is Overused? Possible Explanations</a></li>
+<li><a href="#more-links">More Links</a></li>
 </ul>
 </div>
 <h4 id="motivating-references">Motivating References:</h4>
@@ -772,7 +776,7 @@ This pattern provides a convenient defaulting mechanism and allows to set groups
 <p>The reverse: <code>First (Maybe _)</code> <code>Monoid</code> instance is far less convenient to use but is much less surprising.</p>
 <p>I do not think that <code>Maybe-First</code> <code>Monoid</code> is necessarily bad. There is simply a trade-off between the conveniences it offers and its gotchas. I prefer designs that provide more safety over accidental bugs.</p>
 <h2 id="alternative-typeclass"><code>Alternative</code> typeclass</h2>
-<p><code>Alternaive</code> <code>(&lt;|&gt;)</code> is very convenient tool often used with parsers. It can be dangerous on its own merit. It can suppress error information in questionable ways if overused.</p>
+<p><code>Alternaive</code> <code>(&lt;|&gt;)</code> is very convenient tool often used with parsers. It can be dangerous on its own merit. It can suppress error information in questionable ways if overused (I wrote a separate <a href="https://rpeszek.github.io/posts/2021-02-13-alternative.html" target="_blank">post</a> about it).</p>
 <p>There is currently no <code>Alternative</code> instance for <code>Either err</code> but there is one for <code>Maybe</code>. This creates temptation to <code>unExplain</code> the <code>err</code> …</p>
 <h2 id="good-uses-of-maybe">Good uses of Maybe</h2>
 <p>I think the following old design principle (Postel’s law) is still valid (on the implementation side)</p>
@@ -801,6 +805,12 @@ I do not advocate avoiding abstractions, just do not forget errors on the way. D
 <ul>
 <li>github <a href="https://github.com/rpeszek/rpeszek.github.io/discussions" target="_blank">discussions</a></li>
 <li><a href="https://www.reddit.com/r/haskell/comments/kyo4xk/maybe_considered_harmful/" target="_blank">reddit</a></li>
+</ul>
+<h2 id="more-links">More Links</h2>
+<p>(Links and information added later, after the original post)</p>
+<ul>
+<li><p><a href="https://www.parsonsmatt.org/2018/11/03/trouble_with_typed_errors.html" target="_blank">The Trouble with Typed Errors</a> - My post is often read as “Use Either” (I would prefer just “Do not overuse Maybe”). Matt Parsons’s great post talks about problems with monolithic error types and more. Extensible errors is important topic worth its own github awesome page.</p></li>
+<li><p><a href="https://haskellweekly.news/episode/35.html" target="_blank">Haskell Weekly Podcast</a> has explored my post. Thank you so much!</p></li>
 </ul>
 
     </section>
