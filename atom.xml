@@ -315,7 +315,7 @@ Again, I view <code>interpreter</code> as a natural transformation between <code
 The task of refactoring a large code base to change its effect library will not be easy and I am not even sure it will be attempted.<br />
 The differences are not just in the use of arrows vs monads. The effects are declared polymorphically in both cases but in very different ways. The collection of base effects like <code>State</code> have subtle differences…<br />
 It will require much more footwork to be able to do it piece by piece.</p>
-<p>The <code>Eff2</code> / <code>Eff2Free</code> tooling is not really arrow specific. I believe, it could be used with other things. That is the reason behind the names (for not using something like <code>EffArr</code>). However, whatever you come up with (e.g. some free construction of the profunctor) this will be just dressing a monad in some other clothing - it will be syntactic only. <code>Arrow</code> seems to be the only meaningful exception, because it comes with the syntax extension (the Arrows pragma).</p>
+<p>The <code>Eff2</code> / <code>Eff2Free</code> tooling is not really arrow specific. I believe, it could be used with other things. That is the reason behind the names (for not using something like <code>EffArr</code>). However, whatever you come up with (e.g. a free Profunctor construction) this will be just dressing a monad in some other clothing - it will be syntactic only. The <code>Arrow</code> seems to be the only meaningful exception, because it comes with the syntax extension (the Arrows pragma).</p>
 <p>This was all very much a quick prototype. I am sure the presented code can be improved in many ways. I hope it was good enough to allow for an interesting reading.</p>
 
     </section>
