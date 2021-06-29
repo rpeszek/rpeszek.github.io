@@ -7,8 +7,321 @@
         <description><![CDATA[Infrequent, Pragmatic, Lambda Blog Feed]]></description>
         <atom:link href="https://rpeszek.github.io//RSS.xml" rel="self"
                    type="application/rss+xml" />
-        <lastBuildDate>Sat, 13 Feb 2021 00:00:00 UT</lastBuildDate>
+        <lastBuildDate>Mon, 28 Jun 2021 00:00:00 UT</lastBuildDate>
         <item>
+    <title>Arming polysemy with Arrows</title>
+    <link>https://rpeszek.github.io//posts/2021-06-28-polysemy-arrows.html</link>
+    <description><![CDATA[<article>
+    <section class="header">
+        Posted on June 28, 2021
+        
+            by Robert Peszek
+        
+        
+          <br /> Last Modified on Jun 28, 2021
+        
+        
+        
+        <div class="info">Tags: <a title="All pages tagged 'Haskell'." href="../tags/Haskell.html">Haskell</a></div>
+        
+    </section>
+    <section>
+
+    </section>
+    <section>
+        <div class="toc"><div class="header">Table of Contents</div>
+<ul>
+<li><a href="#arrow-effects.-semantics">Arrow Effects. Semantics</a>
+<ul>
+<li><a href="#chris-penners-arrow-idea">Chris Penner’s <del>arr</del>ow idea</a></li>
+</ul></li>
+<li><a href="#monadic-polysemy-working-example">Monadic polysemy, Working example</a></li>
+<li><a href="#semarr-type"><code>SemArr</code> type</a></li>
+<li><a href="#consuming-polysemy-effects-using-arrows">Consuming <em>polysemy</em> effects using arrows</a></li>
+<li><a href="#arrow-effects.-the-plumbing">Arrow Effects. The Plumbing</a></li>
+<li><a href="#creating-arrow-effects">Creating Arrow Effects</a></li>
+<li><a href="#creating-nested-effects">Creating Nested Effects</a></li>
+<li><a href="#final-thoughts">Final Thoughts</a></li>
+</ul>
+</div>
+<p>Code for this project can be found in my <a href="https://github.com/rpeszek/experiments" target="_blank">experiments</a> github repo (<a href="https://github.com/rpeszek/experiments/tree/master/polysemy-arrows" target="_blank">polysemy-arrows</a> folder).<br />
+It is based on <a href="https://hackage.haskell.org/package/polysemy-1.3.0.0" target="_blank"><em>polysemy 1.3.0.0</em></a>.</p>
+<p>The goal of this post is to show how to use arrows when working with or creating <em>polysemy</em> effects.</p>
+<p><strong>Motivation:</strong> At work I use a proprietary effect system which is based on <a href="https://www.haskell.org/arrows" target="_blank">arrows</a>. I like it quite a bit, but… For something like an effect system, proprietary is not ideal. The effect system has a huge syntactic and semantic impact on the code. IMO it is a worthy goal to try limit the fragmentation of the ecosystem and (in the industrial context) focus on a small set of effect libraries.<br />
+This task became my weekend pet project, and I have done some proof of concept work that added arrows to <a href="https://hackage.haskell.org/package/polysemy" target="_blank"><em>polysemy</em></a>. This post summarizes my effort. I believe similar approach can be used with other monadic effect libraries (like <a href="https://hackage.haskell.org/package/fused-effects" target="_blank"><em>fused-effects</em></a>). <em>polysemy</em> seems much closer to the design of the library I use at work, and was my first choice for this proof of concept work.</p>
+<p><strong>Nutshell:</strong> There are two reasons for using arrows: syntactic and semantic. This blog, I am afraid, is about the first one. It is mostly about syntax sugar. Polysemy’s <a href="https://hackage.haskell.org/package/polysemy-1.3.0.0/docs/Polysemy.html#t:Sem" target="_blank"><code>Sem r</code></a> Monad instance is unconstrained, and that translates to arrow effects getting the equivalent <a href="https://hackage.haskell.org/package/base-4.15.0.0/docs/Control-Arrow.html#t:ArrowMonad" target="_blank"><code>ArrowApply</code></a> typeclass instance for free.<br />
+The code I am about to present is trivial (at least in the mathematical sense). Monads and arrows loaded with the power of <code>ArrowApply</code> are equivalent. Semantic arrows I am going to implement here are just monads in arrow’s clothing. There is still some coding that needs to happen to implement the transformation and this code is the main subject of this post.</p>
+<p>Algebraic effects for arrows <em>that are less expressive</em> (i.e. are not <code>ArrowApply</code> or even <code>ArrowChoice</code>) are meaningfully different and will be briefly discussed in the next section.</p>
+<p>The code I write at work uses DSLs with “fully loaded” <code>ArrowApply</code> semantic arrows. We have build a lot of functionality that is directly concerned with inputs and outputs and arrows are a perfect syntactic match for us. DSL expressiveness is also what we want.</p>
+<p>My coding goal in this post is to:</p>
+<ul>
+<li>be able to consume monadic polysemy effects using arrows</li>
+<li>write arrow-like effects and consume them in monadic code</li>
+</ul>
+<p>Another words, a programmer should be able to create monadic effects using arrow effects and vice-versa.<br />
+This is largely accomplished by using the <a href="https://hackage.haskell.org/package/base-4.15.0.0/docs/Control-Arrow.html#t:Kleisli" target="_blank">Control.Arrow.Kleisli</a> type and an effect construction that mimics <a href="https://hackage.haskell.org/package/base-4.15.0.0/docs/Control-Arrow.html#t:ArrowMonad" target="_blank">Control.Arrow.ArrowMonad</a>.</p>
+<p>Many of my coworkers have, at some point, done a presentation or a tutorial about arrows. (<a href="https://www.youtube.com/watch?v=msQiLyExM3w" target="_blank">Jake’s talk</a>, <a href="https://www.youtube.com/watch?v=YqVTCZFPoyQ" target="_blank">Jason’s talk</a>).<br />
+I guess this post qualifies as one and, thus, I am joining the club.</p>
+<p>This post assumes the reader has at least basic familiarity with the concepts of arrows and algebraic effects.</p>
+<h2 id="arrow-effects.-semantics">Arrow Effects. Semantics</h2>
+<p>Since this will mostly be a syntax sugar, I need to talk about the semantics … just to add some depth.<br />
+In this section I want to explore the realm of theoretical possibilities for what arrow algebraic effects could possibly look like and how they could differ from monadic algebraic effects.</p>
+<p>It is interesting to think about arrows from the point of view of code expressiveness. Syntax aside, you can view arrow code as a subset of monadic code. Monadic code is the most expressive, arrows are much more restrictive (<a href="https://www.cl.cam.ac.uk/~jdy22/papers/idioms-are-oblivious-arrows-are-meticulous-monads-are-promiscuous.pdf" target="_blank">Idioms are oblivious, arrows are meticulous, monads are promiscuous</a> by Lindley, Wadler, Yallop). In Haskell, additional <a href="https://hackage.haskell.org/package/base-4.15.0.0/docs/Control-Arrow.html#t:ArrowChoice" target="_blank"><code>ArrowChoice</code></a> instance is needed to be able to write conditional (<code>if</code> and <code>case</code>) statements, <a href="https://hackage.haskell.org/package/base-4.15.0.0/docs/Control-Arrow.html#t:ArrowMonad" target="_blank"><code>ArrowApply</code></a> is needed to partially apply things. To focus this fantasy exploration, I want to forget about <code>ArrowChoice</code> and <code>ArrowApply</code> for a moment and consider what arrow effect system would look like for DSLs based on the <a href="https://hackage.haskell.org/package/base-4.15.0.0/docs/Control-Arrow.html#t:Arrow" target="_blank"><code>Arrow</code></a> typeclass only.</p>
+<p>If an arrow code is a subset of a monadic code then monadic handlers (interpreters) have to also work on arrow DSLs. (With some adjustments of course, this is exactly what this post implements.) The question is what kind of other interesting interpreters one could come up with, that wouldn’t work on promiscuous monads but would work on meticulous arrows?</p>
+<p>For one, arrow effects should be able to interpret to other interesting arrows. Basically, the handler (defined as the final interpreter / compilation target) should be able live outside of the standard (monadic) function space. There are examples of open source code out there that make steps in this direction. One example is tweag’s <a href="https://hackage.haskell.org/package/funflow-1.3.2/docs/Control-Arrow-Free.html" target="_blank">funflow</a>.</p>
+<p>That sounds interesting but it is good to see a more practical benefit. To do that let’s think about what it means to have lack of conditional statements.</p>
+<p>A great reading (somewhat on a theoretical side) is the Lindley’s paper <a href="https://homepages.inf.ed.ac.uk/slindley/papers/aeia.pdf" target="_blank">Algebraic Effects and Effect Handlers for Idioms and Arrows</a>.</p>
+<p>Lindley uses the terms <em>static control flow</em> and <em>dynamic control flow</em>. Arrows allow for <em>static control flow</em> only.</p>
+<p>Consider this monadic code:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a>countTo10 <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>  i <span class="ot">&lt;-</span> get</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a>  <span class="kw">if</span> i <span class="op">&lt;</span> <span class="dv">10</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a>  <span class="kw">then</span> put (i <span class="op">+</span> <span class="dv">1</span>)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a>  <span class="kw">else</span> <span class="fu">pure</span> ()</span></code></pre></div>
+<p>that uses some <em>State</em> effect and increments it until it reaches 10.<br />
+This code uses dynamic control flow (<code>if</code>-s on the result of the previous computation) and cannot be implemented with plain arrows.</p>
+<p>This leads to the following 2 interesting observations:</p>
+<ul>
+<li>Arrow effects need to be more precise</li>
+<li>Arrow effect handlers could conceivably do crazy stuff</li>
+</ul>
+<p><strong>Arrow Effects need to be more precise:</strong><br />
+Monadic effect algebra GADT for <em>State</em> is likely to look like this (actually copied it from polysemy):</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">State</span> s m a <span class="kw">where</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a>  <span class="dt">Get</span><span class="ot"> ::</span> <span class="dt">State</span> s m s</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a>  <span class="dt">Put</span><span class="ot"> ::</span> s <span class="ot">-&gt;</span> <span class="dt">State</span> s m ()</span></code></pre></div>
+<p>to implement <code>countTo10</code> without conditional statements I need more precise instructions! For example, I could add:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a>  <span class="dt">Modify</span><span class="ot"> ::</span> (s <span class="ot">-&gt;</span> s) <span class="ot">-&gt;</span> <span class="dt">State</span> s m ()</span></code></pre></div>
+<p>This forced precision could be perceived as a benefit in some situations. It gives more power to the interpreter to do different things when interpreting <code>Modify</code> than just <code>Get</code>/<code>Put</code> (for example, do something that is more performant or use different log messages).</p>
+<p><strong>Arrow effect handlers could conceivably do crazy stuff:</strong><br />
+Static control flow makes for a much more predictable syntax tree. For example, you can imagine interpreter that determines statically if <code>put</code> operation is used or not!<br />
+Again, this translates to more power given to the interpreters, no <code>put</code>-s could, for example, mean a more aggressive optimization that somehow caches the state…</p>
+<h3 id="chris-penners-arrow-idea">Chris Penner’s <del>arr</del>ow idea</h3>
+<p>Very interesting <a href="https://www.youtube.com/channel/UCNp-DVb8cQRIOo32sZhWgNg" target="_blank">Berlin’s FP Group</a> presentation by Chris Penner <a href="https://www.youtube.com/watch?v=xZmPuz9m2t0" target="_blank">Deconstructing Lambdas—An Awkward Guide to Programming Without Functions</a> envisions a world with something <code>Arrow</code>-like that does not have the <a href="https://hackage.haskell.org/package/base-4.15.0.0/docs/Control-Arrow.html#v:arr" target="_blank"><code>arr</code></a>.<br />
+From a DSLs prospective, <code>Arrow</code>’s <code>arr</code> translates to the ability to use any Haskell <code>a -&gt; b</code> function inside the DSL.<br />
+Removing this ability is very interesting. It is also a hard stop when trying to reuse any monadic effects library.</p>
+<p>It seems that Chris Penner’s vision could be implemented with some Arrow-Minus like construction that cares about inputs and outputs and algebraic effect system that will be completely divorced from monadic effects.</p>
+<p>The point I tried to make in this section is that Arrow-like effect systems that are not convertible to monadic effects are very interesting and semantically important. The rest of this post is about interpreting arrows using polysemy and is more a syntax sugar thing.</p>
+<h2 id="monadic-polysemy-working-example">Monadic polysemy, Working example</h2>
+<p>I will use the classic <code>Teletype</code> effect as my driving example. This is taken (almost) straight from the polysemy’s github readme:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Teletype</span> m a <span class="kw">where</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a>  <span class="dt">ReadTTY</span><span class="ot">  ::</span> <span class="dt">Teletype</span> m <span class="dt">String</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a>  <span class="dt">WriteTTY</span><span class="ot"> ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Teletype</span> m ()</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true"></a>makeSem '<span class="dt">'Teletype</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true"></a><span class="ot">echo ::</span> <span class="dt">Member</span> <span class="dt">Teletype</span> r <span class="ot">=&gt;</span> <span class="dt">Sem</span> r ()</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true"></a>echo <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true"></a>  i <span class="ot">&lt;-</span> readTTY</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true"></a>  <span class="kw">case</span> i <span class="kw">of</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true"></a>    <span class="st">&quot;&quot;</span> <span class="ot">-&gt;</span> writeTTY <span class="st">&quot;Need some input&quot;</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true"></a>    _  <span class="ot">-&gt;</span> writeTTY <span class="op">$</span> <span class="st">&quot;You said &quot;</span> <span class="op">&lt;&gt;</span> i</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true"></a></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true"></a><span class="co">-- * interpreters</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true"></a></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true"></a><span class="ot">teletypeToIO ::</span> <span class="dt">Member</span> (<span class="dt">Embed</span> <span class="dt">IO</span>) r <span class="ot">=&gt;</span> <span class="dt">Sem</span> (<span class="dt">Teletype</span> '<span class="op">:</span> r) a <span class="ot">-&gt;</span> <span class="dt">Sem</span> r a</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true"></a>teletypeToIO <span class="ot">=</span> interpret \<span class="kw">case</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true"></a>  <span class="dt">ReadTTY</span>      <span class="ot">-&gt;</span> embed <span class="fu">getLine</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true"></a>  <span class="dt">WriteTTY</span> msg <span class="ot">-&gt;</span> embed <span class="op">$</span> <span class="fu">putStrLn</span> msg</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true"></a></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true"></a><span class="ot">interpreter ::</span> r <span class="op">~</span> '[<span class="dt">Teletype</span>, <span class="dt">Embed</span> <span class="dt">IO</span>] <span class="ot">=&gt;</span> <span class="dt">Sem</span> r a <span class="ot">-&gt;</span> <span class="dt">IO</span> a</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true"></a>interpreter <span class="ot">=</span> runM <span class="op">.</span> teletypeToIO</span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true"></a></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true"></a><span class="ot">test ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true"></a>test <span class="ot">=</span> interpreter echo</span></code></pre></div>
+<p>I have spelled out the effect stack in the type signature of the <code>interpreter</code> combinator to add the clarity. I will do that in following examples as well. Compiler can infer these and typical <em>polysemy</em> examples do not list the complete effect list.<br />
+The goal is to replace monadic computations with arrows.</p>
+<h2 id="semarr-type"><code>SemArr</code> type</h2>
+<p>Let me introduce our semantic arrow type:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Control.Arrow</span> <span class="kw">as</span> <span class="dt">Arr</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a><span class="co">-- | Semantic arrows in polysemy</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true"></a><span class="kw">type</span> <span class="dt">SemArr</span> r a b <span class="ot">=</span> <span class="dt">Arr.Kleisli</span> (<span class="dt">Sem</span> r) a b</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true"></a></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true"></a><span class="co">-- | Used to define atomic effect arrows</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true"></a><span class="ot">constSemArr ::</span> (<span class="dt">Sem</span> r) b <span class="ot">-&gt;</span> <span class="dt">SemArr</span> r () b</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true"></a>constSemArr c <span class="ot">=</span> <span class="dt">Arr.Kleisli</span> (<span class="fu">const</span> c)</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true"></a></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true"></a><span class="co">-- | Used to define atomic effect arrows</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true"></a><span class="ot">semArr ::</span> (a <span class="ot">-&gt;</span> (<span class="dt">Sem</span> r) b)<span class="ot">-&gt;</span> <span class="dt">SemArr</span> r a b</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true"></a>semArr <span class="ot">=</span> <span class="dt">Arr.Kleisli</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true"></a></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true"></a><span class="co">-- | transforms @Sem@ compilation stacks to @SemArr@ compilation stacks.</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true"></a><span class="ot">semArrCompl ::</span> (<span class="dt">Sem</span> r1 b1 <span class="ot">-&gt;</span> <span class="dt">Sem</span> r2 b2) <span class="ot">-&gt;</span> <span class="dt">SemArr</span> r1 a b1 <span class="ot">-&gt;</span> <span class="dt">SemArr</span> r2 a b2 </span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true"></a>semArrCompl comp (<span class="dt">Arr.Kleisli</span> fn) <span class="ot">=</span> <span class="dt">Arr.Kleisli</span> (comp <span class="op">.</span> fn)</span></code></pre></div>
+<p><code>Kleisli m a b</code> wraps <code>a -&gt; m b</code> function and is the standard way to express monadic computations as arrows.</p>
+<p>It is probably obvious, but it is good to remember that <code>Kleisli</code> is just a type and it does not imply monad payload by itself. In particular, it has these instances:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a><span class="kw">instance</span> <span class="dt">Functor</span> m <span class="ot">=&gt;</span> <span class="dt">Functor</span> (<span class="dt">Kleisli</span> m a)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a><span class="kw">instance</span> <span class="dt">Applicative</span> m <span class="ot">=&gt;</span> <span class="dt">Applicative</span> (<span class="dt">Kleisli</span> m a)</span></code></pre></div>
+<p><code>SemArr r a b</code> comes fully loaded with all <code>Arrow</code> typeclass instances (like <code>ArrowApply</code>) because <code>(Sem r)</code> has the unconstrained <code>Monad</code> instance:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a><span class="kw">instance</span> <span class="dt">Monad</span> (<span class="dt">Sem</span> f)</span></code></pre></div>
+<p><code>SemArr r a b</code> is a monad in arrow’s clothing.</p>
+<h2 id="consuming-polysemy-effects-using-arrows">Consuming <em>polysemy</em> effects using arrows</h2>
+<p>This is section will not be interesting. We can tranform monads to arrows using Kleisli, duh:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true"></a><span class="ot">readTTYA ::</span> <span class="kw">forall</span> (<span class="ot">r ::</span> [<span class="dt">Effect</span>])<span class="op">.</span> <span class="dt">MemberWithError</span> <span class="dt">Teletype</span> r <span class="ot">=&gt;</span> <span class="dt">SemArr</span> r () <span class="dt">String</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true"></a>readTTYA <span class="ot">=</span> constSemArr readTTY</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true"></a><span class="ot">writeTTYA ::</span> <span class="kw">forall</span> (<span class="ot">r ::</span> [<span class="dt">Effect</span>])<span class="op">.</span> <span class="dt">MemberWithError</span> <span class="dt">Teletype</span> r <span class="ot">=&gt;</span> <span class="dt">SemArr</span> r <span class="dt">String</span> ()</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true"></a>writeTTYA <span class="ot">=</span> semArr writeTTY</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true"></a><span class="ot">echoA ::</span> <span class="dt">Member</span> <span class="dt">Teletype</span> r <span class="ot">=&gt;</span> <span class="dt">SemArr</span> r () ()</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true"></a>echoA <span class="ot">=</span> proc _ <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true"></a>    i <span class="ot">&lt;-</span> readTTYA <span class="op">-&lt;</span> ()</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true"></a>    <span class="kw">case</span> i <span class="kw">of</span> </span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true"></a>       <span class="st">&quot;&quot;</span> <span class="ot">-&gt;</span> </span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true"></a>           writeTTYA <span class="op">-&lt;</span> <span class="st">&quot;Need some input&quot;</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true"></a>       _ <span class="ot">-&gt;</span>  </span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true"></a>           writeTTYA <span class="op">-&lt;</span> <span class="st">&quot;You said &quot;</span> <span class="op">&lt;&gt;</span> i</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true"></a></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true"></a><span class="co">-- Notice interpreter is input - output based, the last bit @a -&gt; IO b@ is effectively Kleisli arrow</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true"></a></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true"></a><span class="ot">interpreter ::</span>  r <span class="op">~</span> '[<span class="dt">Teletype</span>, <span class="dt">Embed</span> <span class="dt">IO</span>] <span class="ot">=&gt;</span> <span class="dt">SemArr</span> r a b <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> b</span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true"></a>interpreter arr a <span class="ot">=</span> runM <span class="op">.</span> teletypeToIO <span class="op">$</span> Arr.runKleisli arr a</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true"></a></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true"></a><span class="ot">testA ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true"></a>testA <span class="ot">=</span> interpreter echoA ()</span></code></pre></div>
+<p><code>readTTYA</code> and <code>writeTTYA</code> are arrow-ised versions of the monadic <code>readTTY</code> and <code>writeTTY</code> primitives.</p>
+<p>Notice the change in the type signature for <code>interpreter</code>. <code>interpreter</code> now threads the input data into the computation and spells out the output at the end. You can also view it as compiling the <code>SemArr r a b</code> arrow down to <code>Kleisli IO a b</code> (only with <code>Kleisli</code> unwrapped for extra convenience).</p>
+<p>Let’s move onto some more interesting stuff:</p>
+<h2 id="arrow-effects.-the-plumbing">Arrow Effects. The Plumbing</h2>
+<p>One of the syntactic advantages of using arrow effects, at least for me, is the simplified construction of the effect algebra GADT. This definition nicely spells out the input and the output:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Teletype2</span> a b <span class="kw">where</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true"></a>  <span class="dt">ReadTTY2</span><span class="ot">  ::</span> <span class="dt">Teletype2</span> () <span class="dt">String</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true"></a>  <span class="dt">WriteTTY2</span><span class="ot"> ::</span> <span class="dt">Teletype2</span> <span class="dt">String</span> ()</span></code></pre></div>
+<p>I want to be able to add <code>Teletype2</code> to the list of polysemy effects. This needs some plumbing:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Eff2</span> arr r b <span class="kw">where</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true"></a>  <span class="dt">MkEff2</span><span class="ot"> ::</span> arr () b <span class="ot">-&gt;</span> <span class="dt">Eff2</span> arr r b</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true"></a><span class="ot">interpretEff2 ::</span> (<span class="kw">forall</span> x <span class="op">.</span> m x <span class="ot">-&gt;</span> <span class="dt">Sem</span> r x) <span class="ot">-&gt;</span> (<span class="kw">forall</span> x y <span class="op">.</span> arr x y <span class="ot">-&gt;</span>  <span class="dt">Arr.Kleisli</span> m x y) <span class="ot">-&gt;</span> <span class="dt">Sem</span> (<span class="dt">Eff2</span> arr '<span class="op">:</span> r) a <span class="ot">-&gt;</span> <span class="dt">Sem</span> r a</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true"></a>interpretEff2 comp fn <span class="ot">=</span> interpret \<span class="kw">case</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true"></a>  <span class="dt">MkEff2</span> arr   <span class="ot">-&gt;</span> comp (Arr.runKleisli (fn arr) ())</span></code></pre></div>
+<p><code>MkEff2</code> is the bit which mimics <a href="https://hackage.haskell.org/package/base-4.15.0.0/docs/Control-Arrow.html#t:ArrowMonad" target="_blank">Control.Arrow.ArrowMonad</a>! This trick is based on the fact <code>B = B ^ 1</code>: one can represent elements in a set <code>B</code> by using fuctions from a one element set (here <code>()</code>) ending in <code>B</code> that pick that element. That observation nicely generalizes to categorical constructions that use terminal objects and this principled idea works great for what I need.</p>
+<p><code>interpretEff2</code> is actually quite powerful. It allows me to implement an equivalent to polysemy’s <code>embed</code>:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true"></a><span class="ot">embedEff2 ::</span> <span class="dt">Member</span> (<span class="dt">Embed</span> m) r <span class="ot">=&gt;</span> (<span class="kw">forall</span> x y <span class="op">.</span> arr x y <span class="ot">-&gt;</span>  <span class="dt">Arr.Kleisli</span> m x y) <span class="ot">-&gt;</span> <span class="dt">Sem</span> (<span class="dt">Eff2</span> arr '<span class="op">:</span> r) a <span class="ot">-&gt;</span> <span class="dt">Sem</span> r a</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true"></a>embedEff2 <span class="ot">=</span> interpretEff2 embed</span></code></pre></div>
+<p>it will also allow me to reinterpret an arrow effect using other (possibly arrow) effects. We will see it again in the <a href="#effects-based-on-arrow-effects">Nested Effects</a> section.</p>
+<p>However, there is a clear problem with what we have so far: <code>arr () b</code> in the definition of <code>Eff2</code> does not match with the <code>WriteTTY2</code> constructor. We need to embed <code>WriteTTY2</code> in a bigger instruction set that has enough expressiveness to be able use the above <code>() -&gt;</code> trick. To do that I will do the following, minimalist, free construction:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Eff2Free</span> eff a b <span class="kw">where</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true"></a>  <span class="dt">Pure</span><span class="ot"> ::</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> <span class="dt">Eff2Free</span> eff a b</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true"></a>  <span class="dt">Effect</span><span class="ot"> ::</span> eff a b <span class="ot">-&gt;</span> <span class="dt">Eff2Free</span> eff a b</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true"></a>  <span class="dt">Seq</span><span class="ot"> ::</span> <span class="dt">Eff2Free</span> eff a b <span class="ot">-&gt;</span> <span class="dt">Eff2Free</span> eff b c <span class="ot">-&gt;</span> <span class="dt">Eff2Free</span> eff a c</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true"></a></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true"></a><span class="kw">instance</span> <span class="dt">Category</span> (<span class="dt">Eff2Free</span> eff) <span class="kw">where</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true"></a>  <span class="fu">id</span> <span class="ot">=</span> <span class="dt">Pure</span> Cat.id</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true"></a>  (<span class="op">.</span>) <span class="ot">=</span> <span class="fu">flip</span> <span class="dt">Seq</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true"></a></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true"></a><span class="ot">liftCompKl ::</span> <span class="dt">Monad</span> m <span class="ot">=&gt;</span> (<span class="kw">forall</span> x y <span class="op">.</span> eff x y <span class="ot">-&gt;</span>  <span class="dt">Arr.Kleisli</span> m x y) <span class="ot">-&gt;</span> <span class="dt">Eff2Free</span> eff a b <span class="ot">-&gt;</span> <span class="dt">Arr.Kleisli</span> m a b</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true"></a>liftCompKl _ (<span class="dt">Pure</span> f) <span class="ot">=</span>  <span class="dt">Arr.Kleisli</span> (<span class="fu">pure</span> <span class="op">Cat..</span> f)</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true"></a>liftCompKl fn (<span class="dt">Effect</span> eff) <span class="ot">=</span> fn eff</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true"></a>liftCompKl fn (<span class="dt">Seq</span> a1 a2) <span class="ot">=</span> liftCompKl fn a1 <span class="op">&gt;&gt;&gt;</span> liftCompKl fn a2</span></code></pre></div>
+<p>Combining <code>Eff2</code> with <code>Eff2Free</code> is what I need to move forward.</p>
+<p><code>liftCompKl</code> allows me to expand <code>Kleisli</code> encoding of <code>Teletype2</code> to the mini-DSL: <code>Eff2Free Teletype2</code>.</p>
+<p><strong>Semantic Note:</strong> When I started working on this, I assumed my <code>Eff2Free</code> will be a free construction of the <code>Arrow</code>, and possibly <code>ArrowChoice</code> or even <code>ArrowApply</code>. This ended up being much more minimalist, we get arrows for free from using <code>SemArr r a b</code>.</p>
+<p>What is really needed, is the ability to pre-compose mapped (i.e. <code>Pure</code>) functions with the lifted effect. This free construction needs only to be compatible with the <code>Contravariant</code> Functor (or <code>Profunctor</code> <code>lmap</code>) and there should be some flexibility of how it is done.</p>
+<h2 id="creating-arrow-effects">Creating Arrow Effects</h2>
+<p>Here is the whole program that uses an Arrow-like effect algebra, arrow instruction primitives, and a DSL program that uses arrows:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Teletype2</span> a b <span class="kw">where</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true"></a>  <span class="dt">ReadTTY2</span><span class="ot">  ::</span> <span class="dt">Teletype2</span> () <span class="dt">String</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true"></a>  <span class="dt">WriteTTY2</span><span class="ot"> ::</span> <span class="dt">Teletype2</span> <span class="dt">String</span> ()</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true"></a></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true"></a><span class="co">-- type Effect2 arr r b = Eff2 (Eff2Free arr) r b</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true"></a><span class="co">-- | arrow frienly combinator</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true"></a><span class="ot">readTTY2A ::</span> <span class="kw">forall</span> (<span class="ot">r ::</span> [<span class="dt">Effect</span>])<span class="op">.</span> <span class="dt">Member</span> (<span class="dt">Eff2</span> (<span class="dt">Eff2Free</span> <span class="dt">Teletype2</span>)) r <span class="ot">=&gt;</span> <span class="dt">SemArr</span> r () <span class="dt">String</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true"></a>readTTY2A <span class="ot">=</span>  constSemArr readTTY2</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true"></a></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true"></a><span class="co">-- | monad frienly combinator, can be consumed by monadic programs and effects</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true"></a><span class="ot">readTTY2 ::</span> <span class="kw">forall</span> (<span class="ot">r ::</span> [<span class="dt">Effect</span>])<span class="op">.</span> <span class="dt">Member</span> (<span class="dt">Eff2</span> (<span class="dt">Eff2Free</span> <span class="dt">Teletype2</span>)) r <span class="ot">=&gt;</span> <span class="dt">Sem</span> r <span class="dt">String</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true"></a>readTTY2 <span class="ot">=</span> send (<span class="dt">MkEff2</span> (<span class="dt">Effect</span> <span class="dt">ReadTTY2</span>)) </span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true"></a></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true"></a><span class="ot">writeTTY2A ::</span> <span class="kw">forall</span> (<span class="ot">r ::</span> [<span class="dt">Effect</span>])<span class="op">.</span> <span class="dt">Member</span> (<span class="dt">Eff2</span> (<span class="dt">Eff2Free</span> <span class="dt">Teletype2</span>)) r <span class="ot">=&gt;</span> <span class="dt">SemArr</span> r <span class="dt">String</span> ()</span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true"></a>writeTTY2A <span class="ot">=</span> semArr writeTTY2</span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true"></a></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true"></a><span class="co">-- | mini-DLS @Eff2Free Teletype2@ allows me to encode input paramter to the @WriteTTY2@ instruction</span></span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true"></a><span class="ot">writeTTY2 ::</span> <span class="kw">forall</span> (<span class="ot">r ::</span> [<span class="dt">Effect</span>])<span class="op">.</span> <span class="dt">Member</span> (<span class="dt">Eff2</span> (<span class="dt">Eff2Free</span> <span class="dt">Teletype2</span>)) r <span class="ot">=&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Sem</span> r ()</span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true"></a>writeTTY2 s <span class="ot">=</span> send (<span class="dt">MkEff2</span> (<span class="dt">Pure</span> (<span class="fu">const</span> s) <span class="op">&gt;&gt;&gt;</span> <span class="dt">Effect</span> <span class="dt">WriteTTY2</span>)) </span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true"></a></span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true"></a><span class="ot">echo2A ::</span> <span class="dt">Member</span> (<span class="dt">Eff2</span> (<span class="dt">Eff2Free</span> <span class="dt">Teletype2</span>)) r <span class="ot">=&gt;</span> <span class="dt">SemArr</span> r () ()</span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true"></a>echo2A <span class="ot">=</span> proc _ <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true"></a>    i <span class="ot">&lt;-</span> readTTY2A <span class="op">-&lt;</span> ()</span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true"></a>    <span class="kw">case</span> i <span class="kw">of</span> </span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true"></a>       <span class="st">&quot;&quot;</span> <span class="ot">-&gt;</span> </span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true"></a>           writeTTY2A <span class="op">-&lt;</span> <span class="st">&quot;Need some input&quot;</span></span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true"></a>       _ <span class="ot">-&gt;</span>  </span>
+<span id="cb13-28"><a href="#cb13-28" aria-hidden="true"></a>           writeTTY2A <span class="op">-&lt;</span> <span class="st">&quot;You said &quot;</span> <span class="op">&lt;&gt;</span> i</span>
+<span id="cb13-29"><a href="#cb13-29" aria-hidden="true"></a></span>
+<span id="cb13-30"><a href="#cb13-30" aria-hidden="true"></a><span class="co">-- * interpreters</span></span>
+<span id="cb13-31"><a href="#cb13-31" aria-hidden="true"></a></span>
+<span id="cb13-32"><a href="#cb13-32" aria-hidden="true"></a><span class="co">-- | Teletype2 instructions are interpreted as Kleisli</span></span>
+<span id="cb13-33"><a href="#cb13-33" aria-hidden="true"></a><span class="ot">tele2ToKlIO ::</span> <span class="dt">Teletype2</span> a b <span class="ot">-&gt;</span> <span class="dt">Arr.Kleisli</span> <span class="dt">IO</span> a b</span>
+<span id="cb13-34"><a href="#cb13-34" aria-hidden="true"></a>tele2ToKlIO <span class="dt">ReadTTY2</span> <span class="ot">=</span> <span class="dt">Arr.Kleisli</span> <span class="op">$</span> <span class="fu">const</span> <span class="fu">getLine</span></span>
+<span id="cb13-35"><a href="#cb13-35" aria-hidden="true"></a>tele2ToKlIO <span class="dt">WriteTTY2</span> <span class="ot">=</span> <span class="dt">Arr.Kleisli</span> <span class="fu">putStrLn</span></span>
+<span id="cb13-36"><a href="#cb13-36" aria-hidden="true"></a></span>
+<span id="cb13-37"><a href="#cb13-37" aria-hidden="true"></a><span class="co">-- | tele2ToKlIO is extended to the the mini-DLS @Eff2Free Teletype2@</span></span>
+<span id="cb13-38"><a href="#cb13-38" aria-hidden="true"></a><span class="ot">interpreter ::</span>  r <span class="op">~</span> '[<span class="dt">Eff2</span> (<span class="dt">Eff2Free</span> <span class="dt">Teletype2</span>), <span class="dt">Embed</span> <span class="dt">IO</span>] <span class="ot">=&gt;</span> <span class="dt">SemArr</span> r a b <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> b</span>
+<span id="cb13-39"><a href="#cb13-39" aria-hidden="true"></a>interpreter arr a <span class="ot">=</span> runM <span class="op">.</span> embedEff2 (liftCompKl tele2ToKlIO)  <span class="op">$</span> Arr.runKleisli arr a</span>
+<span id="cb13-40"><a href="#cb13-40" aria-hidden="true"></a></span>
+<span id="cb13-41"><a href="#cb13-41" aria-hidden="true"></a><span class="ot">testA2 ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb13-42"><a href="#cb13-42" aria-hidden="true"></a>testA2 <span class="ot">=</span> interpreter echo2A ()</span></code></pre></div>
+<ul>
+<li><code>readTTY2</code> and <code>writeTTY2</code> primitives can be used by any monadic polysemy code to create new effects or to use in programs where effect the <code>Eff2 (Eff2Free Teletype2)</code> is available.</li>
+<li><code>readTTY2A</code> and <code>writeTTY2A</code> are available for any arrow code. In particular, these can be used to create new arrow effects that compile down to <code>Eff2 (Eff2Free Teletype2)</code>.</li>
+</ul>
+<p>Implementing arrow effects on top of other arrows effects seems to be the most interesting case of nesting and is shown next:</p>
+<h2 id="creating-nested-effects">Creating Nested Effects</h2>
+<p><code>DoEcho2</code> instruction has a non-unit input and output making it more interesting. We will interpret it down to <code>Teletype2</code> effect by writing its input, reading a new input and returning it as the result.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Echoer2</span> a b <span class="kw">where</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true"></a>  <span class="dt">DoEcho2</span><span class="ot"> ::</span> <span class="dt">Echoer2</span> <span class="dt">String</span> <span class="dt">String</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true"></a></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true"></a><span class="ot">doEcho2 ::</span> <span class="kw">forall</span> (<span class="ot">r ::</span> [<span class="dt">Effect</span>])<span class="op">.</span> <span class="dt">Member</span> (<span class="dt">Eff2</span> (<span class="dt">Eff2Free</span> <span class="dt">Echoer2</span>)) r <span class="ot">=&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Sem</span> r <span class="dt">String</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true"></a>doEcho2 s <span class="ot">=</span> send (<span class="dt">MkEff2</span> (<span class="dt">Pure</span> (<span class="fu">const</span> s) <span class="op">&gt;&gt;&gt;</span> <span class="dt">Effect</span> <span class="dt">DoEcho2</span>)) </span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true"></a></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true"></a><span class="ot">doEcho2A ::</span> <span class="kw">forall</span> (<span class="ot">r ::</span> [<span class="dt">Effect</span>])<span class="op">.</span> <span class="dt">Member</span> (<span class="dt">Eff2</span> (<span class="dt">Eff2Free</span> <span class="dt">Echoer2</span>)) r <span class="ot">=&gt;</span> <span class="dt">SemArr</span> r <span class="dt">String</span> <span class="dt">String</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true"></a>doEcho2A <span class="ot">=</span> semArr doEcho2 </span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true"></a></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true"></a><span class="co">-- | nice use of arrows to create complex effects</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true"></a><span class="ot">echoer2ToKl ::</span> <span class="dt">Member</span> (<span class="dt">Eff2</span> (<span class="dt">Eff2Free</span> <span class="dt">Teletype2</span>)) r <span class="ot">=&gt;</span> <span class="dt">Echoer2</span> a b <span class="ot">-&gt;</span> <span class="dt">Arr.Kleisli</span> (<span class="dt">Sem</span> r) a b</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true"></a>echoer2ToKl <span class="dt">DoEcho2</span> <span class="ot">=</span> proc inp <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true"></a>  _ <span class="ot">&lt;-</span> writeTTY2A <span class="op">-&lt;</span> inp</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true"></a>  txt <span class="ot">&lt;-</span> readTTY2A <span class="op">-&lt;</span> ()</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true"></a>  <span class="kw">if</span> txt <span class="op">==</span> <span class="st">&quot;&quot;</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true"></a>  <span class="kw">then</span> arr <span class="fu">id</span> <span class="op">-&lt;</span> <span class="st">&quot;No Input&quot;</span></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true"></a>  <span class="kw">else</span> arr <span class="fu">id</span> <span class="op">-&lt;</span> <span class="st">&quot;You said &quot;</span> <span class="op">&lt;&gt;</span> txt</span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true"></a></span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true"></a><span class="co">-- | interpretEff2 allows to intepret down the effect</span></span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true"></a><span class="ot">echoer2ToTeletype2 ::</span> <span class="kw">forall</span> r a <span class="op">.</span> <span class="dt">Member</span> (<span class="dt">Eff2</span> (<span class="dt">Eff2Free</span> <span class="dt">Teletype2</span>)) r <span class="ot">=&gt;</span> <span class="dt">Sem</span> (<span class="dt">Eff2</span> (<span class="dt">Eff2Free</span> <span class="dt">Echoer2</span>) '<span class="op">:</span> r) a <span class="ot">-&gt;</span> <span class="dt">Sem</span> r a</span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true"></a>echoer2ToTeletype2 <span class="ot">=</span> interpretEff2 <span class="fu">id</span> (liftCompKl <span class="op">@</span> (<span class="dt">Sem</span> r) echoer2ToKl)</span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true"></a></span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true"></a><span class="ot">interpreter ::</span>  r <span class="op">~</span> '[<span class="dt">Eff2</span> (<span class="dt">Eff2Free</span> <span class="dt">Echoer2</span>), <span class="dt">Eff2</span> (<span class="dt">Eff2Free</span> <span class="dt">Teletype2</span>), <span class="dt">Embed</span> <span class="dt">IO</span>] <span class="ot">=&gt;</span> <span class="dt">SemArr</span> r a b <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> b</span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true"></a>interpreter arr a <span class="ot">=</span> runM <span class="op">.</span> embedEff2 (liftCompKl tele2ToKlIO) <span class="op">.</span> echoer2ToTeletype2 <span class="op">$</span> Arr.runKleisli arr a</span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true"></a></span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true"></a><span class="ot">testEchoerA ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">String</span></span>
+<span id="cb14-27"><a href="#cb14-27" aria-hidden="true"></a>testEchoerA  <span class="ot">=</span> interpreter (doEcho2A <span class="op">&gt;&gt;&gt;</span> doEcho2A) </span></code></pre></div>
+<p><code>echoer2ToKl</code> plays the role of an interpreter for the effect algebra. It is implemented using arrows!<br />
+The <code>interpretEff2</code> combinator (defined in the <a href="#arrow-effects-the-plumbing">plumbing</a> section) returns an interpreter that <em>polysemy</em> understands.<br />
+Again, I view <code>interpreter</code> as a natural transformation between <code>SemArr r a b</code> arrow and <code>Kelisly IO a b</code> arrow (ignoring the <code>runKleisli</code> unwrapping).</p>
+<p>We have a two way street to writing compilation stacks:</p>
+<ul>
+<li>compose <code>Sem r</code> interpreters that remove effects from the <code>r</code> record and compile <code>Sem r1 a</code> monadic computation to a simpler monadic computation <code>Sem r2 a</code> (the standard <em>polysemy</em>’s approach)</li>
+<li>compose <code>SemArr r</code> interpreters that compile <code>SemArr r1 a b</code> arrow to a simpler <code>SemArr r2 a b</code> arrow.</li>
+</ul>
+<p>or mixing both ways. These options are all possible (my git repo has the necessary combinators).</p>
+<h2 id="final-thoughts">Final Thoughts</h2>
+<p>We have accomplished the goal. We can program <em>polysemy</em> effects by using interchangeably both the monadic and the arrow syntax.</p>
+<p>This seems to be an interesting engineering problem: effective refactoring methods for swapping effect systems.<br />
+The task of refactoring a large code base to change its effect library will not be easy and I am not even sure it will be attempted.<br />
+The differences are not just in the use of arrows vs monads. The effects are declared polymorphically in both cases but in very different ways. The collection of base effects like <code>State</code> have subtle differences…<br />
+It will require much more footwork to be able to do it piece by piece.</p>
+<p>The <code>Eff2</code> / <code>Eff2Free</code> tooling is not really arrow specific. I believe, it could be used with other things. That is the reason behind the names (for not using something like <code>EffArr</code>). However, whatever you come up with (e.g. some free construction of the profunctor) this will be just dressing a monad in some other clothing - it will be syntactic only. <code>Arrow</code> seems to be the only meaningful exception, because it comes with the syntax extension (the Arrows pragma).</p>
+<p>This was all very much a quick prototype. I am sure the presented code can be improved in many ways. I hope it was good enough to allow for an interesting reading.</p>
+
+    </section>
+</article>
+]]></description>
+    <pubDate>Mon, 28 Jun 2021 00:00:00 UT</pubDate>
+    <guid>https://rpeszek.github.io//posts/2021-06-28-polysemy-arrows.html</guid>
+    <dc:creator>Robert Peszek</dc:creator>
+</item>
+<item>
     <title>Is Alternative a Wrong Abstraction for Handling Failures?</title>
     <link>https://rpeszek.github.io//posts/2021-02-13-alternative.html</link>
     <description><![CDATA[<article>
