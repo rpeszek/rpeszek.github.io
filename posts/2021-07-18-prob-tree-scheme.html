@@ -242,10 +242,15 @@ The <em>Base</em> functor for <em>List</em> (i.e. <code>[]</code>) looks like t
 <span id="cb15-6"><a href="#cb15-6" aria-hidden="true"></a>      fn (<span class="dt">Cons</span> a str) <span class="ot">=</span> <span class="fu">show</span> a <span class="op">&lt;&gt;</span> <span class="st">&quot;:&quot;</span> <span class="op">&lt;&gt;</span> str</span></code></pre></div>
 <p>compare it to</p>
 <div class="sourceCode" id="cb16"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true"></a>printList' <span class="ot">=</span> L.foldr (\a str <span class="ot">-&gt;</span> <span class="fu">show</span> a <span class="op">&lt;&gt;</span> <span class="st">&quot;,&quot;</span> <span class="op">&lt;&gt;</span> str) <span class="st">&quot;(START)&quot;</span> </span></code></pre></div>
-<p>These are effectively the same.</p>
-<p><em>recursion-schemes</em> defines alternative name <em>cata</em> for <em>fold</em>. <em>cata</em> seems to be more popular and stands for <em>catamorphism</em>.</p>
+<p>These are effectively the same!</p>
+<p>Ability to fold arbitrary recursive data is rely very convenient. For example, JSON data served by some micro-services may lack consistency (not all micro-services are implemented in Haskell, you know)</p>
+<blockquote>
+<p>“What if I told you you can fold any JSON value?”</p>
+</blockquote>
+<p>Morpheus, The Matrix</p>
+<p><em>recursion-schemes</em> defines <em>cata</em> as an alternative name for <em>fold</em>. <em>cata</em> seems to be more popular and stands for <em>catamorphism</em>. (<strong>end</strong>)</p>
 <p><strong>Continuing the warm-up:</strong></p>
-<p>We can do effectful things to!</p>
+<p>We can do effectful things too!</p>
 <div class="sourceCode" id="cb17"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true"></a><span class="ot">printIO ::</span> <span class="kw">forall</span> p a<span class="op">.</span> (<span class="dt">Show</span> p, <span class="dt">Show</span> a) <span class="ot">=&gt;</span> <span class="dt">ProbTree</span> p a <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">String</span></span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true"></a>printIO <span class="ot">=</span> fold fn</span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true"></a>  <span class="kw">where</span></span>
@@ -269,7 +274,7 @@ The <em>Base</em> functor for <em>List</em> (i.e. <code>[]</code>) looks like t
 <span id="cb18-8"><a href="#cb18-8" aria-hidden="true"></a><span class="st">&quot;Processed so far: [\&quot;done leaf 21\&quot;,\&quot;done leaf 22\&quot;,\&quot;done leaf 23\&quot;]&quot;</span></span>
 <span id="cb18-9"><a href="#cb18-9" aria-hidden="true"></a><span class="st">&quot;Processed so far: [\&quot;done branch 1\&quot;,\&quot;done branch 2\&quot;]&quot;</span></span>
 <span id="cb18-10"><a href="#cb18-10" aria-hidden="true"></a><span class="st">&quot;done branch R&quot;</span></span></code></pre></div>
-<p><strong>The Solution</strong></p>
+<p><strong>Solution using fold:</strong></p>
 <p>A common trick, when using recursion schemes, is to use the folding type itself as the <em>carrier</em>, that is to fold <code>ProbTree Float a</code> onto itself. <em>recusion-schemes</em> provides a convenient <code>embed</code> function that typically can be used to implement all the uninteresting cases:</p>
 <div class="sourceCode" id="cb19"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true"></a><span class="co">-- |</span></span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true"></a><span class="co">-- &gt;&gt;&gt; printLeaves . computeProb $ exTree</span></span>
