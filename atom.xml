@@ -341,7 +341,7 @@ We are not perfect, probably nothing shows it better than the software we write.
 <p>For code that is not a cookie-cutter, I believe I write the best code at night, when I sleep. Sometimes I need a few nights. It took two nights (no involvement otherwise) and then &lt; 1 hour of coding for the core examples presented here. It is not just about the time spend on the task, it is often about the latency.</p>
 <p>Time pressure can be very destructive. It can reduce both the development speed and the code quality.<br />
 That applies to longer time scales as well. Software industry, in my experience, is focused on short term goals. Quality is a long term goal.<br />
-No project can afford no time constraints, so a balance needs to be struck. I believe the trade-offs are not well understood by the decision makers. … But this is well beyond what this post is about.</p>
+No project can afford to have no time constraints, so a balance needs to be struck. I believe the trade-offs are not well understood by the decision makers. … But this is well beyond what this post is about.</p>
 <p>‘Uncle Bob’ (Robert C. Martin) likes to talk about a process in which you are not done when you finish writing the code and it works. It is the sweat time for making the code nice.</p>
 <h3 id="large-bag-of-tricks">Large Bag of Tricks</h3>
 <p>In this analogy a programmer is a magician with a bag of tricks. The bigger the bag the better the programmer. It takes more effort to sort through a bigger bag. There are some interesting indexers in that solution space allowing really good programmers to find a trick faster. One such indexer is the Category Theory. In general, any conceptual understanding of something is a record in some imaginary index.</p>
