@@ -45,6 +45,7 @@
 </ul></li>
 <li><a href="#why-finding-the-right-solution-is-sometimes-hard">Why Finding the Right Solution is Sometimes Hard?</a>
 <ul>
+<li><a href="#human-condition">Human condition</a></li>
 <li><a href="#time-pressure">Time Pressure</a></li>
 <li><a href="#large-bag-of-tricks">Large Bag of Tricks</a></li>
 <li><a href="#not-exactly-muscle-memory">Not exactly Muscle Memory</a></li>
@@ -53,7 +54,7 @@
 </ul>
 </div>
 <p>Code for this project can be found in my <a href="https://github.com/rpeszek/experiments" target="_blank">experiments</a> github repo (<a href="https://github.com/rpeszek/experiments/tree/master/probability-tree-schemes" target="_blank">probability-tree-schemes</a> folder).</p>
-<p>The goal of this post is to present a simple example that uses recursion schemes. My other goal is to discuss my thoughts about reasons for getting stuck on finding the right solution.</p>
+<p>The goal of this post is to present a simple example that uses recursion schemes. My other goal is to discuss my thoughts about reasons for getting stuck on finding the right solution. It will be a bit of a rant.</p>
 <p><strong>Motivation:</strong><br />
 Last week I encountered a programming problem that kept defeating me. It took me forever just to figure out how to translate the requirements into something I can code. The gist of this problem turned out to be very straightforward: implement a probability tree diagram (a decision tree annotated with probabilities). Well not really, but close enough.<br />
 I think, now, that the problem is simple, but it was not the case during the few hours I initially have spent on it. This experience was somewhat surprising to me as I have worked for several years with decision graphs (not trees, but still). I just I failed to make the association.</p>
@@ -325,31 +326,42 @@ Sometimes they do not, and then it is not much better than other languages. It l
 <li>Difficulty in identifying a nice abstraction to solve the problem</li>
 <li>The abstractions I ended up wanting to use were not in my short memory</li>
 </ul>
-<p>So instead I went pushing a brute force solution…</p>
-<p>This experience put me in a philosophical mood of trying to pin-point the reasons why sometimes the code just writes itself and sometimes we get stuck.</p>
+<p>So instead I went pushing a brute-force solution…</p>
+<p>This experience put me in a philosophical mood of trying to pin-point the reasons why sometimes the code just writes itself and sometimes we get stuck. <strong>It will be a rant.</strong></p>
+<h3 id="human-condition">Human condition</h3>
+<p>The underlying reason for why I do something wrong is typically me.<br />
+We are not perfect, probably nothing shows it better than the software we write.</p>
+<blockquote>
+<p>“The universal aptitude for ineptitude makes any human accomplishment an incredible miracle”</p>
+</blockquote>
+<p>Stapp’s Law</p>
 <h3 id="time-pressure">Time Pressure</h3>
-<p>A hard deadline of a few hours does not happen in software engineering when writing a new code. It does for some data scientist. It also happens in competitive programming. I am not a competitive programmer.</p>
-<p>Software engineers have to sometimes work with a short hard timeline when troubleshooting critical application errors. I believe, seasoned developers get years of conditioning that puts them into a troubleshooting mindset when under stress. This is not a creative mindset effective in designing a new code.</p>
+<p>A hard deadline of a few hours does not (typically) happen in software engineering when writing a new code. It does for some data scientist. It also happens in competitive programming. I am not a competitive programmer and I believe very few programmers are.</p>
+<p>Software engineers have to (sometimes) work with a short hard timeline when troubleshooting critical application errors. I believe, seasoned developers get years of conditioning that puts them into a troubleshooting mindset when under stress. This is not a creative mindset effective in designing a new code.</p>
 <p>For code that is not a cookie-cutter, I believe I write the best code at night, when I sleep. Sometimes I need a few nights. It took two nights (no involvement otherwise) and then &lt; 1 hour of coding for the core examples presented here. It is not just about the time spend on the task, it is often about the latency.</p>
 <p>Time pressure can be very destructive. It can reduce both the development speed and the code quality.<br />
-That applies to longer time scales as well. Software industry, in my experience, is focused on short term goals. Quality is a long term goal. No project can afford no time constraints, so a balance needs to be struck. I believe the trade-offs are not well understood by the decision makers. … But this is well beyond what this post is about.</p>
-<p>‘Uncle Bob’ (Robert C. Martin) likes to talk about a process in which you are not done when you finish writing code, and the code works. It is the sweat time for making the code nice.</p>
+That applies to longer time scales as well. Software industry, in my experience, is focused on short term goals. Quality is a long term goal.<br />
+No project can afford no time constraints, so a balance needs to be struck. I believe the trade-offs are not well understood by the decision makers. … But this is well beyond what this post is about.</p>
+<p>‘Uncle Bob’ (Robert C. Martin) likes to talk about a process in which you are not done when you finish writing the code and it works. It is the sweat time for making the code nice.</p>
 <h3 id="large-bag-of-tricks">Large Bag of Tricks</h3>
 <p>In this analogy a programmer is a magician with a bag of tricks. The bigger the bag the better the programmer. It takes more effort to sort through a bigger bag. There are some interesting indexers in that solution space allowing really good programmers to find a trick faster. One such indexer is the Category Theory. In general, any conceptual understanding of something is a record in some imaginary index.</p>
 <p>The index record does not contain all the details, it is just a pointer, it takes time to load the actual details into short memory. That could involve looking up some stuff in the code or re-reading an article… Developer is a magician that needs time to prepare before he pulls out an <strong>old</strong> trick.</p>
 <h3 id="not-exactly-muscle-memory">Not exactly Muscle Memory</h3>
 <p><em>Muscle Memory</em> is a sports term. You train muscle memory so the movements happen on an auto-pilot.<br />
 Muscle memory tends to be a long term memory (“it is like riding a bike”), it is also hard to change. This resistance to change could manifest itself as ‘bad muscle habits’ (e.g. a ski instructor skiing with a slight wedge, static body when making a shot in tennis…). Muscle memory is a long term memory, however athletes still require a warm-up lap / game / run…</p>
-<p>For a long time, I have observed something very similar in programmers. Programming work is surprisingly repetitive, we develop something that resembles a ‘muscle memory’ without even realizing it. We can do things much faster when we work on familiar problems. We are expert cookie-cutters. Programmers tend to repeat the previously used patterns, even if these patterns are inferior to other methods (bad muscle habits).</p>
-<p>Mainstream resistance to FP can be viewed as a example of muscle memory inertia.</p>
+<p>For a long time, I have observed something very similar in programmers. Programming work is surprisingly repetitive, we develop something that resembles ‘muscle memory’ without even realizing it. We can do things much faster when we work on familiar problems. We are expert cookie-cutters.</p>
+<p>Programmers tend to repeat the previously used patterns, even if these patterns are inferior to other methods (“bad muscle habits”).</p>
+<p>Mainstream resistance to FP can be viewed as an example of resistance to change the “muscle memory”.</p>
 <p>The analogy is not perfect. We do not need to do a warm-up typing when we start work, instead, we do need longer warm-up period when switching to a programming area we neglected for months or years. For me, that applies especially to the ability to translate ‘real world requirements’ to code design. I will just not think in terms that are not in my short memory, especially when under time pressure.</p>
 <h3 id="cookie-cutters">Cookie cutters</h3>
 <p>Even looking at the job interview process, notice the focus on finding someone with a very closely fitting background.<br />
 Have you ever seen a job posting asking for someone with a significantly different skill set from what the group already has? Hiring managers want to find cookie-cutters that can make cookies of a very similar shape that their team bakes.<br />
 I think this is not optimal in long term. This bias creates groups with a narrow pool of experience and expertise.</p>
-<p>I have to consider myself a cookie cutter too. The choices I made in the code I design can be biased by my recent work.</p>
+<p>I have to consider myself a cookie cutter too. The choices I made in the code I design are be biased by my other work.</p>
 <p><strong>Summary</strong></p>
-<p>My conclusion is this: it does not really matter if you get stuck and can’t figure it out for a few days. For some problems you will be stuck for much longer. I am talking about pursuit of a well designed code, not a brute-force kludge. What really matters is not giving up and eventually figuring it out.</p>
+<p>My conclusion is this: it does not really matter if you get stuck and can’t figure it out for a few days. For some problems you will be stuck for much longer.<br />
+I am talking about pursuit of a well designed code, not a brute-force kludge.<br />
+What really matters is not giving up and eventually figuring it out.</p>
 <blockquote>
 <p>“You must understand, young Hobbit, it takes a long time to say anything in Old Entish. And we never say anything unless it is worth taking a long time to say.”</p>
 </blockquote>
