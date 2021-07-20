@@ -58,8 +58,8 @@
 <p><strong>Motivation:</strong><br />
 Last week I encountered a programming problem that kept defeating me. It took me forever just to figure out how to translate the requirements into something I can code. The gist of this problem turned out to be very straightforward: implement a probability tree diagram (a decision tree annotated with probabilities). Well not really, but close enough.<br />
 I think, now, that the problem is simple, but it was not the case during the few hours I initially have spent on it. This experience was somewhat surprising to me as I have worked for several years with decision graphs (not trees, but still). I just I failed to make the association.</p>
-<p>I am sharing my experience in this post. I want to discuss my beliefs pertaining to the question in the tile. I will do that at the end of this post in <a href="#why-finding-the-right-solution-is-sometimes-hard">Why Finding the Right Solution is Sometimes Hard?</a>.</p>
-<p>This post also shows the solution program, and as such, ended up becoming a sort of “tutorial” about the recursion schemes. I tried to make it easy to read even if some Haskell code is more at an intermediate level.</p>
+<p>I am sharing my experience in this post. This post shows the solution program, and as such, ended up becoming a “tutorial” of sorts about the recursion schemes. I tried to make it easy to read even if some Haskell code is more at an intermediate level.</p>
+<p>At the end of this post (<a href="#why-finding-the-right-solution-is-sometimes-hard">Why Finding the Right Solution is Sometimes Hard?</a>) I rant about my beliefs pertaining to the question in the title.</p>
 <h2 id="the-problem">The Problem</h2>
 <p>Consider a tree with edges (or nodes) annotated with probability weights. The problem I am going to solve is simple: calculate the path likelihoods for each of the <em>leaves</em>. Basically multiply all the probabilities down each branch all the way to the leaf.</p>
 <p>This is obviously not so hard, and the biggest challenge was to figure out that this was what the requirements needed.<br />
@@ -321,7 +321,7 @@ We will go into a mutating franzy and fold <code>ProbTree</code> into just <code
 I am actually surprised that it even works.</p>
 <p>I clearly do not like code like this, but it does provide more imperative intuitions about the recursive fold.</p>
 <h2 id="why-finding-the-right-solution-is-sometimes-hard">Why Finding the Right Solution is Sometimes Hard?</h2>
-<p>This is about the cases where we know or knew how to do thing well but we get stuck anyway. Obviously, finding better and even better ways for writing code is a subject of a never ending research, I am not going to discuss that.</p>
+<p><strong>Rant Alert.</strong> This is about the cases where we know or knew how to do thing well but we get stuck anyway. Obviously, finding better and even better ways for writing code is a subject of a never ending research, I am not going to discuss that.</p>
 <p>Haskell is an amazingly efficient tool for writing new code when our fingertips know what to do.<br />
 Sometimes they do not, and then it is not much better than other languages. It lets us brute-force the code to satisfy the requirements. It is Turing complete, meaning that you can write as much nonsense as you want.</p>
 <p>What bit me is:</p>
@@ -331,7 +331,7 @@ Sometimes they do not, and then it is not much better than other languages. It l
 <li>The abstractions I ended up wanting to use were not in my short memory</li>
 </ul>
 <p>So instead I went pushing a brute-force solution…</p>
-<p>This experience put me in a philosophical mood of trying to pin-point the reasons why sometimes the code just writes itself and sometimes we get stuck. <strong>It will be a rant.</strong></p>
+<p>This experience put me in a philosophical mood of trying to pin-point the reasons why sometimes the code just writes itself and sometimes we get stuck.</p>
 <h3 id="human-condition">Human condition</h3>
 <p>The underlying reason for why I do something wrong is typically me.<br />
 We are not perfect, probably nothing shows it better than the software we write.</p>
