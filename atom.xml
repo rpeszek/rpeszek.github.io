@@ -74,8 +74,8 @@ The solution seems like a good exercise and I am sharing my solutions here.</p>
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a></span>
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a>makeBaseFunctor '<span class="dt">'ProbTree</span></span></code></pre></div>
 <p>I will be using <a href="https://hackage.haskell.org/package/recursion-schemes" target="_blank"><em>recursion-schemes</em></a> package and <code>makeBaseFunctor</code> generates the code I will need to fold or unfold the tree. All the instances I have declared, <code>Functor, Foldable, Traversable</code>, are intended for the consumption of the goodies <code>a</code>. I will not care much about <code>a</code>-s in this post. I will care about the <code>p</code>-s.</p>
-<p>This type is really a <code>Bifunctor</code> (Functor in both <code>p</code> and <code>a</code>), and most of the code I am going to show could just use that. However, for some examples I will need something stronger, kinda <em>BiTraversable</em>.<br />
-I will just use the <em>lens</em> package to get what I need. You do not need to know much about lenses to read on. I will try to explain the usage as I go.</p>
+<p>This type is really a <code>Bifunctor</code> (Functor in both <code>p</code> and <code>a</code>), and most of the code I am going to show could just use that. However, for some examples I will need something stronger, I need it to be <code>Traversable</code> in <code>p</code>.<br />
+I will just use the <a href="https://hackage.haskell.org/package/lens" target="_blank"><em>lens</em></a> package to get what I need. You do not need to know much about lenses to read on. I will try to explain the usage as I go.</p>
 <p>Keeping <code>p</code> as a type variable is convenient and, for example, could allow me to use it for (<code>Natural</code>) distribution counts or other things that probabilities can morph into.</p>
 <h3 id="why-is-this-useful">Why is this useful?</h3>
 <p>Decision Trees are popular because of their ability to visualize outcomes of various processes.<br />
@@ -117,7 +117,7 @@ Since I will be changing the meaning of what <code>p</code> is from a probabilit
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a>   (<span class="dt">ProbTree</span> <span class="dt">Float</span> a <span class="ot">-&gt;</span> <span class="dt">ProbTree</span> <span class="dt">Float</span> a) </span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a>   <span class="ot">-&gt;</span> <span class="dt">ProbTree</span> <span class="dt">NodeProb</span> a </span>
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true"></a>   <span class="ot">-&gt;</span> <span class="dt">ProbTree</span> <span class="dt">CumulativeProb</span> a</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true"></a>compWithFloats fn tree <span class="ot">=</span> over probabilityT <span class="dt">CumulativeProb</span> <span class="op">$</span> fn <span class="op">$</span> over probabilityT unNodeProb tree </span></code></pre></div>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true"></a>compWithFloats fn <span class="ot">=</span> over probabilityT <span class="dt">CumulativeProb</span> <span class="op">.</span> fn <span class="op">.</span> over probabilityT unNodeProb</span></code></pre></div>
 <h3 id="example-tree">Example Tree</h3>
 <p>I am now in the position to define a simple example tree:</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a><span class="ot">exTree ::</span> <span class="dt">ProbTree</span> <span class="dt">NodeProb</span> ()</span>
