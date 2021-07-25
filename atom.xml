@@ -25,6 +25,8 @@
           <br /> Last Modified on Jul 18, 2021
         
         
+        <div class="changelog"> <div>Revision History: <ul> <li> (2021.07.24) Fixed/Reworked `cata` examples (per <a target="_blank" href="https://www.reddit.com/r/haskell/comments/onrhtw/probability_tree_diagrams_recursion_schemes_why/h684cpr?utm_source=share&utm_medium=web2x&context=3">r/Tarmen</a>) and changed definition of example tree. </ul> </div></div>
+        
         
         <div class="info">Tags: <a title="All pages tagged 'Haskell'." href="../tags/Haskell.html">Haskell</a></div>
         
@@ -73,6 +75,7 @@ The solution seems like a good exercise and I am sharing my solutions here.</p>
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a>    <span class="kw">deriving</span> (<span class="dt">Eq</span>, <span class="dt">Show</span>, <span class="dt">Functor</span>, <span class="dt">Foldable</span>, <span class="dt">Traversable</span>)</span>
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a></span>
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a>makeBaseFunctor '<span class="dt">'ProbTree</span></span></code></pre></div>
+<p>The goal is implement a function that transforms <code>ProbTree NodeProb a</code> into <code>ProbTree CumulativeProb a</code>.</p>
 <p>I will be using <a href="https://hackage.haskell.org/package/recursion-schemes" target="_blank"><em>recursion-schemes</em></a> package and <code>makeBaseFunctor</code> generates the code I will need to fold or unfold the tree. All the instances I have declared, <code>Functor, Foldable, Traversable</code>, are intended for the consumption of the goodies <code>a</code>. I will not care much about <code>a</code>-s in this post. I will care about the <code>p</code>-s.</p>
 <p>This type is really a <code>Bifunctor</code> (Functor in both <code>p</code> and <code>a</code>), and most of the code I am going to show could just use that. However, for some examples I will need something stronger, I need it to be <code>Traversable</code> in <code>p</code>.<br />
 I will just use the <a href="https://hackage.haskell.org/package/lens" target="_blank"><em>lens</em></a> package to get what I need. You do not need to know much about lenses to read on. I will try to explain the usage as I go.</p>
@@ -81,7 +84,8 @@ I will just use the <a href="https://hackage.haskell.org/package/lens" target="_
 <p>Decision Trees are popular because of their ability to visualize outcomes of various processes.<br />
 It is sometimes useful to know the distribution of the final outcomes. Think about using <em>QuickCheck</em> to randomly generate final outcomes or, maybe, randomly pick these outcomes from some big dataset of samples.<br />
 <code>ProbTree p a</code> would use <code>a</code> to hold the generated values or to describe them in some way. It is convenient to keep the data samples <code>a</code> separate from probabilities <code>p</code> (instead of just using something like <code>RoseTree (p,a)</code>) because we care about these samples only at the final outcome / leaf level.<br />
-The extra <code>String</code> label is for my own convenience. It allows me to trace how the recursion schemes work and will be handy in this presentation.</p>
+The extra <code>String</code> label is for my own convenience. It allows me to trace how the recursion schemes work and will be handy in this presentation.<br />
+<code>ProbTree p a</code> may not be the nicest to use when implementing recursion-schemes. All the better as the choice of training!</p>
 <h3 id="plumbing">Plumbing</h3>
 <p>So I have a lens that will let me ‘focus’ on the <code>p</code>-s:</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="kw">import</span>           <span class="dt">Control.Lens</span></span>
@@ -123,17 +127,25 @@ Since I will be changing the meaning of what <code>p</code> is from a probabilit
 <div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a><span class="ot">exTree ::</span> <span class="dt">ProbTree</span> <span class="dt">NodeProb</span> ()</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a>exTree <span class="ot">=</span> over probabilityT <span class="dt">NodeProb</span> <span class="op">$</span> <span class="dt">Branches</span> <span class="dv">1</span> <span class="st">&quot;R&quot;</span> [</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true"></a>   <span class="dt">Branches</span> <span class="fl">0.5</span> <span class="st">&quot;1&quot;</span> [</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true"></a>      <span class="dt">Leaf</span> <span class="fl">0.5</span> <span class="st">&quot;11&quot;</span> ()</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true"></a>      , <span class="dt">Leaf</span> <span class="fl">0.5</span> <span class="st">&quot;12&quot;</span> ()</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true"></a>   ]</span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true"></a>   , <span class="dt">Branches</span> <span class="fl">0.5</span> <span class="st">&quot;2&quot;</span> [</span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true"></a>      <span class="dt">Leaf</span> <span class="fl">0.3</span> <span class="st">&quot;21&quot;</span> ()</span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true"></a>      , <span class="dt">Leaf</span> <span class="fl">0.3</span> <span class="st">&quot;22&quot;</span> ()</span>
-<span id="cb6-10"><a href="#cb6-10" aria-hidden="true"></a>      , <span class="dt">Leaf</span> <span class="fl">0.4</span> <span class="st">&quot;23&quot;</span> ()</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true"></a>      <span class="dt">Branches</span> <span class="fl">0.5</span> <span class="st">&quot;11&quot;</span> [</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true"></a>          <span class="dt">Leaf</span> <span class="fl">0.5</span> <span class="st">&quot;111&quot;</span> ()</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true"></a>          , <span class="dt">Leaf</span> <span class="fl">0.5</span> <span class="st">&quot;112&quot;</span> ()</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true"></a>       ]</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true"></a>       , <span class="dt">Branches</span> <span class="fl">0.5</span> <span class="st">&quot;12&quot;</span> [</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true"></a>          <span class="dt">Leaf</span> <span class="dv">1</span> <span class="st">&quot;121&quot;</span> ()</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true"></a>       ]</span>
 <span id="cb6-11"><a href="#cb6-11" aria-hidden="true"></a>   ]</span>
-<span id="cb6-12"><a href="#cb6-12" aria-hidden="true"></a> ]</span></code></pre></div>
-<p>the lens <code>over</code> allows me to type the Floats and <code>map</code> these to the <code>NodeProb</code> type to indicate what the numbers represent at the type level. I will use this example moving forward. The final result of what I want to compute annotated with labels should look like this:</p>
-<pre><code>(0.25,&quot;11&quot;),(0.25,&quot;12&quot;),(0.15,&quot;21&quot;),(0.15,&quot;22&quot;),(0.2,&quot;23&quot;)</code></pre>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true"></a>   , <span class="dt">Branches</span> <span class="fl">0.5</span> <span class="st">&quot;2&quot;</span> [</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true"></a>      <span class="dt">Leaf</span> <span class="fl">0.2</span> <span class="st">&quot;21&quot;</span> ()</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true"></a>      , <span class="dt">Leaf</span> <span class="fl">0.4</span> <span class="st">&quot;22&quot;</span> ()</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true"></a>      , <span class="dt">Branches</span> <span class="fl">0.4</span> <span class="st">&quot;23&quot;</span> [</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true"></a>          <span class="dt">Leaf</span> <span class="fl">0.5</span> <span class="st">&quot;231&quot;</span> ()</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true"></a>          , <span class="dt">Leaf</span> <span class="fl">0.5</span> <span class="st">&quot;232&quot;</span> ()</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true"></a>       ]</span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true"></a>   ]</span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true"></a> ]</span></code></pre></div>
+<p>the lens <code>over</code> allows me to type the Floats and <code>map</code> these to the <code>NodeProb</code> type to indicate what the numbers represent at the type level. I will use this example moving forward. The final result (leaves only) of what I want to compute annotated with labels should look like this:</p>
+<pre><code>((0.25,&quot;111&quot;),(0.25,&quot;112&quot;),(0.5,&quot;121&quot;),(0.1,&quot;21&quot;),(0.2,&quot;22&quot;),(0.2,&quot;231&quot;),(0.2,&quot;232&quot;)</code></pre>
 <h3 id="traditional-solution-state-threads">Traditional Solution, State Threads</h3>
 <p>There is a good possibility of finding a ready solution for the problem on <em>stackoverflow</em> or even in <em>wikipedia</em>.<br />
 The code in some psedo-language that mutates variables would look something like:</p>
@@ -186,7 +198,7 @@ There it the misconceptions about Haskell not being able to mutate variables. In
 <span id="cb9-32"><a href="#cb9-32" aria-hidden="true"></a>makeNonMutable <span class="ot">=</span> traverseOf probabilityT readSTRef</span>
 <span id="cb9-33"><a href="#cb9-33" aria-hidden="true"></a></span>
 <span id="cb9-34"><a href="#cb9-34" aria-hidden="true"></a><span class="co">-- &gt;&gt;&gt; tstMutable</span></span>
-<span id="cb9-35"><a href="#cb9-35" aria-hidden="true"></a><span class="co">-- &quot;(0.25,\&quot;11\&quot;,()),(0.25,\&quot;12\&quot;,()),(0.15,\&quot;21\&quot;,()),(0.15,\&quot;22\&quot;,()),(0.2,\&quot;23\&quot;,())&quot;</span></span>
+<span id="cb9-35"><a href="#cb9-35" aria-hidden="true"></a><span class="co">-- &quot;(0.125,\&quot;111\&quot;,()),(0.125,\&quot;112\&quot;,()),(0.25,\&quot;121\&quot;,()),(0.1,\&quot;21\&quot;,()),(0.2,\&quot;22\&quot;,()),(0.1,\&quot;231\&quot;,()),(0.1,\&quot;232\&quot;,())&quot;</span></span>
 <span id="cb9-36"><a href="#cb9-36" aria-hidden="true"></a><span class="ot">tstMutable ::</span> <span class="dt">String</span></span>
 <span id="cb9-37"><a href="#cb9-37" aria-hidden="true"></a>tstMutable <span class="ot">=</span> printLeaves <span class="op">$</span> computeProbMutable exTree  </span></code></pre></div>
 <p>The bulk of the code is translating from not mutable Haskell to mutable variable <code>type MutableFloat s = STRef s Float</code>. The rest is very similar to the psedo-code above.</p>
@@ -253,45 +265,56 @@ The <em>Base</em> functor for <em>List</em> (i.e. <code>[]</code>) looks like t
 <p>This will print content of leaves, when processing branches will print what it processed before.</p>
 <p>It produces this output:</p>
 <div class="sourceCode" id="cb18"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true"></a><span class="op">*</span><span class="dt">Schemes</span><span class="op">&gt;</span> tstPrintIO</span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true"></a>(<span class="fl">0.5</span>,<span class="st">&quot;11&quot;</span>,())</span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true"></a>(<span class="fl">0.5</span>,<span class="st">&quot;12&quot;</span>,())</span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true"></a><span class="st">&quot;Processed so far: [\&quot;done leaf 11\&quot;,\&quot;done leaf 12\&quot;]&quot;</span></span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true"></a>(<span class="fl">0.3</span>,<span class="st">&quot;21&quot;</span>,())</span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true"></a>(<span class="fl">0.3</span>,<span class="st">&quot;22&quot;</span>,())</span>
-<span id="cb18-7"><a href="#cb18-7" aria-hidden="true"></a>(<span class="fl">0.4</span>,<span class="st">&quot;23&quot;</span>,())</span>
-<span id="cb18-8"><a href="#cb18-8" aria-hidden="true"></a><span class="st">&quot;Processed so far: [\&quot;done leaf 21\&quot;,\&quot;done leaf 22\&quot;,\&quot;done leaf 23\&quot;]&quot;</span></span>
-<span id="cb18-9"><a href="#cb18-9" aria-hidden="true"></a><span class="st">&quot;Processed so far: [\&quot;done branch 1\&quot;,\&quot;done branch 2\&quot;]&quot;</span></span>
-<span id="cb18-10"><a href="#cb18-10" aria-hidden="true"></a><span class="st">&quot;done branch R&quot;</span></span></code></pre></div>
-<p><strong>Solution using fold:</strong></p>
-<p>A common trick, when using recursion schemes, is to use the folding type itself as the <em>carrier</em>, that is to fold <code>ProbTree Float a</code> onto itself. <em>recusion-schemes</em> provides a convenient <code>embed</code> function that typically can be used to implement all the uninteresting cases:</p>
-<div class="sourceCode" id="cb19"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true"></a><span class="co">-- |</span></span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true"></a><span class="co">-- &gt;&gt;&gt; printLeaves . computeProb $ exTree</span></span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true"></a><span class="co">-- &quot;(0.25,\&quot;11\&quot;,()),(0.25,\&quot;12\&quot;,()),(0.15,\&quot;21\&quot;,()),(0.15,\&quot;22\&quot;,()),(0.2,\&quot;23\&quot;,())&quot;</span></span>
-<span id="cb19-4"><a href="#cb19-4" aria-hidden="true"></a><span class="ot">computeProb ::</span> <span class="dt">ProbTree</span> <span class="dt">NodeProb</span> a <span class="ot">-&gt;</span> <span class="dt">ProbTree</span> <span class="dt">CumulativeProb</span> a</span>
-<span id="cb19-5"><a href="#cb19-5" aria-hidden="true"></a>computeProb <span class="ot">=</span> compWithFloats (cata fn)</span>
-<span id="cb19-6"><a href="#cb19-6" aria-hidden="true"></a>  <span class="kw">where</span></span>
-<span id="cb19-7"><a href="#cb19-7" aria-hidden="true"></a><span class="ot">      fn ::</span> <span class="dt">ProbTreeF</span> <span class="dt">Float</span> a (<span class="dt">ProbTree</span> <span class="dt">Float</span> a) <span class="ot">-&gt;</span> <span class="dt">ProbTree</span> <span class="dt">Float</span> a</span>
-<span id="cb19-8"><a href="#cb19-8" aria-hidden="true"></a>      fn (<span class="dt">BranchesF</span> n l xs) <span class="ot">=</span> <span class="dt">Branches</span> n l (L.map (over probability (<span class="op">*</span> n)) xs)</span>
-<span id="cb19-9"><a href="#cb19-9" aria-hidden="true"></a>      fn x <span class="ot">=</span> embed x</span></code></pre></div>
-<p>the only interesting case is folding the <code>BranchesF n l xs</code> constructor. It is folded into <code>BranchesF n l xs'</code> where <code>xs'</code> is a list of children with probability modified by the current value on the branch. This line makes the computation flow towards the leaves. Thus, we can assume that the current probability value <code>n</code> has been already computed.</p>
-<h4 id="anamorphism">Anamorphism</h4>
-<p>We have folded the tree onto itself. That does not really fold / destroy much. We can as well do the same trick with unfolding, since we will not be unfolding much either.<br />
-We can unfold Tree onto itself:</p>
-<div class="sourceCode" id="cb20"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true"></a><span class="co">-- &gt;&gt;&gt; printLeaves . computeProb $ exTree</span></span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true"></a><span class="co">-- &quot;(0.25,\&quot;11\&quot;,()),(0.25,\&quot;12\&quot;,()),(0.15,\&quot;21\&quot;,()),(0.15,\&quot;22\&quot;,()),(0.2,\&quot;23\&quot;,())&quot;</span></span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true"></a><span class="ot">computeProb' ::</span> <span class="dt">ProbTree</span> <span class="dt">NodeProb</span> a <span class="ot">-&gt;</span> <span class="dt">ProbTree</span> <span class="dt">CumulativeProb</span> a</span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true"></a>computeProb' <span class="ot">=</span> compWithFloats (unfold fn)</span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true"></a>  <span class="kw">where</span></span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true"></a><span class="ot">    fn ::</span> <span class="dt">ProbTree</span> <span class="dt">Float</span> a <span class="ot">-&gt;</span> <span class="dt">ProbTreeF</span> <span class="dt">Float</span> a (<span class="dt">ProbTree</span> <span class="dt">Float</span> a)</span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true"></a>    fn (<span class="dt">Branches</span> n l xs) <span class="ot">=</span> <span class="dt">BranchesF</span> n l (L.map (over probability (<span class="op">*</span> n)) xs)</span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true"></a>    fn x <span class="ot">=</span> project x</span></code></pre></div>
-<p>Again we have a convenience function to handle all the not interesting cases called <code>project</code>. And, again, the interesting case is flowing the computation down the branched towards the leaves. Other that for swapping <code>ProbTree</code> with <code>ProbTreeF</code>, this computation is identical on the <code>fold</code>.<br />
-Alternative name for <code>unfold</code> is <code>ana</code> for <em>anamorphism</em>.</p>
-<h4 id="st">ST</h4>
-<p>If you looked closely at the <code>printIO</code> example in the <a href="#catamorphism">Catamorphism</a> section, you may have noticed that that the fold of <code>Branches</code> was able to effecty things on the children. We can use the same approach to our advantage.<br />
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true"></a>(<span class="fl">0.5</span>,<span class="st">&quot;111&quot;</span>,())</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true"></a>(<span class="fl">0.5</span>,<span class="st">&quot;112&quot;</span>,())</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true"></a><span class="st">&quot;Processed so far: [\&quot;done leaf 111\&quot;,\&quot;done leaf 112\&quot;]&quot;</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true"></a>(<span class="fl">1.0</span>,<span class="st">&quot;121&quot;</span>,())</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true"></a><span class="st">&quot;Processed so far: [\&quot;done leaf 121\&quot;]&quot;</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true"></a><span class="st">&quot;Processed so far: [\&quot;done branch 11\&quot;,\&quot;done branch 12\&quot;]&quot;</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true"></a>(<span class="fl">0.2</span>,<span class="st">&quot;21&quot;</span>,())</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true"></a>(<span class="fl">0.4</span>,<span class="st">&quot;22&quot;</span>,())</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true"></a>(<span class="fl">0.5</span>,<span class="st">&quot;231&quot;</span>,())</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true"></a>(<span class="fl">0.5</span>,<span class="st">&quot;232&quot;</span>,())</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true"></a><span class="st">&quot;Processed so far: [\&quot;done leaf 231\&quot;,\&quot;done leaf 232\&quot;]&quot;</span></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true"></a><span class="st">&quot;Processed so far: [\&quot;done leaf 21\&quot;,\&quot;done leaf 22\&quot;,\&quot;done branch 23\&quot;]&quot;</span></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true"></a><span class="st">&quot;Processed so far: [\&quot;done branch 1\&quot;,\&quot;done branch 2\&quot;]&quot;</span></span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true"></a><span class="st">&quot;done branch R&quot;</span></span></code></pre></div>
+<h4 id="solution-using-anamorphism">Solution using Anamorphism</h4>
+<p>Instead of using <code>fold</code> / <code>cata</code>-morphism, I will first use it opposite: <code>unfold</code> / <code>ana</code>-morphism to solve the problem of computing commutative probabilities.<br />
+We will solve the problem by unfolding the tree onto itself (I will be constructing <code>ProbTreeF</code>).<br />
+<em>recusion-schemes</em> provides a convenient <code>project</code> function that typically can be used to implement all the uninteresting cases when unfolding the structure onto itself:</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true"></a><span class="co">-- &gt;&gt;&gt; printLeaves . computeProb $ exTree</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true"></a><span class="co">-- &quot;(0.125,\&quot;111\&quot;,()),(0.125,\&quot;112\&quot;,()),(0.25,\&quot;121\&quot;,()),(0.1,\&quot;21\&quot;,()),(0.2,\&quot;22\&quot;,()),(0.1,\&quot;231\&quot;,()),(0.1,\&quot;232\&quot;,())&quot;</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true"></a><span class="ot">computeProb ::</span> <span class="dt">ProbTree</span> <span class="dt">NodeProb</span> a <span class="ot">-&gt;</span> <span class="dt">ProbTree</span> <span class="dt">CumulativeProb</span> a</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true"></a>computeProb <span class="ot">=</span> compWithFloats (unfold fn)</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true"></a>  <span class="kw">where</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true"></a><span class="ot">    fn ::</span> <span class="dt">ProbTree</span> <span class="dt">Float</span> a <span class="ot">-&gt;</span> <span class="dt">ProbTreeF</span> <span class="dt">Float</span> a (<span class="dt">ProbTree</span> <span class="dt">Float</span> a)</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true"></a>    fn (<span class="dt">Branches</span> n l xs) <span class="ot">=</span> <span class="dt">BranchesF</span> n l (L.map (over probability (<span class="op">*</span> n)) xs)</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true"></a>    fn x <span class="ot">=</span> project x</span></code></pre></div>
+<p>the only interesting case is unfolding the <code>Branches n l xs</code> constructor. It is unfolded into <code>BranchesF n l xs'</code> where <code>xs'</code> is a list of children with probability modified by the current value on the branch. This line makes the computation flow towards the leaves. Thus, we can assume that the current probability value <code>n</code> has been already computed.</p>
+<p>Note that to test print the outcome, we have unfolded the tree in <code>computeProb</code> and then folded it using <code>printLeaves</code> there is a convenience function <code>hylo</code> or <code>refold</code> included in <em>recursion-schemes</em> package that does exactly that.</p>
+<h4 id="back-to-catamorphism.-bad-solution-attempt.">Back to Catamorphism. Bad solution attempt.</h4>
+<p>(EDITED, previous version of this post had it wrong, thanks <a href="https://www.reddit.com/r/haskell/comments/onrhtw/probability_tree_diagrams_recursion_schemes_why/h684cpr?utm_source=share&amp;utm_medium=web2x&amp;context=3" target="_blank">r/Tarmen</a>)</p>
+<p>In the previous section, I have unfolded the tree onto itself. That did not really unfold or construct much as the unfolding type was the tree itself. We can as well try the same trick using <code>cata</code> or <code>fold</code>, since we will not be destroying / folding much either.</p>
+<p><em>recusion-schemes</em> provides a convenient <code>embed</code> function that typically can be used to implement all the uninteresting cases:</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true"></a><span class="co">-- |</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true"></a><span class="co">-- &gt;&gt;&gt; printLeaves . computeProbBad $ exTree</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true"></a><span class="co">-- &quot;(0.25,\&quot;111\&quot;,()),(0.25,\&quot;112\&quot;,()),(0.5,\&quot;121\&quot;,()),(0.1,\&quot;21\&quot;,()),(0.2,\&quot;22\&quot;,()),(0.2,\&quot;231\&quot;,()),(0.2,\&quot;232\&quot;,())&quot;</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true"></a><span class="ot">computeProbBad ::</span> <span class="dt">ProbTree</span> <span class="dt">NodeProb</span> a <span class="ot">-&gt;</span> <span class="dt">ProbTree</span> <span class="dt">CumulativeProb</span> a</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true"></a>computeProbBad <span class="ot">=</span> compWithFloats (cata fn)</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true"></a>  <span class="kw">where</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true"></a><span class="ot">      fn ::</span> <span class="dt">ProbTreeF</span> <span class="dt">Float</span> a (<span class="dt">ProbTree</span> <span class="dt">Float</span> a) <span class="ot">-&gt;</span> <span class="dt">ProbTree</span> <span class="dt">Float</span> a</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true"></a>      fn (<span class="dt">BranchesF</span> n l xs) <span class="ot">=</span> <span class="dt">Branches</span> n l (L.map (over probability (<span class="op">*</span> n)) xs)</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true"></a>      fn x <span class="ot">=</span> embed x</span></code></pre></div>
+<p>notice there is a problem, the numbers are off. This approach does not recurse all the way down to the leaves! It works perfectly fine if my tree had depth 2 and not if it was taller.<br />
+<code>cata</code> is happy to do the minimal job and apply the adjustment only once, the tree <code>Branches</code> is unwrapped into <code>BranchesF</code> but the nested <code>xs</code> elements already have the correct folding type, there is nothing here forcing recursive correction of probabilities all the way down to the leaves.</p>
+<h4 id="st-example">ST Example</h4>
+<p><strong>Repeating the bad attempt:</strong></p>
+<p>Let’s look into this issue a little deeper using a more imperative approach.</p>
+<p>If you looked closely at the <code>printIO</code> example in the <a href="#catamorphism">Catamorphism</a> section, you may have noticed that that the fold of <code>Branches</code> was able to do effecty things on the children. We can use the same approach to our advantage.<br />
 We will go into a mutating franzy and fold <code>ProbTree</code> into just <code>MutableFloat s</code>:</p>
-<div class="sourceCode" id="cb21"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true"></a><span class="ot">computeST ::</span> <span class="kw">forall</span> s a <span class="op">.</span> <span class="dt">ProbTree</span> (<span class="dt">ST</span> s (<span class="dt">MutableFloat</span> s)) a <span class="ot">-&gt;</span> <span class="dt">ST</span> s (<span class="dt">MutableFloat</span> s)</span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true"></a>computeST <span class="ot">=</span> fold fn</span>
+<div class="sourceCode" id="cb21"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true"></a><span class="ot">computeSTBad ::</span> <span class="kw">forall</span> s a <span class="op">.</span> <span class="dt">ProbTree</span> (<span class="dt">ST</span> s (<span class="dt">MutableFloat</span> s)) a <span class="ot">-&gt;</span> <span class="dt">ST</span> s (<span class="dt">MutableFloat</span> s)</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true"></a>computeSTBad <span class="ot">=</span> fold fn</span>
 <span id="cb21-3"><a href="#cb21-3" aria-hidden="true"></a>  <span class="kw">where</span></span>
 <span id="cb21-4"><a href="#cb21-4" aria-hidden="true"></a><span class="ot">      fn ::</span> <span class="dt">ProbTreeF</span> (<span class="dt">ST</span> s (<span class="dt">MutableFloat</span> s)) a (<span class="dt">ST</span> s (<span class="dt">MutableFloat</span> s)) <span class="ot">-&gt;</span> <span class="dt">ST</span> s (<span class="dt">MutableFloat</span> s)</span>
 <span id="cb21-5"><a href="#cb21-5" aria-hidden="true"></a>      fn (<span class="dt">LeafF</span> n _ _) <span class="ot">=</span> n</span>
@@ -299,27 +322,81 @@ We will go into a mutating franzy and fold <code>ProbTree</code> into just <code
 <span id="cb21-7"><a href="#cb21-7" aria-hidden="true"></a>      fn (<span class="dt">BranchesF</span> stmn lb ixs) <span class="ot">=</span> <span class="kw">do</span></span>
 <span id="cb21-8"><a href="#cb21-8" aria-hidden="true"></a><span class="ot">           mn ::</span> <span class="dt">MutableFloat</span> s <span class="ot">&lt;-</span> stmn</span>
 <span id="cb21-9"><a href="#cb21-9" aria-hidden="true"></a><span class="ot">           n ::</span> <span class="dt">Float</span> <span class="ot">&lt;-</span> readSTRef mn <span class="co">-- read branch proability</span></span>
-<span id="cb21-10"><a href="#cb21-10" aria-hidden="true"></a><span class="ot">           mxs ::</span> [<span class="dt">MutableFloat</span> s] <span class="ot">&lt;-</span> <span class="fu">sequence</span> ixs <span class="co">-- get access to mutable probablities for children </span></span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true"></a><span class="ot">           mxs ::</span> [<span class="dt">MutableFloat</span> s] <span class="ot">&lt;-</span> <span class="fu">sequence</span> ixs <span class="co">-- get access to mutable probablities for direct children </span></span>
 <span id="cb21-11"><a href="#cb21-11" aria-hidden="true"></a>           <span class="fu">mapM_</span> (<span class="ot">`modifySTRef`</span> (n <span class="op">*</span>)) mxs <span class="co">-- mutate the children's probabilities (This even sounds wrong!)</span></span>
 <span id="cb21-12"><a href="#cb21-12" aria-hidden="true"></a>           stmn <span class="co">-- return back the untouched branch probability</span></span></code></pre></div>
 <p>Making this into a pure function requires even crazier mutations (this reuses previously defined <code>makeMutable</code> and <code>makeNonMutable</code>):</p>
-<div class="sourceCode" id="cb22"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true"></a><span class="ot">computeProbMutable ::</span> <span class="kw">forall</span> a <span class="op">.</span> <span class="dt">ProbTree</span> <span class="dt">NodeProb</span> a <span class="ot">-&gt;</span> <span class="dt">ProbTree</span> <span class="dt">CumulativeProb</span> a</span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true"></a>computeProbMutable <span class="ot">=</span> compWithFloats (</span>
+<div class="sourceCode" id="cb22"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true"></a><span class="ot">computeProbMutableBad ::</span> <span class="kw">forall</span> a <span class="op">.</span> <span class="dt">ProbTree</span> <span class="dt">NodeProb</span> a <span class="ot">-&gt;</span> <span class="dt">ProbTree</span> <span class="dt">CumulativeProb</span> a</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true"></a>computeProbMutableBad <span class="ot">=</span> compWithFloats (</span>
 <span id="cb22-3"><a href="#cb22-3" aria-hidden="true"></a>    \t <span class="ot">-&gt;</span> runST <span class="op">$</span> <span class="kw">do</span></span>
 <span id="cb22-4"><a href="#cb22-4" aria-hidden="true"></a>        mutable <span class="ot">&lt;-</span> makeMutable t</span>
 <span id="cb22-5"><a href="#cb22-5" aria-hidden="true"></a>        mutable' <span class="ot">&lt;-</span> traverseOf probabilityT (<span class="fu">pure</span> <span class="op">.</span> <span class="fu">pure</span>) mutable</span>
-<span id="cb22-6"><a href="#cb22-6" aria-hidden="true"></a>        computeST mutable'</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true"></a>        computeSTBad mutable'</span>
 <span id="cb22-7"><a href="#cb22-7" aria-hidden="true"></a>        makeNonMutable mutable</span>
-<span id="cb22-8"><a href="#cb22-8" aria-hidden="true"></a>    )</span>
-<span id="cb22-9"><a href="#cb22-9" aria-hidden="true"></a></span>
-<span id="cb22-10"><a href="#cb22-10" aria-hidden="true"></a><span class="co">-- |</span></span>
-<span id="cb22-11"><a href="#cb22-11" aria-hidden="true"></a><span class="co">-- &gt;&gt;&gt; tstMutable</span></span>
-<span id="cb22-12"><a href="#cb22-12" aria-hidden="true"></a><span class="co">-- &quot;(0.25,\&quot;11\&quot;,()),(0.25,\&quot;12\&quot;,()),(0.15,\&quot;21\&quot;,()),(0.15,\&quot;22\&quot;,()),(0.2,\&quot;23\&quot;,())&quot;</span></span>
-<span id="cb22-13"><a href="#cb22-13" aria-hidden="true"></a><span class="ot">tstMutable ::</span> <span class="dt">String</span></span>
-<span id="cb22-14"><a href="#cb22-14" aria-hidden="true"></a>tstMutable <span class="ot">=</span> printLeaves <span class="op">$</span> computeProbMutable exTree    </span></code></pre></div>
-<p>the result of <code>computeST mutable</code> is discarded, and I use <code>pure . pure</code> (double effectful?), how crazy is that!<br />
-I am actually surprised that it even works.</p>
-<p>I clearly do not like code like this, but it does provide more imperative intuitions about the recursive fold.</p>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true"></a>    )</span></code></pre></div>
+<p>the result of <code>computeST mutable</code> is discarded, and I use <code>pure . pure</code> (double effectful?), how crazy is that!</p>
+<p>But, we see exactly the same issue as with our naive <code>cata</code> attempt in the previous section:</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true"></a><span class="co">-- |</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true"></a><span class="co">-- &gt;&gt;&gt; tstMutableBad</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true"></a><span class="co">-- &quot;(0.25,\&quot;111\&quot;,()),(0.25,\&quot;112\&quot;,()),(0.5,\&quot;121\&quot;,()),(0.1,\&quot;21\&quot;,()),(0.2,\&quot;22\&quot;,()),(0.2,\&quot;231\&quot;,()),(0.2,\&quot;232\&quot;,())&quot;</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true"></a><span class="ot">tstMutableBad ::</span> <span class="dt">String</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true"></a>tstMutableBad <span class="ot">=</span> printLeaves <span class="op">$</span> computeProbMutableBad exTree</span></code></pre></div>
+<p>This approach applies the correction only to children’s probabilities. We need to apply the correction all the way down the child subtree!</p>
+<p><strong>So let’s fix it:</strong></p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true"></a><span class="ot">computeST ::</span> <span class="kw">forall</span> s a <span class="op">.</span> <span class="dt">ProbTree</span> (<span class="dt">ST</span> s (<span class="dt">MutableFloat</span> s)) a <span class="ot">-&gt;</span> <span class="dt">ST</span> s [<span class="dt">MutableFloat</span> s]</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true"></a>computeST <span class="ot">=</span> fold fn</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true"></a>  <span class="kw">where</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true"></a><span class="ot">      fn ::</span> <span class="dt">ProbTreeF</span> (<span class="dt">ST</span> s (<span class="dt">MutableFloat</span> s)) a (<span class="dt">ST</span> s [<span class="dt">MutableFloat</span> s]) <span class="ot">-&gt;</span> <span class="dt">ST</span> s [<span class="dt">MutableFloat</span> s]</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true"></a>      fn (<span class="dt">LeafF</span> n _ _) <span class="ot">=</span>  (<span class="op">:</span>[]) <span class="op">&lt;$&gt;</span> n</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true"></a>      </span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true"></a>      fn (<span class="dt">BranchesF</span> stmn lb ixs) <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true"></a><span class="ot">        mn ::</span> <span class="dt">MutableFloat</span> s <span class="ot">&lt;-</span> stmn</span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true"></a><span class="ot">        n ::</span> <span class="dt">Float</span> <span class="ot">&lt;-</span> readSTRef mn <span class="co">-- read branch proability</span></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true"></a><span class="ot">        mxs ::</span> [<span class="dt">MutableFloat</span> s] <span class="ot">&lt;-</span> <span class="fu">concat</span> <span class="op">&lt;$&gt;</span> <span class="fu">sequence</span> ixs <span class="co">-- get access to mutable probablities for children </span></span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true"></a>        <span class="fu">mapM_</span> (<span class="ot">`modifySTRef`</span> (n <span class="op">*</span>)) mxs <span class="co">-- mutate the subtree's probabilities </span></span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true"></a>        <span class="fu">pure</span> <span class="op">$</span> mn <span class="op">:</span> mxs <span class="co">--return all mutable floats, including the current node</span></span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true"></a></span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true"></a><span class="ot">computeProbMutable ::</span> <span class="kw">forall</span> a <span class="op">.</span> <span class="dt">ProbTree</span> <span class="dt">NodeProb</span> a <span class="ot">-&gt;</span> <span class="dt">ProbTree</span> <span class="dt">CumulativeProb</span> a</span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true"></a>computeProbMutable <span class="ot">=</span> <span class="op">...</span></span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true"></a></span>
+<span id="cb24-17"><a href="#cb24-17" aria-hidden="true"></a><span class="co">-- |</span></span>
+<span id="cb24-18"><a href="#cb24-18" aria-hidden="true"></a><span class="co">-- &gt;&gt;&gt; tstMutable</span></span>
+<span id="cb24-19"><a href="#cb24-19" aria-hidden="true"></a><span class="co">-- &quot;(0.125,\&quot;111\&quot;,()),(0.125,\&quot;112\&quot;,()),(0.25,\&quot;121\&quot;,()),(0.1,\&quot;21\&quot;,()),(0.2,\&quot;22\&quot;,()),(0.1,\&quot;231\&quot;,()),(0.1,\&quot;232\&quot;,())&quot;</span></span>
+<span id="cb24-20"><a href="#cb24-20" aria-hidden="true"></a><span class="ot">tstMutable ::</span> <span class="dt">String</span></span>
+<span id="cb24-21"><a href="#cb24-21" aria-hidden="true"></a>tstMutable <span class="ot">=</span> printLeaves <span class="op">$</span> computeProbMutable exTree</span></code></pre></div>
+<p>It works! The trick was to change to folding structure to accumulate all mutable floats for the whole subtree and keep mutating them.<br />
+The key is to find the correct structure to fold onto.</p>
+<p>I do not like code like this type of code, but, I think, it does provide interesting imperative intuitions about the recursive fold.</p>
+<h4 id="catamorphism.-good-attempt">Catamorphism. Good Attempt</h4>
+<p>One way to fix it would be to design some intermediate folding data type that would allow us to correctly change descendant node probabilities. But there is a nicer solution that learns from the previous <code>ST</code> example:</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true"></a><span class="kw">import</span>           <span class="dt">Control.Monad.Reader</span> </span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true"></a></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true"></a><span class="co">-- &gt;&gt;&gt; printLeaves . computeProbRdr $ exTree</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true"></a><span class="co">-- &quot;(0.125,\&quot;111\&quot;,()),(0.125,\&quot;112\&quot;,()),(0.25,\&quot;121\&quot;,()),(0.1,\&quot;21\&quot;,()),(0.2,\&quot;22\&quot;,()),(0.1,\&quot;231\&quot;,()),(0.1,\&quot;232\&quot;,())&quot;</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true"></a><span class="ot">computeProbRdr ::</span> <span class="dt">ProbTree</span> <span class="dt">NodeProb</span> a <span class="ot">-&gt;</span> <span class="dt">ProbTree</span> <span class="dt">CumulativeProb</span> a</span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true"></a>computeProbRdr <span class="ot">=</span> compWithFloats (\t <span class="ot">-&gt;</span> runReader (computePropRdr t) <span class="dv">1</span>)</span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true"></a></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true"></a><span class="ot">computePropRdr ::</span> <span class="dt">ProbTree</span> <span class="dt">Float</span> a <span class="ot">-&gt;</span> <span class="dt">Reader</span> <span class="dt">Float</span> (<span class="dt">ProbTree</span> <span class="dt">Float</span> a)</span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true"></a>computePropRdr <span class="ot">=</span> cata fn</span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true"></a>  <span class="kw">where</span></span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true"></a><span class="ot">    fn ::</span> <span class="dt">ProbTreeF</span> <span class="dt">Float</span> a (<span class="dt">Reader</span> <span class="dt">Float</span> (<span class="dt">ProbTree</span> <span class="dt">Float</span> a)) <span class="ot">-&gt;</span> <span class="dt">Reader</span> <span class="dt">Float</span> (<span class="dt">ProbTree</span> <span class="dt">Float</span> a)</span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true"></a>    fn (<span class="dt">BranchesF</span> n l xs) <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb25-13"><a href="#cb25-13" aria-hidden="true"></a>      p <span class="ot">&lt;-</span> ask</span>
+<span id="cb25-14"><a href="#cb25-14" aria-hidden="true"></a>      xss <span class="ot">&lt;-</span> <span class="fu">mapM</span> (local (<span class="op">*</span>n)) xs</span>
+<span id="cb25-15"><a href="#cb25-15" aria-hidden="true"></a>      <span class="fu">pure</span> <span class="op">$</span> <span class="dt">Branches</span> (p <span class="op">*</span> n) l xss</span>
+<span id="cb25-16"><a href="#cb25-16" aria-hidden="true"></a>    fn (<span class="dt">LeafF</span> n l a) <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb25-17"><a href="#cb25-17" aria-hidden="true"></a>      p <span class="ot">&lt;-</span> ask</span>
+<span id="cb25-18"><a href="#cb25-18" aria-hidden="true"></a>      <span class="fu">pure</span> <span class="op">$</span> <span class="dt">Leaf</span> (p <span class="op">*</span> n) l a  </span></code></pre></div>
+<p>If you are not using <code>Reader</code> a lot it may be easier to look at this, more explicit solution:</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true"></a><span class="ot">computeProbFn ::</span> <span class="dt">ProbTree</span> <span class="dt">Float</span> a <span class="ot">-&gt;</span> <span class="dt">Float</span> <span class="ot">-&gt;</span> <span class="dt">ProbTree</span> <span class="dt">Float</span> a</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true"></a>computeProbFn <span class="ot">=</span> cata fn</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true"></a>  <span class="kw">where</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true"></a><span class="ot">    fn ::</span> <span class="dt">ProbTreeF</span> <span class="dt">Float</span> a (<span class="dt">Float</span> <span class="ot">-&gt;</span> <span class="dt">ProbTree</span> <span class="dt">Float</span> a) <span class="ot">-&gt;</span> (<span class="dt">Float</span> <span class="ot">-&gt;</span> <span class="dt">ProbTree</span> <span class="dt">Float</span> a)</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true"></a>    fn (<span class="dt">BranchesF</span> n l xs) p <span class="ot">=</span> <span class="dt">Branches</span> (p <span class="op">*</span> n) l <span class="op">$</span> L.map (\fn <span class="ot">-&gt;</span> fn <span class="op">.</span> ( <span class="op">*</span>n ) <span class="op">$</span> p ) xs</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true"></a>    fn (<span class="dt">LeafF</span> n l a) p <span class="ot">=</span> <span class="dt">Leaf</span> (p <span class="op">*</span> n) l a</span></code></pre></div>
+<p>What we are accumulating, is the ability to conjure a descendant tree at any point, from the current probability <code>Float</code>.<br />
+We “conjure” the tree by modifying how the children are being “conjured”: we pre-compose <code>(* n)</code> (<code>n</code> is current node probability) to each of the functions that “conjure” the children. This forces recomputation of the probabilities all the way down to the leaves.<br />
+This, no longer stops at depth 2.</p>
 <h2 id="why-finding-the-right-solution-is-sometimes-hard">Why Finding the Right Solution is Sometimes Hard?</h2>
 <p><strong>Rant Alert.</strong> This is about the cases where we know or knew how to do thing well but we get stuck anyway. Obviously, finding better and even better ways for writing code is a subject of a never ending research, I am not going to discuss that.</p>
 <p>Haskell is an amazingly efficient tool for writing new code when our fingertips know what to do.<br />
@@ -378,6 +455,8 @@ What really matters is not giving up and eventually figuring it out.</p>
 <p>“You must understand, young Hobbit, it takes a long time to say anything in Old Entish. And we never say anything unless it is worth taking a long time to say.”</p>
 </blockquote>
 <p>J.R.R Tolkien and Treebeard</p>
+<p>… The original version of this post had bugs.<br />
+Yeah, what really matters is not giving up and eventually figuring it out;)</p>
 
     </section>
 </article>
