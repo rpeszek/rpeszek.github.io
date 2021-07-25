@@ -385,7 +385,7 @@ We will go into a mutating franzy and fold <code>ProbTree</code> into just <code
 The key is to find the correct structure to fold onto.</p>
 <p>I do not like code like this type of code, but, I think, it does provide interesting imperative intuitions about the recursive fold.</p>
 <h4 id="catamorphism.-good-attempt">Catamorphism. Good Attempt</h4>
-<p>One way to fix it would be to design some intermediate folding data type that would allow us to correctly change descendant node probabilities. But there is a nicer solution that learns from the previous <code>ST</code> example:</p>
+<p>One way to fix it would be to design some intermediate folding data type that would allow us to correctly change descendant node probabilities. But there is a nicer solution that learns from the previous <code>ST</code> example and is very close to the idea of folding the tree onto itself:</p>
 <div class="sourceCode" id="cb25"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true"></a><span class="kw">import</span>           <span class="dt">Control.Monad.Reader</span> </span>
 <span id="cb25-2"><a href="#cb25-2" aria-hidden="true"></a></span>
 <span id="cb25-3"><a href="#cb25-3" aria-hidden="true"></a><span class="co">-- &gt;&gt;&gt; printLeaves . computeProbRdr $ exTree</span></span>
