@@ -260,9 +260,9 @@ A meaningful validation would have a type</p>
 One can argue that a better solution would be not to use <code>Person Maybe</code> and convert user form data entry directly to <code>Person (Either FieldInfo)</code>.</p>
 <h3 id="traversable-with-maybe"><code>Traversable</code> with <code>Maybe</code></h3>
 <p><em>barbies</em> validation of <code>Person</code> required a traversal of the <em>HKD</em> type. So, maybe, we should consider a somewhat simpler design where fields are unified into one type. Keeping up with the <em>reasonablypolymorphic</em> example:</p>
-<div class="sourceCode" id="cb17"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true"></a><span class="ot">{-## LANGUAGE DeriveFunctor ##-}</span></span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true"></a><span class="ot">{-## LANGUAGE DeriveFoldable ##-}</span></span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true"></a><span class="ot">{-## LANGUAGE DeriveTraversable ##-}</span></span>
+<div class="sourceCode" id="cb17"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true"></a><span class="ot">{-# LANGUAGE DeriveFunctor #-}</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true"></a><span class="ot">{-# LANGUAGE DeriveFoldable #-}</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true"></a><span class="ot">{-# LANGUAGE DeriveTraversable #-}</span></span>
 <span id="cb17-4"><a href="#cb17-4" aria-hidden="true"></a></span>
 <span id="cb17-5"><a href="#cb17-5" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Person'</span> a <span class="ot">=</span> <span class="dt">Person'</span> { </span>
 <span id="cb17-6"><a href="#cb17-6" aria-hidden="true"></a><span class="ot">    pName' ::</span> a</span>
@@ -313,10 +313,10 @@ Here is my attempt at debunking some of them.</p>
 <span id="cb22-9"><a href="#cb22-9" aria-hidden="true"></a><span class="ot">isDrinkingAge' ::</span> <span class="dt">Age</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span></span>
 <span id="cb22-10"><a href="#cb22-10" aria-hidden="true"></a>isDrinkingAge' (<span class="dt">Age</span> a) <span class="ot">=</span> a <span class="op">&gt;=</span> <span class="dv">21</span></span></code></pre></div>
 <p>If we feel strongly about checking age on the <code>Person</code> type, we can use Haskell’s ability to program with polymorphic fields:</p>
-<div class="sourceCode" id="cb23"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true"></a><span class="ot">{-## LANGUAGE TypeApplications ##-}</span></span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true"></a><span class="ot">{-## LANGUAGE DataKinds ##-}</span></span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true"></a><span class="ot">{-## LANGUAGE FlexibleContexts ##-}</span></span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true"></a><span class="ot">{-## LANGUAGE DuplicateRecordFields ##-}</span></span>
+<div class="sourceCode" id="cb23"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true"></a><span class="ot">{-# LANGUAGE TypeApplications #-}</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true"></a><span class="ot">{-# LANGUAGE DataKinds #-}</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true"></a><span class="ot">{-# LANGUAGE FlexibleContexts #-}</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true"></a><span class="ot">{-# LANGUAGE DuplicateRecordFields #-}</span></span>
 <span id="cb23-5"><a href="#cb23-5" aria-hidden="true"></a></span>
 <span id="cb23-6"><a href="#cb23-6" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">GHC.Records</span></span>
 <span id="cb23-7"><a href="#cb23-7" aria-hidden="true"></a></span>
