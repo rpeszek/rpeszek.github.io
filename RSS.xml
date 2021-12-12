@@ -7,8 +7,350 @@
         <description><![CDATA[Infrequent, Pragmatic, Lambda Blog Feed]]></description>
         <atom:link href="https://rpeszek.github.io//RSS.xml" rel="self"
                    type="application/rss+xml" />
-        <lastBuildDate>Sun, 18 Jul 2021 00:00:00 UT</lastBuildDate>
+        <lastBuildDate>Sun, 12 Dec 2021 00:00:00 UT</lastBuildDate>
         <item>
+    <title>Type Enthusiast's Notes about TypeScript. Part1. Typing in Anger</title>
+    <link>https://rpeszek.github.io//posts/2021-12-12-ts-types-part1.html</link>
+    <description><![CDATA[<article>
+    <section class="header">
+        Posted on December 12, 2021
+        
+            by Robert Peszek
+        
+        
+        
+        
+        <div class="info">Tags: <a title="All pages tagged 'TypeScript'." href="../tags/TypeScript.html">TypeScript</a></div>
+        
+    </section>
+    <section>
+
+    </section>
+    <section>
+        <div class="toc"><div class="header">Table of Contents</div>
+<ul>
+<li><a href="#introduction-to-the-series">Introduction to the series</a></li>
+<li><a href="#typescript-is-great">TypeScript is great!</a></li>
+<li><a href="#office.js.-using-ts-in-anger"><em>office.js</em>. Using TS in anger</a>
+<ul>
+<li><a href="#happy-path">Happy path</a></li>
+<li><a href="#bumps-on-the-path">Bumps on the path</a></li>
+<li><a href="#bump-leveling-tools">Bump leveling tools</a></li>
+<li><a href="#compilation-bloopers">Compilation bloopers</a></li>
+<li><a href="#its-all-worth-it">It’s all worth it</a></li>
+</ul></li>
+<li><a href="#next-chapter">Next Chapter</a></li>
+</ul>
+</div>
+<p><em>Please Leave Feedback in: <a href="https://github.com/rpeszek/rpeszek.github.io/discussions/1" target="_blank">git discussions</a></em></p>
+<p><strong>DRAFT version</strong> <em>(I am sorry about any misprints. It seems I have goblins in my laptop that toy with me, remove or change words. When this note disappears, you will know that I gave up.)</em></p>
+<p><strong>Disclaimers:</strong> (imagine this is a very small font, read it very fast in a half whisper)<br />
+<em>The code in this post may require something like <code>strictNullChecks</code> compiler flag. I assume strict compiler flags are on, something you get by default with scaffolding, e.g. using <code>create-react-app my-project --template typescript</code> is close enough.<br />
+The code examples have been tested with TypeScript v4.4.4 and v4.5.2.<br />
+This post is a pandoc output of a markdown document and code examples are not interactive.<br />
+Most code examples are published in <a href="https://github.com/rpeszek/ts-experiments/tree/master/ts-notes" target="_blank">ts-notes</a> folder in this github repo: <a href="https://github.com/rpeszek/ts-experiments" target="_blank">ts-experiments</a>.</em></p>
+<h2 id="introduction-to-the-series">Introduction to the series</h2>
+<blockquote>
+<p>“TypeScript began its life as an attempt to bring traditional object-oriented types to JavaScript so that the programmers at Microsoft could bring traditional object-oriented programs to the web. As it has developed, TypeScript’s type system has evolved to model code written by native JavaScripters. The resulting system is <em>powerful, interesting and messy.</em>”</p>
+</blockquote>
+<p><em>From typescriptlang <a href="https://www.typescriptlang.org/docs/handbook/typescript-in-5-minutes-func.html" target="_blank">TypeScript for Functional Programmers</a></em></p>
+<p>I wanted to write a short post about my experience with TS types, I ended up with a draft the size of a short book. I decided to split it into digestible installments and publish it as a series of shorter posts. The series will be about the <em>powerful, interesting and messy</em> types in TS. This post is the first in that series.</p>
+<p>Here is my plan:</p>
+<ul>
+<li>Part 1 (this post). Is a warm-up. Part 1 has been motivated by a current project at my work that uses TS. I will show code examples that are hard to compile. I will discuss strategies and methods for resolving compilation issues. Part 1 will present code examples that compile but really, really should not, and code examples that should compile but surprisingly don’t. I will also summarize my overall experience of working with TS.<br />
+This series needed a JS library with TS bindings to draw examples from, I decided to use <em>office.js</em> and Part 1 will introduce it.</li>
+<li>Part 2. Will be about keeping types honest. Are runtime values consistent with the types? We hope they always are but, especially in a gradually typed language like TS, types will sometimes lie. We will see concrete examples of type dishonesty from <em>office.js</em>. Part 2 will cover the notorious <code>any</code> and its safer cousin <code>unknown</code>, the type coercion (casting), and TS’s type guards.</li>
+<li>Part 3. Will cover some of the TS type safety features that I absolutely love. It will also include a bunch of rants (e.g. on importance of specifying the return types). Throughout the series, we will encounter several examples where TS compiler does not work as expected. One of my notes will argue that what TS is and does it quite complex.</li>
+<li>Part 4. Will be more theoretical. Notes in Part 4 will discuss topics such as TS’s structural recursive types, subtyping, higher-rank polymorphism (TS supports a version of it!), and type level programming.</li>
+<li>Part 5. Will be a wrap-up with some final thoughts.</li>
+</ul>
+<p><strong>Why am I writing these notes?</strong><br />
+To be honest, it is because I am really impressed and excited about some of the type safety features in TS.</p>
+<p>Despite being a superset of JavaScript, TS stands out among mainstream languages as one that supports some interesting types.<br />
+There is a tiny but important feedback loop: the more we play with types the more they will end up being used.<br />
+So, to be perfectly honest, the goal of these notes is to simply play with some interesting types and see how the compiler reacts.</p>
+<p>IMO, to master something is to understand its limitations.<br />
+So, to be brutally honest, the goal of these notes is to explore and handle the TS compiler limitations.</p>
+<p>These notes will focus on the experience of using types. Not so much on explaining the types themselves.</p>
+<p><strong>Target audience and prerequisites.</strong> I assume that the reader is interested in types and either uses or considers using TypeScript.<br />
+Types tend to be related to FP. There will not be much FP in these notes. However, I will use some basic functional programming concepts, like currying, without explaining them.<br />
+TypeScript is a superset of JavaScript with type syntax very similar to any other C-like language. These notes will probably be hard to read without some experience with JavaScript or ability to read C-like types.</p>
+<p><strong>About the author.</strong> I am spearheading a rewrite of a legacy front-end component at work, the goal is to rewrite it using the new React.js and TypeScript. In recent years, I have been spending all of my time in the back-end designing, writing, and maintaining Haskell programs. Haskell code has a lot of types. Thus, I use types a lot. Types allow me to code faster, safer, and with much more confidence.<br />
+I wear a hat with types on it when writing TS.<br />
+I love Programming Language Theory and have some experience and lots of interest in all things compiler related.<br />
+I wear a very thin headband with PLT symbols on it under my hat (should be mostly invisible in this series).<br />
+All of this gives me a different (compared to most typescripters) perspective and a reason to write these posts. For some readers, parts of these posts will feel strange. Established practices like overloading will be considered a bad thing, writing experimental code (that won’t even run) to answer <em>type questions</em> (type what?) will be a good thing. Strange is a corollary of different.</p>
+<p><strong>What is TypeScript for?</strong> Is it just a JavaScript add-on used to prevent typos and trivial code errors?<br />
+Or, will TypeScript more fundamentally change the way the code is written?<br />
+Please have these questions in mind when reading these notes.</p>
+<p>We will cover a lot of topics.</p>
+<blockquote>
+<p>“And we never say anything unless it is worth taking a long time to say.”</p>
+</blockquote>
+<p><em>J.R.R Tolkien and Treebeard about discussing types in TypeScript</em></p>
+<h2 id="typescript-is-great">TypeScript is great!</h2>
+<p>It literally took me less than one minute of playing with TS to get excited about it.<br />
+Just look at the union types (using a somewhat contrived example):</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a>type Person <span class="op">=</span> {<span class="dt">firstNm</span><span class="op">:</span> string<span class="op">,</span> <span class="dt">lastNm</span><span class="op">:</span> string} </span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>type NullablePerson <span class="op">=</span> Person <span class="op">|</span> <span class="kw">null</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a><span class="kw">const</span> getName <span class="op">=</span> (p<span class="op">:</span>NullablePerson)<span class="op">:</span> string <span class="kw">=&gt;</span> {</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a>    <span class="co">//const tst1 = p.firstNm //will not compile</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a>    <span class="cf">if</span>(p<span class="op">===</span><span class="kw">null</span>){</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a>        <span class="co">//const tst2 = p.firstNm //will not compile</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a>        <span class="cf">return</span> <span class="st">&quot;John Smith&quot;</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a>    } <span class="cf">else</span> {</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true"></a>        <span class="cf">return</span> p<span class="op">.</span><span class="at">firstNm</span> <span class="op">+</span> <span class="st">&quot; &quot;</span> <span class="op">+</span> p<span class="op">.</span><span class="at">lastNm</span> <span class="co">//compiles</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true"></a>    }</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true"></a>}</span></code></pre></div>
+<p>How cool!</p>
+<p>Talking about my “literal” excitement, my next play example implements <code>Either</code> (I am not trying to implement my own Either type, only to play with the language):</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a>type Either<span class="op">&lt;</span>A<span class="op">,</span>B<span class="op">&gt;</span> <span class="op">=</span> </span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a><span class="op">|</span> {<span class="dt">type</span><span class="op">:</span> <span class="st">&quot;left&quot;</span><span class="op">,</span> <span class="dt">content</span><span class="op">:</span> A}</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a><span class="op">|</span> {<span class="dt">type</span><span class="op">:</span> <span class="st">&quot;right&quot;</span><span class="op">,</span> <span class="dt">content</span><span class="op">:</span> B}</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a><span class="kw">let</span> x1<span class="op">:</span> Either<span class="op">&lt;</span>number<span class="op">,</span> string<span class="op">&gt;</span> <span class="op">=</span> {<span class="dt">type</span><span class="op">:</span> <span class="st">&quot;left&quot;</span><span class="op">,</span> <span class="dt">content</span><span class="op">:</span> <span class="dv">1</span>}</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true"></a><span class="kw">let</span> xone<span class="op">:</span> Either<span class="op">&lt;</span>number<span class="op">,</span> string<span class="op">&gt;</span> <span class="op">=</span> {<span class="dt">type</span><span class="op">:</span> <span class="st">&quot;right&quot;</span><span class="op">,</span> <span class="dt">content</span><span class="op">:</span> <span class="st">&quot;one&quot;</span>}</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true"></a><span class="co">//let wrong: Either&lt;number, string&gt; = {type: &quot;left&quot;, content: &quot;one&quot;} // will not compile</span></span></code></pre></div>
+<p>it almost looks like dependent types! TS calls these literal types. (In this example, <code>"left"</code> is a type with a single value <code>"left": "left"</code>.)<br />
+TypeScript calls this programming pattern <em>Discriminated Unions</em>.</p>
+<p>And, TS is serious about string property names too:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="kw">let</span> y<span class="op">:</span> Either<span class="op">&lt;</span>number<span class="op">,</span> string<span class="op">&gt;</span> <span class="op">=</span> {<span class="st">&quot;type&quot;</span><span class="op">:</span> <span class="st">&quot;left&quot;</span><span class="op">,</span> <span class="st">&quot;content&quot;</span><span class="op">:</span> <span class="dv">1</span>}</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a><span class="co">//let wrong: Either&lt;number, string&gt; = {&quot;type&quot;: &quot;left&quot;, &quot;content&quot;: &quot;one&quot;} // will not compile</span></span></code></pre></div>
+<p>TypeScript <a href="https://www.npmjs.com/package/ts-pattern" target="_blank"><em>ts-pattern</em></a> library uses discriminated unions to implement <em>pattern matching</em>. Exhaustive check is part of it.<br />
+Again, really cool. All of these are really exciting developments to me.</p>
+<p>Continuing with play examples, here is the full JSON grammar defined in TS.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a>type JsonVal <span class="op">=</span> </span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a><span class="op">|</span> {<span class="dt">type</span><span class="op">:</span> <span class="st">&quot;object&quot;</span><span class="op">,</span> <span class="dt">val</span><span class="op">:</span> <span class="bu">Map</span><span class="op">&lt;</span>string<span class="op">,</span> JsonVal<span class="op">&gt;</span>}</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a><span class="op">|</span> {<span class="dt">type</span><span class="op">:</span> <span class="st">&quot;array&quot;</span><span class="op">,</span> <span class="dt">val</span><span class="op">:</span> JsonVal[]}</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a><span class="op">|</span> {<span class="dt">type</span><span class="op">:</span> <span class="st">&quot;string&quot;</span><span class="op">,</span> <span class="dt">val</span><span class="op">:</span> string}</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true"></a><span class="op">|</span> {<span class="dt">type</span><span class="op">:</span> <span class="st">&quot;number&quot;</span><span class="op">,</span> <span class="dt">val</span><span class="op">:</span> number}</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true"></a><span class="op">|</span> {<span class="dt">type</span><span class="op">:</span> <span class="st">&quot;bool&quot;</span><span class="op">,</span> <span class="dt">val</span><span class="op">:</span> boolean}</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true"></a><span class="op">|</span> {<span class="dt">type</span><span class="op">:</span> <span class="st">&quot;null&quot;</span>}</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true"></a></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true"></a><span class="kw">const</span> tstj<span class="op">:</span> JsonVal <span class="op">=</span> {<span class="dt">type</span><span class="op">:</span><span class="st">&quot;array&quot;</span><span class="op">,</span> <span class="dt">val</span><span class="op">:</span>[{<span class="dt">type</span><span class="op">:</span> <span class="st">&quot;null&quot;</span>}<span class="op">,</span> {<span class="dt">type</span><span class="op">:</span> <span class="st">&quot;number&quot;</span><span class="op">,</span> <span class="dt">val</span><span class="op">:</span> <span class="dv">5</span>}]} <span class="co">//compiles</span></span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode java"><code class="sourceCode java"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="dt">const</span> wrong: JsonVal = {type: <span class="st">&quot;number&quot;</span>, val: {type: <span class="st">&quot;string&quot;</span>, val: <span class="st">&quot;5&quot;</span>}} <span class="co">//does not compile, number cannot a nested string</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a><span class="dt">const</span> wrong2: {type: <span class="st">&quot;object&quot;</span>,  val:[{type: <span class="st">&quot;null&quot;</span>}, {type: <span class="st">&quot;number&quot;</span>, val: <span class="dv">5</span>}]} <span class="co">//does not compile, object is not an array</span></span></code></pre></div>
+<p>This could have been expressed with OO classes, but it would not be very easy, would it?<br />
+I wrote the <code>JsonVal</code> definition without thinking, I have committed <code>Data.Aeson.Value</code> (Haskell’s commonly used type for JSON values) definition to memory and I just mimicked it. Then I looked at it again … holly … TS supports complex recursive definitions! We will discuss recursive types later in this series.</p>
+<p>TypeScript has an ability to do type level programming that goes beyond the demonstrated uses of literal types. All of this is oriented toward creating type safety over various kinds of idiomatic JS code and is limited in scope. It is nonetheless interesting. We will return to this topic in the future as well.</p>
+<p>As far as mainstream languages go (I consider <em>Scala</em> or <em>Reason ML</em> a border line just outside the mainstream), TypeScript could be the most interesting choice today IMO.</p>
+<p>This was my trailer/preview section. If the code that excited me feels interesting to you, you may enjoy reading these notes. There will be some gory details (not a lot violence). You have to decide if type safety is your genre.<br />
+Developers are divided into 2 camps: Those who use types because that is the most effective way to write software and those who do not use types because that is the most effective way to write software. Since you are still reading, I assume you are in camp 1.</p>
+<h2 id="office.js.-using-ts-in-anger"><em>office.js</em>. Using TS in anger</h2>
+<p>I will use <em>office.js</em> library as a source of examples for this series. It is a Microsoft product (like TypeScript). <em>office.js</em> comes with TypeScript type definitions (code examples in this series use <span class="citation" data-cites="types/office-js">@types/office-js</span><span class="citation" data-cites="1.0.221">@1.0.221</span>). It is also relatively old and has been retrofitted for TS. Many other JS ecosystem libraries have traveled a similar JS to TS path. It seems like a good ‘comprehensive’ example for examining the benefits (and frustrations) of using TS in anger.<br />
+Despite some hardships, TS makes working with office.js much, much easier!</p>
+<p>As the name suggests, <em>office.js</em> provides an API for working with <em>Microsoft Office</em>. It allows implementing custom apps that work inside the office suite of products (Microsoft calls these apps add-ins).<br />
+This is not an office.js tutorial but, I hope, the code should be clear to follow.</p>
+<p>As a working example, we will play with code that extracts data from an email opened in Outlook. To start, I want to extract the email body.<br />
+To access data, <em>office.js</em> often uses an old style <code>getAsync</code> methods that I will modernize using a custom conversion to a <code>Promise</code>. Node’s <code>util.promisify</code> will not work well for this task. This is how this could be done in TS:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a><span class="co">/* Utility to convert office functions to promises */</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a><span class="im">export</span> <span class="kw">const</span> officePromise <span class="op">=</span> <span class="op">&lt;</span>T<span class="op">&gt;</span> (getasync<span class="op">:</span> ((fx<span class="op">:</span> ((r<span class="op">:</span> Office<span class="op">.</span><span class="at">AsyncResult</span><span class="op">&lt;</span>T<span class="op">&gt;</span>) <span class="kw">=&gt;</span> <span class="kw">void</span>)) <span class="kw">=&gt;</span> <span class="kw">void</span>))<span class="op">:</span> <span class="bu">Promise</span><span class="op">&lt;</span>T<span class="op">&gt;</span> <span class="kw">=&gt;</span> {</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true"></a>    <span class="cf">return</span> <span class="kw">new</span> <span class="bu">Promise</span>((resolve<span class="op">,</span> reject) <span class="kw">=&gt;</span> {</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true"></a>      <span class="fu">getasync</span>((<span class="dt">res</span><span class="op">:</span> Office<span class="op">.</span><span class="at">AsyncResult</span><span class="op">&lt;</span>T<span class="op">&gt;</span>) <span class="kw">=&gt;</span> {</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true"></a>        <span class="cf">if</span>(res<span class="op">.</span><span class="at">status</span><span class="op">===</span>Office<span class="op">.</span><span class="at">AsyncResultStatus</span><span class="op">.</span><span class="at">Succeeded</span>){</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true"></a>          <span class="fu">resolve</span>(res<span class="op">.</span><span class="at">value</span>)</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true"></a>      } <span class="cf">else</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true"></a>          <span class="fu">reject</span>(res<span class="op">.</span><span class="at">error</span>)</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true"></a>      })</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true"></a>   })</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true"></a>  }</span></code></pre></div>
+<p><strong>Side Note:</strong> Here is my first criticism of TS. The ergonomics of function type definitions is IMO really poor. These definitions are hard to read and cumbersome to write. This syntax does not scale well to more involved types and makes reasoning about types harder.<br />
+E.g. in the above example parameters <code>fx:</code> and <code>r:</code> cannot be used anywhere (are outside of the lexical scope) and serve only a documentation purpose. This simple example needs 10 parentheses! The declaration syntax overloads the meaning of both <code>:</code> and <code>=&gt;</code>. Function form <code>A</code> to <code>B</code> is (depending where in the declaration) either <code>(a: A) =&gt; B</code> or <code>(a: A): B</code>. I admit it took me a long time to figure out how to write these and it still takes me forever to read some of these types.</p>
+<p>Later in this post, I will show some work-arounds that simplify type definitions like this one.<br />
+I am adding a big fat <strong>IMO</strong> to this side note, readability is in the eye of … well the reader. But seriously…<br />
+<strong>(Side Note End)</strong></p>
+<p>Properly initialized office add-in will have access to <code>Office.context.mailbox.item: Office.MessageRead</code>.<br />
+This <code>item</code> object allows access to the email data. (The situation is just slightly more complicated since the <code>item</code> property is overloaded but that is not important for now.) To retrieve the email body I need to use <code>item.body.getAsync</code>. But wait, the type for that version of <code>getAsync</code> accepts not only a callback function but also a “body type” parameter.</p>
+<p>I am going to resist the temptation to overload <code>officePromise</code>. Instead I will move in a direction that is more fundamental.</p>
+<p>Assume that we want ‘html’ body format, the code can look something like this:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a><span class="co">//retrieving email body, 1st attempt</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true"></a><span class="kw">const</span> bodyType <span class="op">=</span> Office<span class="op">.</span><span class="at">CoercionType</span><span class="op">.</span><span class="at">Html</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true"></a> </span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true"></a><span class="kw">const</span> partiallyAppliedBodyFn <span class="op">=</span> (fn<span class="op">:</span> ((res<span class="op">:</span> Office<span class="op">.</span><span class="at">AsyncResult</span><span class="op">&lt;</span>string<span class="op">&gt;</span>) <span class="kw">=&gt;</span> <span class="kw">void</span>)) <span class="kw">=&gt;</span> </span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true"></a>     item<span class="op">.</span><span class="at">body</span><span class="op">.</span><span class="fu">getAsync</span>(bodyType<span class="op">,</span> fn) </span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true"></a>  </span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true"></a><span class="kw">const</span> body  <span class="op">=</span> <span class="cf">await</span> officePromise<span class="op">&lt;</span>string<span class="op">&gt;</span> (partiallyAppliedBodyFn) <span class="co">// body: string</span></span></code></pre></div>
+<p>I had to fully specify the <code>partiallyAppliedBodyFn</code> type for this to work. That looks like a lot of code to just partially apply <code>item.body.getAsync</code>!</p>
+<h3 id="happy-path">Happy path</h3>
+<p>There are some libraries that offer a <code>curry</code> function conversion, but these are typically JS not TS. So I wrote it myself (again, note the type signature is somewhat hard to read):</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true"></a><span class="im">export</span> <span class="kw">const</span> curry <span class="op">=</span> <span class="op">&lt;</span>T1<span class="op">,</span> T2<span class="op">,</span> R<span class="op">&gt;</span> (fn<span class="op">:</span> (ax<span class="op">:</span> T1<span class="op">,</span> bx<span class="op">:</span> T2) <span class="kw">=&gt;</span> R)<span class="op">:</span> (a<span class="op">:</span> T1) <span class="kw">=&gt;</span> (b<span class="op">:</span> T2) <span class="kw">=&gt;</span> R <span class="kw">=&gt;</span> {</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true"></a>    <span class="kw">const</span> res <span class="op">=</span> (<span class="dt">a</span><span class="op">:</span> T1) <span class="kw">=&gt;</span> (<span class="dt">b</span><span class="op">:</span> T2) <span class="kw">=&gt;</span> <span class="fu">fn</span>(a<span class="op">,</span> b)</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true"></a>    <span class="cf">return</span> res</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true"></a> }</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true"></a></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true"></a><span class="kw">const</span> addtst <span class="op">=</span> (a<span class="op">:</span>number<span class="op">,</span> b<span class="op">:</span> number) <span class="kw">=&gt;</span> a <span class="op">+</span> b</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true"></a><span class="kw">const</span> curriedAdd <span class="op">=</span> <span class="fu">curry</span>(addtst) <span class="co">//const curriedAdd: (a: number) =&gt; (b: number) =&gt; number</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true"></a><span class="kw">const</span> tst <span class="op">=</span> <span class="fu">curry</span>(addtst)(<span class="dv">1</span>) <span class="co">//const tst: (b: number) =&gt; number</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true"></a><span class="kw">const</span> tst2 <span class="op">=</span> <span class="fu">curry</span>(addtst)(<span class="dv">1</span>)(<span class="dv">2</span>) <span class="co">//tst2 = 3</span></span></code></pre></div>
+<p>And I have a much simpler code that compiles right off the bat:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true"></a><span class="co">//Happy path one liner to get email body</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true"></a><span class="co">//body2: string</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true"></a><span class="kw">const</span> body2 <span class="op">=</span> <span class="cf">await</span> <span class="fu">officePromise</span> (<span class="fu">curry</span>(item<span class="op">.</span><span class="at">body</span><span class="op">.</span><span class="at">getAsync</span>)(Office<span class="op">.</span><span class="at">CoercionType</span><span class="op">.</span><span class="at">Html</span>)) </span></code></pre></div>
+<p>This worked out quite well and the type checker was able to infer the types!<br />
+This ended up being a happy path.</p>
+<h3 id="bumps-on-the-path">Bumps on the path</h3>
+<p>In practice, the type checker will often need some help. Even more often, the programmer (me) will need help figuring why the code is not compiling.</p>
+<p>For example, <code>item.body.getAsync</code> offers a 3 parameter overload which accepts additional <code>Office.AsyncContextOptions</code>. Using it is much harder. (I will not delve into what the extra argument is for, I just want to see if my code will compile with 3 parameters)</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true"></a><span class="co">//boilerplate 'curry3' implementation is not shown (available in the linked github project), </span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true"></a><span class="co">//it is almost identical to `curry` but accepts a 3 parameter function  </span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true"></a><span class="co">//trying to pass extra parameter to body.getAsync</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true"></a><span class="kw">const</span> emptyConfig<span class="op">:</span> Office<span class="op">.</span><span class="at">AsyncContextOptions</span> <span class="op">=</span> {}</span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode java"><code class="sourceCode java"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true"></a><span class="co">//body3 does not compile: &quot;Argument of type 'AsyncContextOptions' is not assignable to parameter of type '(asyncResult: AsyncResult&lt;string&gt;) =&gt; void'.&quot; </span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true"></a><span class="dt">const</span> body3  = await <span class="fu">officePromise</span> (<span class="fu">curry3</span>(item.<span class="fu">body</span>.<span class="fu">getAsync</span>)(Office.<span class="fu">CoercionType</span>.<span class="fu">Html</span>)(emptyConfig)) </span></code></pre></div>
+<p>To understand what is happening, I sometimes need to spend time annotating things, or picking up the exact overload I want. E.g.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true"></a><span class="kw">const</span> useThisAsync <span class="op">=</span> (coercionType<span class="op">:</span> Office<span class="op">.</span><span class="at">CoercionType</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true"></a>                     <span class="op">,</span> options<span class="op">:</span> Office<span class="op">.</span><span class="at">AsyncContextOptions</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true"></a>                     <span class="op">,</span> callback<span class="op">:</span> (asyncResult<span class="op">:</span> Office<span class="op">.</span><span class="at">AsyncResult</span><span class="op">&lt;</span>string<span class="op">&gt;</span>) <span class="kw">=&gt;</span> <span class="kw">void</span>)<span class="op">:</span> <span class="kw">void</span> <span class="kw">=&gt;</span> {</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true"></a>      item<span class="op">.</span><span class="at">body</span><span class="op">.</span><span class="fu">getAsync</span>(coercionType<span class="op">,</span> options<span class="op">,</span> callback)</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true"></a>    }</span></code></pre></div>
+<p>This can be tedious, but it typically gets the job done. In this particular case, using <code>curry3(useThisAsync)</code> fixes the <code>body3</code> (or the “3 body”, I just had to pun this) problem. So, the issue with <code>body3</code> code appears to be related to overloading.</p>
+<p>Looking closer at the types, I notice that not only <code>item.body.getAsync</code> has two overloads, but the one I want is accepting a union type argument and the callback is optional:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true"></a><span class="co">//from office.js documentation</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true"></a></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true"></a><span class="co">//2 parameter overload used in happy path</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true"></a><span class="fu">getAsync</span>(coercionType<span class="op">:</span> Office<span class="op">.</span><span class="at">CoercionType</span> <span class="op">|</span> string</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true"></a>  <span class="op">,</span> callback<span class="op">?:</span> (asyncResult<span class="op">:</span> Office<span class="op">.</span><span class="at">AsyncResult</span><span class="op">&lt;</span>string<span class="op">&gt;</span>) <span class="kw">=&gt;</span> <span class="kw">void</span>)<span class="op">:</span> <span class="kw">void</span><span class="op">;</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true"></a></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true"></a><span class="co">//3 parameter overload we are trying to use now</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true"></a><span class="fu">getAsync</span>(coercionType<span class="op">:</span> Office<span class="op">.</span><span class="at">CoercionType</span> <span class="op">|</span> string<span class="op">,</span> </span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true"></a>        options<span class="op">:</span> Office<span class="op">.</span><span class="at">AsyncContextOptions</span><span class="op">,</span> </span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true"></a>        callback<span class="op">?:</span> (asyncResult<span class="op">:</span> Office<span class="op">.</span><span class="at">AsyncResult</span><span class="op">&lt;</span>string<span class="op">&gt;</span>) <span class="kw">=&gt;</span> <span class="kw">void</span>)<span class="op">:</span> <span class="kw">void</span><span class="op">;</span></span></code></pre></div>
+<p>So there are sort of <em>overloads on top of overloads</em> and the type checker probably gets confused.<br />
+The compilation error suggests that the compiler gets stuck on a wrong (the 2 parameter) version of <code>getAsync</code> despite the use of the 3 parameter <code>curry3</code>. I will also confirm this hypothesis using a <em>type hole</em> (we will learn what that is) in the next section.<br />
+I expect the type checker to backtrack and try the next overload, but for some reason it does not want to do that on its own.<br />
+I do not blame TS, overloading gives me a headache too.<br />
+Overloading is known for being not type inference friendly (incidentally, that is the reason why Haskell does not overload names).</p>
+<p><strong>Side note:</strong> Acting on my hypothesis of what is wrong with <code>body3</code>, I can push this code to a ridiculous limit:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true"></a><span class="co">//this compiles by using a wrong input parameter type and returns 'unknown'</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true"></a><span class="kw">const</span> crazyConfig <span class="op">:</span> (_<span class="op">:</span> Office<span class="op">.</span><span class="at">AsyncResult</span><span class="op">&lt;</span>string<span class="op">&gt;</span>) <span class="kw">=&gt;</span> <span class="kw">void</span> <span class="op">=</span> x <span class="kw">=&gt;</span> <span class="st">&quot;&quot;</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true"></a><span class="kw">const</span> body4 <span class="op">=</span> <span class="cf">await</span> <span class="fu">officePromise</span> (<span class="fu">curry3</span>(item<span class="op">.</span><span class="at">body</span><span class="op">.</span><span class="at">getAsync</span>)(Office<span class="op">.</span><span class="at">CoercionType</span><span class="op">.</span><span class="at">Html</span>)(crazyConfig)) </span></code></pre></div>
+<p>Besides this being completely wrong, I do not understand what causes the widening of <code>body4</code> type to <code>unknown</code>. There is enough information in the overloaded <code>item.body.getAsync</code> method for the type checker to infer the <code>string</code>. My guesswork is too hypothetical to discuss it here.<br />
+Especially for the return types, any widening to <code>unknown</code> would IMO be better served as a compilation error. We want these to be narrow, not wide. I will show more examples of such widening and I will discuss safety concerns related to the <code>unknown</code> type in future notes.<br />
+(<strong>Side note end</strong>)</p>
+<p>There is something worryingly asymmetric about a 2 parameter overload compiling without additional help and a 3 parameter overload needing a developer intervention. Should I worry that a future version of TS will flip this preference and all of my code that uses the 2 parameter overload will stop compiling? How stable is this arbitrary complexity?</p>
+<p><em>If you are an API owner, my advice is to not overload. IntelliSense works better, type inference works better, developer head hurts less without overloads.</em></p>
+<p>One type that is notorious for needing annotations is the TypeScript’s <em>tuple</em>. Typescript overloads array syntax <code>[]</code> to define tuples (some readers may prefer the term heterogeneous lists). This is an example of a tuple: <code>[2,"two"]: [number, string]</code>. The syntax overloading probably does not help TS in inferring the type and the type checker often gives up or infers the array type.</p>
+<p>I am concerned that <strong>many developers will give up</strong> trying to write this type of code. My concern is also that developers will resort to unsafe type coercion / type casting. There will be a lot of <code>myvar as IWantIt</code>, or a lot of the <code>any</code> type.</p>
+<p>Was this enough gore for you? You say it was not? I say you did not see the content of that email!</p>
+<h3 id="bump-leveling-tools">Bump leveling tools</h3>
+<h4 id="readable-type-definitions">Readable Type Definitions</h4>
+<p>Cumbersome type annotations are not a good excuse to give up! There is a way to simplify function type definitions. For example, I can define a helper alias:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true"></a><span class="co">//DIY reusable type for Office getAsync callbacks</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true"></a><span class="im">export</span> type OfficeCallack<span class="op">&lt;</span>T<span class="op">&gt;</span> <span class="op">=</span> (_<span class="op">:</span> Office<span class="op">.</span><span class="at">AsyncResult</span><span class="op">&lt;</span>T<span class="op">&gt;</span>) <span class="kw">=&gt;</span> <span class="kw">void</span></span></code></pre></div>
+<p>Here is how this simplifies the previously defined <code>partiallyAppliedBodyFn</code>:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true"></a><span class="co">//before:</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true"></a><span class="kw">const</span> partiallyAppliedBodyFn1 <span class="op">=</span> (fn<span class="op">:</span> ((res<span class="op">:</span> Office<span class="op">.</span><span class="at">AsyncResult</span><span class="op">&lt;</span>string<span class="op">&gt;</span>) <span class="kw">=&gt;</span> <span class="kw">void</span>)) <span class="kw">=&gt;</span> item<span class="op">.</span><span class="at">body</span><span class="op">.</span><span class="fu">getAsync</span>(Office<span class="op">.</span><span class="at">CoercionType</span><span class="op">.</span><span class="at">Html</span><span class="op">,</span> fn) </span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true"></a><span class="co">//after:</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true"></a><span class="kw">const</span> partiallyAppliedBodyFn2 <span class="op">=</span> (fn<span class="op">:</span> OfficeCallack<span class="op">&lt;</span>string<span class="op">&gt;</span>) <span class="kw">=&gt;</span> item<span class="op">.</span><span class="at">body</span><span class="op">.</span><span class="fu">getAsync</span>(Office<span class="op">.</span><span class="at">CoercionType</span><span class="op">.</span><span class="at">Html</span><span class="op">,</span> fn)</span></code></pre></div>
+<p>Notice <strong>no more redundant parameter definitions</strong> in the type signature and a much easier to read syntax.<br />
+The next version is <strong>my personal preference</strong> (it nicely separates the type and the implementation):</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true"></a><span class="kw">const</span> partiallyAppliedBodyFn3<span class="op">:</span> (_<span class="op">:</span> OfficeCallack<span class="op">&lt;</span>string<span class="op">&gt;</span>) <span class="kw">=&gt;</span> <span class="kw">void</span> <span class="op">=</span> </span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true"></a>  fn <span class="kw">=&gt;</span> item<span class="op">.</span><span class="at">body</span><span class="op">.</span><span class="fu">getAsync</span>(Office<span class="op">.</span><span class="at">CoercionType</span><span class="op">.</span><span class="at">Html</span><span class="op">,</span> fn)</span></code></pre></div>
+<h4 id="type-application">Type Application</h4>
+<p>Returning to my failed <code>body3</code> example, instead of trying to type annotate with full type signatures, it is sometimes more convenient to apply the types. Here, I have the “generic” (or polymorphic) <code>curry3</code> function that I can apply the types <code>CoercionType</code>, <code>AsyncContextOptions</code>, <code>OfficeCallack&lt;string&gt;</code>, and <code>void</code> to:</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true"></a><span class="co">//type applied version, it just compiles!</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true"></a><span class="kw">const</span> emptyConfig<span class="op">:</span> Office<span class="op">.</span><span class="at">AsyncContextOptions</span> <span class="op">=</span> {}</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true"></a><span class="kw">const</span> body3  <span class="op">=</span> <span class="cf">await</span> officePromise<span class="op">&lt;</span>string<span class="op">&gt;</span> (</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true"></a>  curry3<span class="op">&lt;</span>Office<span class="op">.</span><span class="at">CoercionType</span><span class="op">,</span> Office<span class="op">.</span><span class="at">AsyncContextOptions</span><span class="op">,</span> OfficeCallack<span class="op">&lt;</span>string<span class="op">&gt;,</span> <span class="kw">void</span><span class="op">&gt;</span> <span class="co">//explicity specified type parameters</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true"></a>     (item<span class="op">.</span><span class="at">body</span><span class="op">.</span><span class="at">getAsync</span>)</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true"></a>     (Office<span class="op">.</span><span class="at">CoercionType</span><span class="op">.</span><span class="at">Html</span>)</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true"></a>     (emptyConfig)</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true"></a>  ) </span></code></pre></div>
+<p>That is so much easier than specifying the exact <code>useThisAsync</code> overload!</p>
+<h4 id="type-holes">Type Holes</h4>
+<p>A DIY type hole technique is sometimes useful to help figure out stubborn types (see <a href="https://dev.to/gcanti/type-holes-in-typescript-2lck" target="_blank">Type holes in TS</a>).</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true"></a><span class="co">//genric (why not say polymorphic) bottom function will allow me to ask type questions</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true"></a><span class="im">export</span> <span class="kw">const</span> _ <span class="op">=</span> <span class="op">&lt;</span>T<span class="op">&gt;</span>()<span class="op">:</span> T <span class="kw">=&gt;</span> {</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true"></a>    <span class="cf">throw</span> <span class="kw">new</span> <span class="bu">Error</span>(<span class="st">&quot;hole&quot;</span>)<span class="op">;</span> </span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true"></a>}</span></code></pre></div>
+<p>A type hole allows me to ask the compiler <em>type questions</em>.<br />
+You can learn a lot about how the type checker works using it. E.g. using my <code>Either</code> type as an example:</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true"></a><span class="kw">const</span> tstnum<span class="op">:</span> Either<span class="op">&lt;</span>number<span class="op">,</span> string<span class="op">&gt;</span> <span class="op">=</span> {<span class="dt">type</span><span class="op">:</span> <span class="st">&quot;left&quot;</span><span class="op">,</span> <span class="dt">content</span><span class="op">:</span> <span class="fu">_</span>()}</span></code></pre></div>
+<p>if you hover over <code>_</code> you will see</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true"></a>(alias) _<span class="op">&lt;</span>number<span class="op">&gt;</span>()<span class="op">:</span> number</span></code></pre></div>
+<p>Nice! If you hover over <code>_</code> in this expression</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true"></a><span class="kw">const</span> str <span class="op">=</span> <span class="st">&quot;Hello &quot;</span> <span class="op">+</span> <span class="fu">_</span>()</span></code></pre></div>
+<p>you will see</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true"></a>(alias) _<span class="op">&lt;</span>unknown<span class="op">&gt;</span>()<span class="op">:</span> unknown</span></code></pre></div>
+<p>This can provide a lot of insight into types and how TS uses them!</p>
+<p>I have not been very lucky in using type holes to figure out why TS is confused. Returning to my failed <code>body3</code> example:</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true"></a><span class="co">//body3 inferred type is 'unknown'</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true"></a><span class="kw">const</span> body3  <span class="op">=</span> <span class="cf">await</span> <span class="fu">officePromise</span> (<span class="fu">curry3</span> (item<span class="op">.</span><span class="at">body</span><span class="op">.</span><span class="at">getAsync</span>)(Office<span class="op">.</span><span class="at">CoercionType</span><span class="op">.</span><span class="at">Html</span>)(<span class="fu">_</span>())) </span></code></pre></div>
+<p>if I hover over the <code>_</code> function, the IntelliSense suggests this completely wrong type:</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true"></a>(alias) _<span class="op">&lt;</span>((asyncResult<span class="op">:</span> Office<span class="op">.</span><span class="at">AsyncResult</span><span class="op">&lt;</span>string<span class="op">&gt;</span>) <span class="kw">=&gt;</span> <span class="kw">void</span>) <span class="op">|</span> <span class="kw">undefined</span><span class="op">&gt;</span>()<span class="op">:</span> ((asyncResult<span class="op">:</span> Office<span class="op">.</span><span class="at">AsyncResult</span><span class="op">&lt;</span>string<span class="op">&gt;</span>) <span class="kw">=&gt;</span> <span class="kw">void</span>) <span class="op">|</span> <span class="kw">undefined</span></span></code></pre></div>
+<p>The type hole confirms that the compiler is trying to match against the two parameter overload of <code>item.body.getAsync</code>. This verifies my hypothesis from the last section. There are a few things to note here:</p>
+<ul>
+<li>We are asking TS “why are you confused?” and that is a funny question.</li>
+<li>This type hole did not tell us more than the compilation error message itself. However, the type hole is more targeted so it could reveal more specific information in some cases.</li>
+<li>Type holes may tell us something useful in situations where the code compiles but we do not understand why.</li>
+</ul>
+<p>If, as before, I add the type application (<code>&lt;Office.CoercionType, Office.AsyncContextOptions, OfficeCallack&lt;string&gt;, void&gt;</code>) to <code>curry3</code> the <code>_()</code> will show the type correctly:</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true"></a>(alias) _<span class="op">&lt;</span>Office<span class="op">.</span><span class="at">AsyncContextOptions</span><span class="op">&gt;</span>()<span class="op">:</span> Office<span class="op">.</span><span class="at">AsyncContextOptions</span></span></code></pre></div>
+<p><strong>Unfortunate limitation</strong><br />
+Sadly, the <code>_&lt;T&gt;(): T</code> is not universally useful, e.g. this will not compile:</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode java"><code class="sourceCode java"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true"></a><span class="co">//compilation error: </span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true"></a><span class="co">//       Argument of type '(ax: never, bx: never) =&gt; never' is not assignable </span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true"></a><span class="co">//       to parameter of type '(ax: unknown, bx: unknown) =&gt; unknown'.</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true"></a><span class="dt">const</span> testfn = <span class="fu">curry</span>(_()) </span></code></pre></div>
+<div class="sourceCode" id="cb28"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true"></a><span class="co">//interestingly the following compiles as curry&lt;unknown, unknown, unknown&gt;</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true"></a><span class="kw">const</span> testfn <span class="op">=</span> <span class="fu">curry</span>({} <span class="im">as</span> any)</span></code></pre></div>
+<p>This looks to me like growing pains, it should work, and probably will in future versions of TS. It is an example of code that really should compile but it does not.</p>
+<p>There is an interesting relationship between the <code>never</code> type and <code>_&lt;T&gt;(): T</code>. There will be a future note about it.<br />
+The type hole <code>_</code> function is a useful tool and we will keep using it in future type explorations.</p>
+<p>Using types requires some experience, knowledge, and patience. More advanced types come with more misleading error messages, it takes experience to find the underlying cause of a misleading compilation error, and that is true in any language. Eventually, I (and you) will look at a TS compilation error and will say “ah, you really meant this: …”.</p>
+<p>I am mostly left to my own devices when working with more involved types in TS. Hopefully the future will bring us mainstream grade interactive tools that allow asking type questions, browsing types, help solving type puzzles. For now it is mostly the programmer who connects the dots.<br />
+The good news is that this gets easier and easier with practice. I have been working in TS for only about 2 months now and I already see a difference.</p>
+<p><em>Good code requires two type checkers: TypeScript and You</em></p>
+<h3 id="compilation-bloopers">Compilation bloopers</h3>
+<p>We already saw “correct” programs that should have compiled but did not (E.g. <code>curry(_())</code>, <code>body3</code> example) and we will see more in the future notes. Our <code>body4</code> example compiled but was clearly wrong.<br />
+This note shows other, less contrived, examples that compile but clearly should not.</p>
+<p>All of these type check:</p>
+<div class="sourceCode" id="cb29"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true"></a><span class="co">//annotated correct code added for reference, this code compiles</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true"></a><span class="kw">const</span> good<span class="op">:</span> (a<span class="op">:</span> Office<span class="op">.</span><span class="at">CoercionType</span>) </span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true"></a>          <span class="kw">=&gt;</span> (b<span class="op">:</span> ((asyncResult<span class="op">:</span> Office<span class="op">.</span><span class="at">AsyncResult</span><span class="op">&lt;</span>string<span class="op">&gt;</span>) <span class="kw">=&gt;</span> <span class="kw">void</span>)) </span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true"></a>          <span class="kw">=&gt;</span> <span class="kw">void</span></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true"></a>    <span class="op">=</span> <span class="fu">curry</span> (item<span class="op">.</span><span class="at">body</span><span class="op">.</span><span class="at">getAsync</span>)</span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true"></a></span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true"></a><span class="co">//compiles but it should not, compiles even with type annotation</span></span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true"></a><span class="kw">const</span> nonsense1<span class="op">:</span> (a<span class="op">:</span> Office<span class="op">.</span><span class="at">CoercionType</span>) </span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true"></a>          <span class="kw">=&gt;</span> (b<span class="op">:</span> ((asyncResult<span class="op">:</span> Office<span class="op">.</span><span class="at">AsyncResult</span><span class="op">&lt;</span>string<span class="op">&gt;</span>) <span class="kw">=&gt;</span> <span class="kw">void</span>)) </span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true"></a>          <span class="kw">=&gt;</span> <span class="kw">void</span></span>
+<span id="cb29-11"><a href="#cb29-11" aria-hidden="true"></a>    <span class="op">=</span> <span class="fu">curry</span> (<span class="fu">curry</span> (item<span class="op">.</span><span class="at">body</span><span class="op">.</span><span class="at">getAsync</span>)) </span>
+<span id="cb29-12"><a href="#cb29-12" aria-hidden="true"></a></span>
+<span id="cb29-13"><a href="#cb29-13" aria-hidden="true"></a><span class="co">//compiles but it should not</span></span>
+<span id="cb29-14"><a href="#cb29-14" aria-hidden="true"></a><span class="kw">const</span> nonsense2 <span class="op">=</span> <span class="fu">curry</span>(curry)</span>
+<span id="cb29-15"><a href="#cb29-15" aria-hidden="true"></a></span>
+<span id="cb29-16"><a href="#cb29-16" aria-hidden="true"></a><span class="co">//more examples in the linked github project</span></span></code></pre></div>
+<p>and all, except the first one, should not.</p>
+<p>I expect the type checker to be effective at rejecting nonsensical code. If a blooper happens, it should be rare, contrived code, unlikely for developers to write. My examples are somewhat surprising since higher order functions are not uncommon in JavaScript. The second example is a piece of code I accidentally wrote in my project.<br />
+This is very concerning since errors like these are likely to remain uncaught and become escaped bugs.</p>
+<p>No compiler is perfect, but you probably noticed by now that TS compiler seems to get in trouble a lot. Compared to other programming languages I use, TS’s rate of compilation issues is much higher, the issues are more dangerous, and these bloopers are happening on more commonly used vanilla code (well… at least commonly used by me).<br />
+I have no idea what the underlying issues are but I can see one general reason for this: gradual typing on top of JS is not easy. I plan to write a note about the complexity of TS types in a future post.<br />
+I am sure that TS keeps improving and fixing such issues but I expect the progress to be slow.</p>
+<h3 id="its-all-worth-it">It’s all worth it</h3>
+<p>One common concern related to using types (especially more advanced types) is a slowdown in the development speed.<br />
+There is some truth to this in general because of things like compilation times in some language environments. I cannot comment on TS compilation times for large projects, so far it is not a problem for me. In my experience, having a type checker is a huge productivity bust. In my experience, the more types the faster the development speed. That is true even with compilation bloopers.<br />
+Efficiency considerations are somewhat personal so your experience may vary.</p>
+<p>I rewrote some legacy code using the techniques in this section. That effort resulted in significant size reduction and an overall big improvement in readability and correctness when compared to the code I was replacing or to code in the <em>office.js</em> documentation.<br />
+A lot of the improvement comes from using <code>await</code> <code>async</code> syntax sugar but converting functions to their curried form and figuring out more terse ways to type annotate also results in added clarity and significant syntactic simplification.</p>
+<p>In my book, there is just no comparing TS to JS, TS is the clear winner.<br />
+How does TS compare to statically type checked front-end languages that compile to JS and have capable type checkers and solid types (e.g. ReasonML, Elm, PureScript, even Haskell)? I am not in a good position to discuss this yet.<br />
+Lots of projects need to stay close to JS, my project at work falls into this group. For such projects TS is the right choice IMO.</p>
+<h2 id="next-chapter">Next Chapter</h2>
+<p>We are not done with <em>office.js</em>. I will use it in future notes.</p>
+<p>Do statically defined types reflect the actual runtime values? How to assure that they do?<br />
+We will discuss these questions in the next installment. I have the draft ready and I hope to publish it in a few weeks.</p>
+
+    </section>
+</article>
+]]></description>
+    <pubDate>Sun, 12 Dec 2021 00:00:00 UT</pubDate>
+    <guid>https://rpeszek.github.io//posts/2021-12-12-ts-types-part1.html</guid>
+    <dc:creator>Robert Peszek</dc:creator>
+</item>
+<item>
     <title>Probability Tree Diagrams. Recursion Schemes. Why Finding the Right Solution is Sometimes Hard?</title>
     <link>https://rpeszek.github.io//posts/2021-07-18-prob-tree-scheme.html</link>
     <description><![CDATA[<article>
