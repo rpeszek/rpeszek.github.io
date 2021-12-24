@@ -4,7 +4,7 @@
         <meta charset="utf-8">
         <meta http-equiv="x-ua-compatible" content="ie=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Infrequent, Pragmatic, Lambda Blog - Type Enthusiast's Notes about TypeScript. Part1. Typing in Anger</title>
+        <title>Infrequent, Pragmatic, Lambda Blog - Type Enthusiast's Notes about TypeScript. Part 1. Typing in Anger</title>
         <link rel="alternate" type="application/atom+xml" href="https://rpeszek.github.io/atom.xml" title="atom" />
         <link rel="alternate" type="application/rss+xml" href="https://rpeszek.github.io/RSS.xml" title="rss" />
         <!-- <link rel="alternate" type="application/atom+xml" href="/atom.xml" title="atom"/>
@@ -33,7 +33,7 @@
         </header>
 
         <main role="main">
-            <h1>Type Enthusiast's Notes about TypeScript. Part1. Typing in Anger</h1>
+            <h1>Type Enthusiast's Notes about TypeScript. Part 1. Typing in Anger</h1>
             <article>
     <section class="header">
         Posted on December 12, 2021
@@ -42,8 +42,10 @@
         
         
         
+        <div class="changelog"> <div>Revision History: <ul> <li> (2021.12.24) modified historical note about office.js. Linked Part 2. Planned future content adjustment. </ul> </div></div>
         
-        <div class="info">Tags: <a title="All pages tagged 'TypeScript'." href="../tags/TypeScript.html">TypeScript</a></div>
+        
+        <div class="info">Tags: <a title="All pages tagged 'TypeScript-Notes'." href="../tags/TypeScript-Notes.html">TypeScript-Notes</a></div>
         
     </section>
     <section>
@@ -68,10 +70,11 @@
 <p><em>Please Leave Feedback in: <a href="https://github.com/rpeszek/rpeszek.github.io/discussions/1" target="_blank">git discussions</a></em></p>
 <p><strong>DRAFT version</strong> <em>(I am sorry about any misprints. It seems I have goblins in my laptop that toy with me, remove or change words. When this note disappears, you will know that I gave up.)</em></p>
 <p><strong>Disclaimers:</strong> (imagine this is a very small font, read it very fast in a half whisper)<br />
-<em>The code in this post may require something like <code>strictNullChecks</code> compiler flag. I assume strict compiler flags are on, something you get by default with scaffolding, e.g. using <code>create-react-app my-project --template typescript</code> is close enough.<br />
+<em>I assume strict compiler flags are on, something you get by default with scaffolding, e.g. using <code>create-react-app my-project --template typescript</code> is close enough.<br />
 The code examples have been tested with TypeScript v4.4.4 and v4.5.2.<br />
+office.js examples are based on https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js and <span class="citation" data-cites="types/office-js">@types/office-js</span><span class="citation" data-cites="1.0.221">@1.0.221</span> (these match the current scaffold for office.js/React).<br />
 This post is a pandoc output of a markdown document and code examples are not interactive.<br />
-Most code examples are published in <a href="https://github.com/rpeszek/ts-experiments/tree/master/ts-notes" target="_blank">ts-notes</a> folder in this github repo: <a href="https://github.com/rpeszek/ts-experiments" target="_blank">ts-experiments</a>.</em></p>
+Most of the code examples are published in <a href="https://github.com/rpeszek/ts-experiments/tree/master/ts-notes" target="_blank">ts-notes</a> folder in this github repo: <a href="https://github.com/rpeszek/ts-experiments" target="_blank">ts-experiments</a>.</em></p>
 <h2 id="introduction-to-the-series">Introduction to the series</h2>
 <blockquote>
 <p>“TypeScript began its life as an attempt to bring traditional object-oriented types to JavaScript so that the programmers at Microsoft could bring traditional object-oriented programs to the web. As it has developed, TypeScript’s type system has evolved to model code written by native JavaScripters. The resulting system is <em>powerful, interesting and messy.</em>”</p>
@@ -82,9 +85,9 @@ Most code examples are published in <a href="https://github.com/rpeszek/ts-exper
 <ul>
 <li>Part 1 (this post). Is a warm-up. Part 1 has been motivated by a current project at my work that uses TS. I will show code examples that are hard to compile. I will discuss strategies and methods for resolving compilation issues. Part 1 will present code examples that compile but really, really should not, and code examples that should compile but surprisingly don’t. I will also summarize my overall experience of working with TS.<br />
 This series needed a JS library with TS bindings to draw examples from, I decided to use <em>office.js</em> and Part 1 will introduce it.</li>
-<li>Part 2. Will be about keeping types honest. Are runtime values consistent with the types? We hope they always are but, especially in a gradually typed language like TS, types will sometimes lie. We will see concrete examples of type dishonesty from <em>office.js</em>. Part 2 will cover the notorious <code>any</code> and its safer cousin <code>unknown</code>, the type coercion (casting), and TS’s type guards.</li>
-<li>Part 3. Will cover some of the TS type safety features that I absolutely love. It will also include a bunch of rants (e.g. on importance of specifying the return types). Throughout the series, we will encounter several examples where TS compiler does not work as expected. One of my notes will argue that what TS is and does it quite complex.</li>
-<li>Part 4. Will be more theoretical. Notes in Part 4 will discuss topics such as TS’s structural recursive types, subtyping, higher-rank polymorphism (TS supports a version of it!), and type level programming.</li>
+<li><a href="2021-12-24-ts-types-part2.html" target="_blank">Part 2</a>. Will be about keeping types honest. Are runtime values consistent with the types? We hope they always are but, especially in a gradually typed language like TS, types will sometimes lie. We will see concrete examples of type dishonesty from <em>office.js</em>. Part 2 will cover the notorious <code>any</code> and its safer cousin <code>unknown</code>, the type coercion (casting), and TS’s type guards. I will also discuss (or rather rant about) coding conventions for transparent, self documenting types.</li>
+<li>Part 3. Will cover some of the TS type safety features that I absolutely love. Throughout the series, we will encounter several examples where TS compiler does not work as expected. One of my notes will argue that what TS is and does it quite complex.</li>
+<li>Part 4. Will be more theoretical. Notes in Part 4 will discuss topics such as TS’s structural, recursive types, subtyping, phantom types, type variable scoping, higher-rank polymorphism (TS supports a version of it!), and type level programming.</li>
 <li>Part 5. Will be a wrap-up with some final thoughts.</li>
 </ul>
 <p><strong>Why am I writing these notes?</strong><br />
@@ -161,7 +164,8 @@ I wrote the <code>JsonVal</code> definition without thinking, I have committed <
 <p>This was my trailer/preview section. If the code that excited me feels interesting to you, you may enjoy reading these notes. There will be some gory details (not a lot violence). You have to decide if type safety is your genre.<br />
 Developers are divided into 2 camps: Those who use types because that is the most effective way to write software and those who do not use types because that is the most effective way to write software. Since you are still reading, I assume you are in camp 1.</p>
 <h2 id="office.js.-using-ts-in-anger"><em>office.js</em>. Using TS in anger</h2>
-<p>I will use <em>office.js</em> library as a source of examples for this series. It is a Microsoft product (like TypeScript). <em>office.js</em> comes with TypeScript type definitions (code examples in this series use <span class="citation" data-cites="types/office-js">@types/office-js</span><span class="citation" data-cites="1.0.221">@1.0.221</span>). It is also relatively old and has been retrofitted for TS. Many other JS ecosystem libraries have traveled a similar JS to TS path. It seems like a good ‘comprehensive’ example for examining the benefits (and frustrations) of using TS in anger.<br />
+<p>I will use <em>office.js</em> library as a source of examples for this series. It is a Microsoft product (like TypeScript). It comes with TypeScript type definitions (this series uses <span class="citation" data-cites="types/office-js">@types/office-js</span><span class="citation" data-cites="1.0.221">@1.0.221</span>).<br />
+Looking into the <em>office.js</em> revision history suggests that the bond between <em>office.js</em> and TypeScript developed very early. It almost looks like these projects grew up together. <em>office.js</em> seems like a good ‘comprehensive’ example for examining the benefits (and frustrations) of using TS in anger.<br />
 Despite some hardships, TS makes working with office.js much, much easier!</p>
 <p>As the name suggests, <em>office.js</em> provides an API for working with <em>Microsoft Office</em>. It allows implementing custom apps that work inside the office suite of products (Microsoft calls these apps add-ins).<br />
 This is not an office.js tutorial but, I hope, the code should be clear to follow.</p>
@@ -364,7 +368,8 @@ Lots of projects need to stay close to JS, my project at work falls into this gr
 <h2 id="next-chapter">Next Chapter</h2>
 <p>We are not done with <em>office.js</em>. I will use it in future notes.</p>
 <p>Do statically defined types reflect the actual runtime values? How to assure that they do?<br />
-We will discuss these questions in the next installment. I have the draft ready and I hope to publish it in a few weeks.</p>
+We will discuss these questions in the next installment. <del>I have the draft ready and I hope to publish it in a few weeks.</del><br />
+Here is the link: <a href="2021-12-24-ts-types-part2.html" target="_blank">Part 2. Typing Honestly</a></p>
 
     </section>
 </article>
