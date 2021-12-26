@@ -344,7 +344,7 @@ In a modernized interpretation of the KISS principle I think of “Simple” as 
         
         
         
-        <div class="changelog"> <div>Revision History: <ul> <li> (2021.12.24) modified historical note about office.js. Linked Part 2. Planned future content adjustment. </ul> </div></div>
+        <div class="changelog"> <div>Revision History: <ul> <li> (2021.12.24) modified historical note about office.js. Linked Part 2. Planned future content adjustment.</li> <li> (2021.12.26) <a href="#fn1">footnote [1]</a> </ul> </div></div>
         
         
         <div class="info">Tags: <a title="All pages tagged 'TypeScript-Notes'." href="../tags/TypeScript-Notes.html">TypeScript-Notes</a></div>
@@ -474,7 +474,7 @@ This is not an office.js tutorial but, I hope, the code should be clear to follo
 <p>As a working example, we will play with code that extracts data from an email opened in Outlook. To start, I want to extract the email body.<br />
 To access data, <em>office.js</em> often uses an old style <code>getAsync</code> methods that I will modernize using a custom conversion to a <code>Promise</code>. Node’s <code>util.promisify</code> will not work well for this task. This is how this could be done in TS:</p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true"></a><span class="co">/* Utility to convert office functions to promises */</span></span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true"></a><span class="im">export</span> <span class="kw">const</span> officePromise <span class="op">=</span> <span class="op">&lt;</span>T<span class="op">&gt;</span> (getasync<span class="op">:</span> ((fx<span class="op">:</span> ((r<span class="op">:</span> Office<span class="op">.</span><span class="at">AsyncResult</span><span class="op">&lt;</span>T<span class="op">&gt;</span>) <span class="kw">=&gt;</span> <span class="kw">void</span>)) <span class="kw">=&gt;</span> <span class="kw">void</span>))<span class="op">:</span> <span class="bu">Promise</span><span class="op">&lt;</span>T<span class="op">&gt;</span> <span class="kw">=&gt;</span> {</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true"></a><span class="im">export</span> <span class="kw">const</span> officePromise <span class="op">=</span> <span class="op">&lt;</span>T<span class="op">&gt;</span> (getasync<span class="op">:</span> (fx<span class="op">:</span> (r<span class="op">:</span> Office<span class="op">.</span><span class="at">AsyncResult</span><span class="op">&lt;</span>T<span class="op">&gt;</span>) <span class="kw">=&gt;</span> <span class="kw">void</span>) <span class="kw">=&gt;</span> <span class="kw">void</span>)<span class="op">:</span> <span class="bu">Promise</span><span class="op">&lt;</span>T<span class="op">&gt;</span> <span class="kw">=&gt;</span> {</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true"></a>    <span class="cf">return</span> <span class="kw">new</span> <span class="bu">Promise</span>((resolve<span class="op">,</span> reject) <span class="kw">=&gt;</span> {</span>
 <span id="cb8-4"><a href="#cb8-4" aria-hidden="true"></a>      <span class="fu">getasync</span>((<span class="dt">res</span><span class="op">:</span> Office<span class="op">.</span><span class="at">AsyncResult</span><span class="op">&lt;</span>T<span class="op">&gt;</span>) <span class="kw">=&gt;</span> {</span>
 <span id="cb8-5"><a href="#cb8-5" aria-hidden="true"></a>        <span class="cf">if</span>(res<span class="op">.</span><span class="at">status</span><span class="op">===</span>Office<span class="op">.</span><span class="at">AsyncResultStatus</span><span class="op">.</span><span class="at">Succeeded</span>){</span>
@@ -484,9 +484,9 @@ To access data, <em>office.js</em> often uses an old style <code>getAsync</code>
 <span id="cb8-9"><a href="#cb8-9" aria-hidden="true"></a>      })</span>
 <span id="cb8-10"><a href="#cb8-10" aria-hidden="true"></a>   })</span>
 <span id="cb8-11"><a href="#cb8-11" aria-hidden="true"></a>  }</span></code></pre></div>
-<p><strong>Side Note:</strong> Here is my first criticism of TS. The ergonomics of function type definitions is IMO really poor. These definitions are hard to read and cumbersome to write. This syntax does not scale well to more involved types and makes reasoning about types harder.<br />
-E.g. in the above example parameters <code>fx:</code> and <code>r:</code> cannot be used anywhere (are outside of the lexical scope) and serve only a documentation purpose. This simple example needs 10 parentheses! The declaration syntax overloads the meaning of both <code>:</code> and <code>=&gt;</code>. Function form <code>A</code> to <code>B</code> is (depending where in the declaration) either <code>(a: A) =&gt; B</code> or <code>(a: A): B</code>. I admit it took me a long time to figure out how to write these and it still takes me forever to read some of these types.</p>
-<p>Later in this post, I will show some work-arounds that simplify type definitions like this one.<br />
+<p><strong>Side Note</strong><a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>: Here is my first criticism of TS. The ergonomics of function type definitions is IMO really poor. These definitions are hard to read and cumbersome to write. This syntax does not scale well to more involved types and makes reasoning about types harder.<br />
+E.g. in the above example parameters <code>fx:</code> and <code>r:</code> cannot be used anywhere (are outside of the lexical scope) and serve only a documentation purpose. This simple example needs 6 parentheses. The use of <code>:</code> and <code>=&gt;</code> is confusing. Function form <code>A</code> to <code>B</code> is (depending where in the declaration) either <code>(a: A) =&gt; B</code> or <code>(a: A): B</code>. I admit it took me a long time to figure out how to write these and it still takes me forever to read some of these types.<br />
+Later in this post, I will show some work-arounds that simplify type definitions like this one.<br />
 I am adding a big fat <strong>IMO</strong> to this side note, readability is in the eye of … well the reader. But seriously…<br />
 <strong>(Side Note End)</strong></p>
 <p>Properly initialized office add-in will have access to <code>Office.context.mailbox.item: Office.MessageRead</code>.<br />
@@ -672,6 +672,12 @@ Lots of projects need to stay close to JS, my project at work falls into this gr
 <p>Do statically defined types reflect the actual runtime values? How to assure that they do?<br />
 We will discuss these questions in the next installment. <del>I have the draft ready and I hope to publish it in a few weeks.</del><br />
 Here is the link: <a href="2021-12-24-ts-types-part2.html" target="_blank">Part 2. Typing Honestly</a></p>
+<section class="footnotes" role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1" role="doc-endnote"><p>I rewrote the side note and improved <code>officePromise</code> type definition based on a <a href="https://www.reddit.com/r/typescript/comments/rnougu/comment/hptsnvg/?utm_source=share&amp;utm_medium=web2x&amp;context=3" target="_blank">comment</a> from <em>u/Tubthumper8</em> on reddit. (Thanks!)<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
 
     </section>
 </article>
