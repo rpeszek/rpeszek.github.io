@@ -42,7 +42,7 @@
         
         
         
-        <div class="changelog"> <div>Revision History: <ul> <li> (2021.12.24) modified historical note about office.js. Linked Part 2. Planned future content adjustment.</li> <li> (2021.12.26) <a href="#fn1">footnote [1]</a> </ul> </div></div>
+        <div class="changelog"> <div>Revision History: <ul> <li> (2021.12.24) modified historical note about office.js. Linked Part 2. Planned future content adjustment.</li> <li> (2021.12.26) <a href="#fn1">footnote [1]</a> <li> (2022.01.03) Linked Part 3. </ul> </div></div>
         
         
         <div class="info">Tags: <a title="All pages tagged 'TypeScript-Notes'." href="../tags/TypeScript-Notes.html">TypeScript-Notes</a></div>
@@ -86,9 +86,9 @@ Most of the code examples are published in <a href="https://github.com/rpeszek/t
 <li>Part 1 (this post). Is a warm-up. Part 1 has been motivated by a current project at my work that uses TS. I will show code examples that are hard to compile. I will discuss strategies and methods for resolving compilation issues. Part 1 will present code examples that compile but really, really should not, and code examples that should compile but surprisingly don’t. I will also summarize my overall experience of working with TS.<br />
 This series needed a JS library with TS bindings to draw examples from, I decided to use <em>office.js</em> and Part 1 will introduce it.</li>
 <li><a href="2021-12-24-ts-types-part2.html" target="_blank">Part 2</a>. Will be about keeping types honest. Are runtime values consistent with the types? We hope they always are but, especially in a gradually typed language like TS, types will sometimes lie. We will see concrete examples of type dishonesty from <em>office.js</em>. Part 2 will cover the notorious <code>any</code> and its safer cousin <code>unknown</code>, the type coercion (casting), and TS’s type guards. I will also discuss (or rather rant about) coding conventions for transparent, self documenting types.</li>
-<li>Part 3. Will cover some of the TS type safety features that I absolutely love. Throughout the series, we will encounter several examples where TS compiler does not work as expected. One of my notes will argue that what TS is and does it quite complex.</li>
-<li>Part 4. Will be more theoretical. Notes in Part 4 will discuss topics such as TS’s structural, recursive types, subtyping, phantom types, type variable scoping, higher-rank polymorphism (TS supports a version of it!), and type level programming.</li>
-<li>Part 5. Will be a wrap-up with some final thoughts.</li>
+<li><a href="2022-01-03-ts-types-part3.html" target="_blank">Part 3</a>. Will cover some of the TS type safety features that I absolutely love. Throughout the series, we will encounter several examples where TS compiler does not work as expected. One of my notes will argue that what TS is and does it quite complex.</li>
+<li>Part 4, Part 5. Will be more theoretical. Notes in Parts 4-5 will discuss topics such as TS’s structural, recursive types, subtyping, phantom types, type variable scoping, higher-rank polymorphism (TS supports a version of it!), and type level programming.</li>
+<li>Part 6. Will be a wrap-up with some final thoughts.</li>
 </ul>
 <p><strong>Why am I writing these notes?</strong><br />
 To be honest, it is because I am really impressed and excited about some of the type safety features in TS.</p>
@@ -182,11 +182,11 @@ To access data, <em>office.js</em> often uses an old style <code>getAsync</code>
 <span id="cb8-9"><a href="#cb8-9" aria-hidden="true"></a>      })</span>
 <span id="cb8-10"><a href="#cb8-10" aria-hidden="true"></a>   })</span>
 <span id="cb8-11"><a href="#cb8-11" aria-hidden="true"></a>  }</span></code></pre></div>
-<p><strong>Side Note</strong><a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>: Here is my first criticism of TS. The ergonomics of function type definitions is IMO really poor. These definitions are hard to read and cumbersome to write. This syntax does not scale well to more involved types and makes reasoning about types harder.<br />
+<p> <div class="side-note"><strong>Side Note</strong><a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>: Here is my first criticism of TS. The ergonomics of function type definitions is IMO really poor. These definitions are hard to read and cumbersome to write. This syntax does not scale well to more involved types and makes reasoning about types harder.<br />
 E.g. in the above example parameters <code>fx:</code> and <code>r:</code> cannot be used anywhere (are outside of the lexical scope) and serve only a documentation purpose. This simple example needs 6 parentheses. The use of <code>:</code> and <code>=&gt;</code> is confusing. Function form <code>A</code> to <code>B</code> is (depending where in the declaration) either <code>(a: A) =&gt; B</code> or <code>(a: A): B</code>. I admit it took me a long time to figure out how to write these and it still takes me forever to read some of these types.<br />
 Later in this post, I will show some work-arounds that simplify type definitions like this one.<br />
 I am adding a big fat <strong>IMO</strong> to this side note, readability is in the eye of … well the reader. But seriously…<br />
-<strong>(Side Note End)</strong></p>
+ </div></p>
 <p>Properly initialized office add-in will have access to <code>Office.context.mailbox.item: Office.MessageRead</code>.<br />
 This <code>item</code> object allows access to the email data. (The situation is just slightly more complicated since the <code>item</code> property is overloaded but that is not important for now.) To retrieve the email body I need to use <code>item.body.getAsync</code>. But wait, the type for that version of <code>getAsync</code> accepts not only a callback function but also a “body type” parameter.</p>
 <p>I am going to resist the temptation to overload <code>officePromise</code>. Instead I will move in a direction that is more fundamental.</p>
@@ -249,13 +249,13 @@ The compilation error suggests that the compiler gets stuck on a wrong (the 2 pa
 I expect the type checker to backtrack and try the next overload, but for some reason it does not want to do that on its own.<br />
 I do not blame TS, overloading gives me a headache too.<br />
 Overloading is known for being not type inference friendly (incidentally, that is the reason why Haskell does not overload names).</p>
-<p><strong>Side note:</strong> Acting on my hypothesis of what is wrong with <code>body3</code>, I can push this code to a ridiculous limit:</p>
+<p> <div class="side-note"><strong>Side note:</strong> Acting on my hypothesis of what is wrong with <code>body3</code>, I can push this code to a ridiculous limit:</p>
 <div class="sourceCode" id="cb16"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true"></a><span class="co">//this compiles by using a wrong input parameter type and returns 'unknown'</span></span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true"></a><span class="kw">const</span> crazyConfig <span class="op">:</span> (_<span class="op">:</span> Office<span class="op">.</span><span class="at">AsyncResult</span><span class="op">&lt;</span>string<span class="op">&gt;</span>) <span class="kw">=&gt;</span> <span class="kw">void</span> <span class="op">=</span> x <span class="kw">=&gt;</span> <span class="st">&quot;&quot;</span></span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true"></a><span class="kw">const</span> body4 <span class="op">=</span> <span class="cf">await</span> <span class="fu">officePromise</span> (<span class="fu">curry3</span>(item<span class="op">.</span><span class="at">body</span><span class="op">.</span><span class="at">getAsync</span>)(Office<span class="op">.</span><span class="at">CoercionType</span><span class="op">.</span><span class="at">Html</span>)(crazyConfig)) </span></code></pre></div>
 <p>Besides this being completely wrong, I do not understand what causes the widening of <code>body4</code> type to <code>unknown</code>. There is enough information in the overloaded <code>item.body.getAsync</code> method for the type checker to infer the <code>string</code>. My guesswork is too hypothetical to discuss it here.<br />
 Especially for the return types, any widening to <code>unknown</code> would IMO be better served as a compilation error. We want these to be narrow, not wide. I will show more examples of such widening and I will discuss safety concerns related to the <code>unknown</code> type in future notes.<br />
-(<strong>Side note end</strong>)</p>
+ </div></p>
 <p>There is something worryingly asymmetric about a 2 parameter overload compiling without additional help and a 3 parameter overload needing a developer intervention. Should I worry that a future version of TS will flip this preference and all of my code that uses the 2 parameter overload will stop compiling? How stable is this arbitrary complexity?</p>
 <p><em>If you are an API owner, my advice is to not overload. IntelliSense works better, type inference works better, developer head hurts less without overloads.</em></p>
 <p>One type that is notorious for needing annotations is the TypeScript’s <em>tuple</em>. Typescript overloads array syntax <code>[]</code> to define tuples (some readers may prefer the term heterogeneous lists). This is an example of a tuple: <code>[2,"two"]: [number, string]</code>. The syntax overloading probably does not help TS in inferring the type and the type checker often gives up or infers the array type.</p>

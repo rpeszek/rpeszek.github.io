@@ -164,13 +164,12 @@ I view <code>any</code> as a form of type coercion or casting.</p>
 <p>I will use the term casting and type coercion interchangeably. TypeScript documentation also uses the term <em>type assertion</em>. I view the <code>any</code> type to be in the same boat as well (an implicit type coercion).<br />
 TS uses the <code>t as T</code> or <code>&lt;T&gt; t</code> syntax to cast expression <code>t</code> into type <code>T</code>, e.g. <code>iAmSureIsString as string</code>.<br />
 (IMO, the second notation, <code>&lt;T&gt; t</code>, is somewhat unfortunate as it is very similar to type application and generic function declaration e.g. <code>const f = &lt;T&gt;():T</code> declares, <code>&lt;T&gt;f()</code> casts, <code>f&lt;T&gt;()</code> applies. I recommend the <code>v as T</code> syntax to make casting more explicit and searchable in your code.)</p>
-<p><strong>Type enthusiast’s note on casting at large:</strong><br />
+<p> <div class="side-note"><strong>Type enthusiast’s note on casting at large:</strong><br />
 Typically (and rightly) casting is considered to be a last resort, <em>only cast if you must</em>.</p>
 <p>With more involved types it is often harder to write code that type checks. That increases the appeal of casting or finding some other alternatives for nudging the type checker into agreeing.<br />
 Some languages offer the ability to write a program to persuade the type checker about type equality (write actual <em>proof of type equality</em>). This is an advanced feature and is available in only a few languages (e.g. Coq, Idris, Haskell). Writing such programs is often challenging or even impossible. (I consider writing such proofs to be one of the highest level “type games” that a developer can play. It is both a challenge and fun. A great intro is <a href="https://www.manning.com/books/type-driven-development-with-idris" target="_blank">TDD with Idris</a>)</p>
 <p>There is an alternative to type coercion that allows programs to type check but will throw an exception when executed.<br />
-This can be useful for interacting with the type checker when writing code. We have seen a TS version of this already, function <a href="2021-12-12-ts-types-part1.html#type-holes" target="_blank"><code>_&lt;T&gt;(): T</code></a>, defined in my previous post and stolen from <a href="https://dev.to/gcanti/type-holes-in-typescript-2lck" target="_blank">Type holes in TS</a>. Such programming practice is foreign to most languages but becomes very convenient when working with more involved types. We are using it in this series.<br />
-<strong>(Side Note End)</strong></p>
+This can be useful for interacting with the type checker when writing code. We have seen a TS version of this already, function <a href="2021-12-12-ts-types-part1.html#type-holes" target="_blank"><code>_&lt;T&gt;(): T</code></a>, defined in my previous post and stolen from <a href="https://dev.to/gcanti/type-holes-in-typescript-2lck" target="_blank">Type holes in TS</a>. Such programming practice is foreign to most languages but becomes very convenient when working with more involved types. We are using it in this series.  </div></p>
 <p>Let’s beat on <em>office.js</em> some more. <a href="https://docs.microsoft.com/en-us/javascript/api/outlook/office.item" target="_blank">Here</a> is a piece <em>office.js</em> documentation about (you guessed it, this post is so very predictable) the <a href="https://docs.microsoft.com/en-us/javascript/api/outlook/office.item" target="_blank"><code>Office.context.mailbox.item</code></a>:</p>
 <blockquote>
 <p>If you want to see IntelliSense for only a specific type or mode, <strong>cast</strong> this item to one of the following:<br />
@@ -324,8 +323,8 @@ IMO well written programs identify and separate the referentially transparent pa
 <span id="cb22-3"><a href="#cb22-3" aria-hidden="true"></a>    <span class="dt">onChange</span><span class="op">:</span> (<span class="dt">_</span><span class="op">:</span> Person) <span class="kw">=&gt;</span> <span class="kw">void</span><span class="op">;</span></span>
 <span id="cb22-4"><a href="#cb22-4" aria-hidden="true"></a>}) <span class="kw">=&gt;</span> JSX<span class="op">.</span><span class="at">Element</span></span></code></pre></div>
 <p>Hopefully, the implementation does not use any hooks, it only uses the parameters (I call them setters and getters) to create bits of HTML with event handlers. This would be an example of a referentially transparent React type. It also would be an example of a very explicit type that is very “honest”.</p>
-<p><strong>FP side notes:</strong> Such approach is not novel at all (e.g. Elm uses a similar approach, only not as a coding style but as its architecture).<br />
-Lenses can be used as just a coding convention too. <strong>(end side notes)</strong></p>
+<p> <div class="side-note"><strong>FP side notes:</strong> Such approach is not novel at all (e.g. Elm uses a similar approach, only not as a coding style but as its architecture).<br />
+Lenses can be used as just a coding convention too.  </div></p>
 <p>Many developers will very much disagree with me on this. E.g. many will prefer to encapsulate state handling inside components. I do not intend to argue which approach is better. I will just point out that encapsulation is secretive in the type definition and I am looking for transparency. Many parts of React will require some use of hooks, my approach is to do that only when I have to, not when I want to. The goal is to make things very type-explicit. It is an IMO.</p>
 <p>Such type is also self documenting.</p>
 <p><strong>Expanding on my point 4:</strong> IMO, the best communication tools for developers and the best documenting tools for the code, in that order, are: <em>types and tests</em>. I will only focus on the first.</p>
@@ -346,7 +345,8 @@ And, I am not suggesting the names for the setters and getters here. I would be 
 <p>My focus is on types, not values. There is no safety benefit in doing this. Communication, documentation and accessibility are the only goals.<br />
 In a modernized interpretation of the KISS principle I think of “Simple” as a lot of very transparent types.</p>
 <h2 id="next-chapter">Next Chapter</h2>
-<p>There are parts of TS that I absolutely adore and I will talk about them. The complexity of TS types is another big topic to discuss. Complexity causes compilation issues (we will encounter some new bloopers) and makes the language hard to use. This will take me a few weeks to finish.</p>
+<p>There are parts of TS that I absolutely adore and I will talk about them. The complexity of TS types is another big topic to discuss. Complexity causes compilation issues (we will encounter some new bloopers) and makes the language hard to use. <del>This will take me a few weeks to finish.</del><br />
+Here is the link: <a href="2022-01-03-ts-types-part3.html" target="_blank">Part 3</a>.</p>
 <p>I am working on these notes during the 2021 holiday season. <em>Merry Christmas, Happy New Year!</em> Stay happy and healthy!</p>
 
     </section>
