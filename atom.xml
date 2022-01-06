@@ -8,8 +8,38 @@
         <name>Robert Peszek</name>
         <email>rpeszek.io@gmail.com</email>
     </author>
-    <updated>2022-01-03T00:00:00Z</updated>
+    <updated>2022-01-05T00:00:00Z</updated>
     <entry>
+    <title>Blog styling update</title>
+    <link href="https://rpeszek.github.io//posts/2022-01-05-Styling.html" />
+    <id>https://rpeszek.github.io//posts/2022-01-05-Styling.html</id>
+    <published>2022-01-05T00:00:00Z</published>
+    <updated>2022-01-05T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<article>
+    <section class="header">
+        Posted on January  5, 2022
+        
+        
+        
+        
+        <div class="info">Tags: <a title="All pages tagged 'announcement'." href="../tags/announcement.html">announcement</a></div>
+        
+    </section>
+    <section>
+
+    </section>
+    <section>
+        <p><em><a href="https://github.com/rpeszek/rpeszek.github.io/discussions/1" target="_blank">git discussions</a></em></p>
+<p>I have used vanilla Hakyll styling with slightly modified standard pandoc CSS for code blocks.<br />
+Some of the readers have experienced very weird font size irregularities, making reading my blog hard.</p>
+<p>I did a full CSS reset using <a href="https://meyerweb.com/eric/tools/css/reset/reset.css" target="_blank">meyerweb reset.css</a> and have restyled all posts. <em>Sans-Serif</em> fonts are now a hard-coded default (before there <em>font-family</em> was not specified leaving it to the browser defaults to do whatever mischeff they fancied).</p>
+<p>Please let me know in git discussions if you still experience styling issues.</p>
+<p>Thank you to everyone who alerted me about the styling issues.</p>
+    </section>
+</article>
+]]></summary>
+</entry>
+<entry>
     <title>Type Enthusiast's Notes about TypeScript. Part 3. TS Complexity</title>
     <link href="https://rpeszek.github.io//posts/2022-01-03-ts-types-part3.html" />
     <id>https://rpeszek.github.io//posts/2022-01-03-ts-types-part3.html</id>

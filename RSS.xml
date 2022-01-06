@@ -7,8 +7,38 @@
         <description><![CDATA[Infrequent, Pragmatic, Lambda Blog Feed]]></description>
         <atom:link href="https://rpeszek.github.io//RSS.xml" rel="self"
                    type="application/rss+xml" />
-        <lastBuildDate>Mon, 03 Jan 2022 00:00:00 UT</lastBuildDate>
+        <lastBuildDate>Wed, 05 Jan 2022 00:00:00 UT</lastBuildDate>
         <item>
+    <title>Blog styling update</title>
+    <link>https://rpeszek.github.io//posts/2022-01-05-Styling.html</link>
+    <description><![CDATA[<article>
+    <section class="header">
+        Posted on January  5, 2022
+        
+        
+        
+        
+        <div class="info">Tags: <a title="All pages tagged 'announcement'." href="../tags/announcement.html">announcement</a></div>
+        
+    </section>
+    <section>
+
+    </section>
+    <section>
+        <p><em><a href="https://github.com/rpeszek/rpeszek.github.io/discussions/1" target="_blank">git discussions</a></em></p>
+<p>I have used vanilla Hakyll styling with slightly modified standard pandoc CSS for code blocks.<br />
+Some of the readers have experienced very weird font size irregularities, making reading my blog hard.</p>
+<p>I did a full CSS reset using <a href="https://meyerweb.com/eric/tools/css/reset/reset.css" target="_blank">meyerweb reset.css</a> and have restyled all posts. <em>Sans-Serif</em> fonts are now a hard-coded default (before there <em>font-family</em> was not specified leaving it to the browser defaults to do whatever mischeff they fancied).</p>
+<p>Please let me know in git discussions if you still experience styling issues.</p>
+<p>Thank you to everyone who alerted me about the styling issues.</p>
+    </section>
+</article>
+]]></description>
+    <pubDate>Wed, 05 Jan 2022 00:00:00 UT</pubDate>
+    <guid>https://rpeszek.github.io//posts/2022-01-05-Styling.html</guid>
+    <dc:creator>Robert Peszek</dc:creator>
+</item>
+<item>
     <title>Type Enthusiast's Notes about TypeScript. Part 3. TS Complexity</title>
     <link>https://rpeszek.github.io//posts/2022-01-03-ts-types-part3.html</link>
     <description><![CDATA[<article>
