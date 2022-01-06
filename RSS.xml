@@ -26,11 +26,11 @@
     </section>
     <section>
         <p><em><a href="https://github.com/rpeszek/rpeszek.github.io/discussions/1" target="_blank">git discussions</a></em></p>
-<p>I have used vanilla Hakyll styling with slightly modified standard pandoc CSS for code blocks.<br />
-Some of the readers have experienced very weird font size irregularities, making reading my blog hard.</p>
-<p>I did a full CSS reset using <a href="https://meyerweb.com/eric/tools/css/reset/reset.css" target="_blank">meyerweb reset.css</a> and have restyled all posts. <em>Sans-Serif</em> fonts are now a hard-coded default (before there <em>font-family</em> was not specified leaving it to the browser defaults to do whatever mischeff they fancied).</p>
+<p>This blog has used a vanilla Hakyll styling with slightly modified standard pandoc CSS for code blocks.<br />
+Some of the readers have experienced very weird font size irregularities, making it hard to read my blog.</p>
+<p>I did a full CSS reset using <a href="https://meyerweb.com/eric/tools/css/reset/reset.css" target="_blank">meyerweb reset.css</a> and have restyled all posts. <em>Sans-Serif</em> fonts are now a hard-coded default (before the <em>font-family</em> was not specified leaving it to the browser defaults to do whatever mischief they fancied).</p>
 <p>Please let me know in git discussions if you still experience styling issues.</p>
-<p>Thank you to everyone who alerted me about the styling issues.</p>
+<p>Thank you to everyone who alerted me about the styling problems.</p>
     </section>
 </article>
 ]]></description>
