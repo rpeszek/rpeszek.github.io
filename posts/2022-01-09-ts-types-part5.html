@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Infrequent, Pragmatic, Lambda Blog - Type Enthusiast's Notes about TypeScript. Part 5. Advanced Types</title>
+        <link rel="alternate" type="application/atom+xml" href="https://rpeszek.github.io/atom.xml" title="atom" />
+        <link rel="alternate" type="application/rss+xml" href="https://rpeszek.github.io/RSS.xml" title="rss" />
+        <!-- <link rel="alternate" type="application/atom+xml" href="/atom.xml" title="atom"/>
+        <link rel="alternate" type="application/rss+xml" href="/RSS.xml" title="rss"/> -->
+        <link rel="stylesheet" href="../css/reset.css" />
+        <link rel="stylesheet" href="../css/predefault.css" />
+        <link rel="stylesheet" href="../css/default.css" />
+        
+        <link rel="stylesheet" href="../css/ts.css" />
+        
+        
+    </head>
+    <body>
+        <header>
+            <div class="motto">
+                <a href="../">hmm >>= oh!</a>
+            </div>
+            <div class="logo">
+                <a href="../">Infrequent, Pragmatic, Lambda Blog</a>
+            </div>
+            <nav>
+                <!-- <a href="/">Home</a> -->
+                <a href="../thoughts.html">Semiserious</a>
+                <a href="../about.html">About</a>
+                <!-- <a href="/contact.html">Contact</a> -->
+                <a href="../archive.html">Archive</a>
+            </nav>
+        </header>
+
+        <main role="main">
+            <h1>Type Enthusiast's Notes about TypeScript. Part 5. Advanced Types</h1>
+            <article>
+    <section class="header">
+        Posted on January  9, 2022
+        
+            by Robert Peszek
+        
+        
+        
+        
+        <div class="info">Tags: <a title="All pages tagged 'TypeScript-Notes'." href="../tags/TypeScript-Notes.html">TypeScript-Notes</a></div>
+        
+    </section>
+    <section>
+
+    </section>
+    <section>
+        <div class="toc"><div class="header">Table of Contents</div>
+<ul>
+<li><a href="#nutshell">Nutshell</a></li>
+<li><a href="#recursive-types">Recursive types</a></li>
+<li><a href="#type-level-programming">Type level programming</a></li>
+<li><a href="#subtyping">Subtyping</a></li>
+<li><a href="#thunks-and-callbacks-never-and-unknown.">Thunks and callbacks, <code>never</code> and <code>unknown</code>.</a></li>
+<li><a href="#next-and-the-last-chapter">Next and the last Chapter</a></li>
+</ul>
+</div>
+<p><em>Please Leave Feedback in: <a href="https://github.com/rpeszek/rpeszek.github.io/discussions/1" target="_blank">git discussions</a></em></p>
+<p>Previous post: <a href="2022-01-03-ts-types-part3.html" target="_blank">Part 3. TS Complexity</a>.</p>
+<p><strong>DRAFT version</strong> <em>(I am sorry about any misprints. It seems I have goblins in my laptop that toy with me, remove or change words. When this note disappears, you will know that I gave up.)</em></p>
+<p><strong>Disclaimers:</strong> (imagine this is a very small font, read it very fast in a half whisper)<br />
+<em>I assume strict compiler flags are on, something you get by default with scaffolding, e.g. using <code>create-react-app my-project --template typescript</code> is close enough.<br />
+The code examples have been tested with TypeScript v4.5.2.<br />
+This post is a pandoc output of a markdown document and code examples are not interactive.<br />
+Most of the code examples are published in <a href="https://github.com/rpeszek/ts-experiments/tree/master/ts-notes" target="_blank">ts-notes</a> folder in this github repo: <a href="https://github.com/rpeszek/ts-experiments" target="_blank">ts-experiments</a>.</em></p>
+<p><strong>Motivating Quote for the series:</strong></p>
+<blockquote>
+<p>“TypeScript began its life as an attempt to bring traditional object-oriented types to JavaScript so that the programmers at Microsoft could bring traditional object-oriented programs to the web. As it has developed, TypeScript’s type system has evolved to model code written by native JavaScripters. The resulting system is <em>powerful, interesting and messy.</em>”</p>
+</blockquote>
+<p><em>From typescriptlang <a href="https://www.typescriptlang.org/docs/handbook/typescript-in-5-minutes-func.html" target="_blank">TypeScript for Functional Programmers</a></em></p>
+<h2 id="nutshell">Nutshell</h2>
+<p>This is the fifth post in the series devoted to types in TypeScript. In this series, I explore type-centric approaches to writing code and push TS to its limits in doing so. I am writing these posts for like minded developers who are interested in types and either use or consider using TypeScript.</p>
+<p>Similarly to the previous post, this installment will be a little more advanced and a little<br />
+<a href="https://www.goodreads.com/book/show/112252.Types_and_Programming_Languages" target="_blank">TAPL-ish</a>. I will also introduce a tiny bit of Category Theory. A great blog series (really a book) that about CT that is focused on presenting categories to programmers is <a href>_add_blank_target</a>.</p>
+<p>This post starts with more of a review of TS capabilities.<br />
+I will discuss recursive types and type level programming in TS.</p>
+<h2 id="recursive-types">Recursive types</h2>
+<p><code>type JsonVal</code> from the beginning of this post surprised me. It is recursive, the name <code>JsonVal</code> appears on both the LHS and the RHS of the definition. Here is this definition repeated:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a>type JsonVal <span class="op">=</span> </span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a><span class="op">|</span> {<span class="dt">type</span><span class="op">:</span> <span class="st">&quot;object&quot;</span><span class="op">,</span> <span class="dt">val</span><span class="op">:</span> <span class="bu">Map</span><span class="op">&lt;</span>string<span class="op">,</span> JsonVal<span class="op">&gt;</span>}</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a><span class="op">|</span> {<span class="dt">type</span><span class="op">:</span> <span class="st">&quot;array&quot;</span><span class="op">,</span> <span class="dt">val</span><span class="op">:</span> JsonVal[]}</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a><span class="op">|</span> {<span class="dt">type</span><span class="op">:</span> <span class="st">&quot;string&quot;</span><span class="op">,</span> <span class="dt">val</span><span class="op">:</span> string}</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a><span class="op">|</span> {<span class="dt">type</span><span class="op">:</span> <span class="st">&quot;number&quot;</span><span class="op">,</span> <span class="dt">val</span><span class="op">:</span> number}</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a><span class="op">|</span> {<span class="dt">type</span><span class="op">:</span> <span class="st">&quot;bool&quot;</span><span class="op">,</span> <span class="dt">val</span><span class="op">:</span> boolean}</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a><span class="op">|</span> {<span class="dt">type</span><span class="op">:</span> <span class="st">&quot;null&quot;</span>}</span></code></pre></div>
+<p>and here is the TAPLish reason why this is interesting.<br />
+The two established approaches for implementing recursive types are</p>
+<ul>
+<li><em>iso-recursion</em> (good fit for nominal types) If you know <em>recursion schemes</em>, the compilation technique is very similar to how the <code>Fix</code> transformation and the <em>recursion schemes</em> work in nominally typed languages like <em>Scala</em>, <em>Haskell</em>, etc. You kinda roll (Fix) and unroll (unFix) one layer of recursion at the time.</li>
+<li><em>equi-recursion</em> (good fit for structural types). There is no <code>Fix/unFix</code> game. The structure is already unraveled into a potentially infinite beast. The compiler needs to deal with the whole beast. This approach is much harder to implement.</li>
+</ul>
+<p><code>JsonVal</code> looks like an equi-recursive definition. The methodology behind equi-recursion involves monotone functions and other things I never found time to understand very well. Hard stuff and quite a bit of math. I have not dug in deep enough to know how TS compiles <code>JsonVal</code> like types. No matter what it does, it is IMO impressive.</p>
+<p><code>JsonVal</code>-like types appear to be hard on the TS type checker. I have played with some advanced recursive types and have experienced it first hand. I got quite a few</p>
+<blockquote>
+<p>‘Type instantiation is excessively deep and possibly infinite’</p>
+</blockquote>
+<p>compiler errors (e.g. code in <a href="https://github.com/rpeszek/ts-typecheck-peano" target="_blank">https://github.com/rpeszek/ts-typecheck-peano</a>).<br />
+But I did not succeed in creating a simple example to demonstrate this.</p>
+<p>I will demonstrate something slightly different:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a>type List<span class="op">&lt;</span>T<span class="op">&gt;</span> <span class="op">=</span> </span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a><span class="op">|</span> {<span class="dt">type</span><span class="op">:</span> <span class="st">&quot;nil&quot;</span>} </span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a><span class="op">|</span> {<span class="dt">type</span><span class="op">:</span> <span class="st">&quot;cons&quot;</span><span class="op">,</span> <span class="dt">head</span><span class="op">:</span> T<span class="op">,</span> <span class="dt">tail</span><span class="op">:</span> List<span class="op">&lt;</span>T<span class="op">&gt;</span>}</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a><span class="kw">const</span> ul_123  <span class="op">=</span> {<span class="dt">type</span><span class="op">:</span> <span class="st">&quot;cons&quot;</span><span class="op">,</span> <span class="dt">head</span><span class="op">:</span> <span class="dv">1</span><span class="op">,</span> <span class="dt">tail</span><span class="op">:</span> {<span class="dt">type</span><span class="op">:</span> <span class="st">&quot;cons&quot;</span><span class="op">,</span> <span class="dt">head</span><span class="op">:</span> <span class="dv">2</span><span class="op">,</span> <span class="dt">tail</span><span class="op">:</span> {<span class="dt">type</span><span class="op">:</span> <span class="st">&quot;cons&quot;</span><span class="op">,</span> <span class="dt">head</span><span class="op">:</span> <span class="dv">3</span><span class="op">,</span> <span class="dt">tail</span><span class="op">:</span> {<span class="dt">type</span><span class="op">:</span> <span class="st">&quot;nil&quot;</span>}}}}</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true"></a><span class="co">//const l_123: List&lt;number&gt; = ul_123 //compiler error: Argument of type ... is not assignable to type ...</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true"></a><span class="kw">const</span> l_123<span class="op">:</span> List<span class="op">&lt;</span>number<span class="op">&gt;</span> <span class="op">=</span> {<span class="dt">type</span><span class="op">:</span> <span class="st">&quot;cons&quot;</span><span class="op">,</span> <span class="dt">head</span><span class="op">:</span> <span class="dv">1</span><span class="op">,</span> <span class="dt">tail</span><span class="op">:</span> {<span class="dt">type</span><span class="op">:</span> <span class="st">&quot;cons&quot;</span><span class="op">,</span> <span class="dt">head</span><span class="op">:</span> <span class="dv">2</span><span class="op">,</span> <span class="dt">tail</span><span class="op">:</span> {<span class="dt">type</span><span class="op">:</span> <span class="st">&quot;cons&quot;</span><span class="op">,</span> <span class="dt">head</span><span class="op">:</span> <span class="dv">3</span><span class="op">,</span> <span class="dt">tail</span><span class="op">:</span> {<span class="dt">type</span><span class="op">:</span> <span class="st">&quot;nil&quot;</span>}}}}</span></code></pre></div>
+<p>That is a recursive definition of a functional <em>cons</em> list. <code>ul_123</code> is an equivalent of <code>[1,2,3]</code> encoded matching the <code>List&lt;number&gt;</code> structure.<br />
+TS will not let me assign it to <code>const l_123: List&lt;number&gt;</code>. Similarly, I would not be able to use it as a parameter to a function that expects <code>(l: List&lt;number&gt;)</code>. I had to cut-paste the RHS of <code>ul_123</code> into <code>l_123</code> for it to type check. This is quite different from how typical structural types behave in TS.</p>
+<p>IMO, it is still impressive that TS is able to pull these off. The damage is that you will sometimes need to help the type checker out. I consider this feature very useful and under utilized by the ecosystem.</p>
+<p>Time permitting, I may be tempted to create a library that takes advantage of this feature.<br />
+Here is an example of code that allows for folding and unfolding (reducing and ‘unreducing’) of arbitrary JSON values: <a href>todo</a> This could be extended to something broader like arbitrary JS grammar and could lead to some very useful programming tools (this approach is called <em>recursion schemes</em>).<br />
+Recursion schemes abstract out recursion and are very useful. A lot of code at my work is using recursion schemes (we are not doing it in TS though).</p>
+<h2 id="type-level-programming">Type level programming</h2>
+<p>TS literal types are singletons (i.e. type <code>"boo"</code> has exactly one value <code>"boo":"boo"</code>).<br />
+Singletons magically connect types with values. That way, the values can be type checked!<br />
+Literal types should not be that hard to implement in a programming language and it is interesting why they are so uncommon. Kudos to TS for introducing these! They are, clearly, a great fit for JS.</p>
+<p>TS literal types are very limited in scope (I remember reading somewhere that it was a design decision). For example, you can do some very basic type level string manipulation but you cannot concatenate strings or do any arithmetic on numbers and have no way of defining any additional features on your own.</p>
+<p>TypeScript allows for type-level ternary (<em>Conditional Types</em>) as well as various type-level built-in functions (e.g. <code>keyof</code>).<br />
+Apparently, the type level programming in TypeScript is <em>Turing Complete</em> (see <a href="https://github.com/microsoft/TypeScript/issues/14833" target="_blank">https://github.com/microsoft/TypeScript/issues/14833</a>).<br />
+However, type level programming in TS is focused on creating type safety for various JS code idioms rather than creating a foundation for DIY type level programming. IMO this makes it harder to learn. The <em>Turing completeness</em>, I think, was completely accidental.</p>
+<p>Type level programming can be very useful, we have seen some of it in action in the <a href>previous post</a> where we have used it to prevent subtyping and <code>unknown</code> types.</p>
+<p>IMO the best language design direction is for the type level and the value level code to look the same (e.g. dependently typed language like Idris). The second best approach is for type level and value level to be very similar (e.g. Haskell).<br />
+TS cannot and should not do either. We do not want JavaScript (or very similar) on the type level!</p>
+<p>At the same time, the lack of synergy between type level and value level programs makes things very complicated. E.g.:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="co">//example type from https://www.typescriptlang.org/docs/handbook/2/conditional-types.html</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a>type Flatten<span class="op">&lt;</span>Type<span class="op">&gt;</span> <span class="op">=</span> Type <span class="kw">extends</span> <span class="bu">Array</span><span class="op">&lt;</span>infer Item<span class="op">&gt;</span> <span class="op">?</span> Item <span class="op">:</span> Type<span class="op">;</span> </span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a><span class="kw">const</span> head <span class="op">=</span> <span class="op">&lt;</span>T<span class="op">&gt;</span> (t<span class="op">:</span> T[]) <span class="op">:</span> Flatten<span class="op">&lt;</span>T[]<span class="op">&gt;</span> <span class="kw">=&gt;</span> {</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a>    <span class="cf">return</span> t[<span class="dv">0</span>] <span class="co">//compiles</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true"></a>}</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true"></a></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true"></a><span class="kw">const</span> generalizedHead <span class="op">=</span> <span class="op">&lt;</span>T<span class="op">&gt;</span> (t<span class="op">:</span> T) <span class="op">:</span> Flatten<span class="op">&lt;</span>T<span class="op">&gt;</span> <span class="kw">=&gt;</span> {</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true"></a>    <span class="cf">if</span>(<span class="bu">Array</span><span class="op">.</span><span class="fu">isArray</span>(t)) </span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true"></a>        <span class="cf">return</span> t[<span class="dv">0</span>]  <span class="co">//still compiles!</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true"></a>    <span class="cf">else</span> </span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true"></a>        <span class="co">// return t //compiler error: Type 'T' is not assignable to type 'Flatten&lt;T&gt;'</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true"></a>        <span class="cf">return</span> t <span class="im">as</span> any <span class="co">//ghrrr!</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true"></a>}</span></code></pre></div>
+<p>here is another one:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a>type HasContent<span class="op">&lt;</span>C<span class="op">&gt;</span> <span class="op">=</span> {<span class="dt">content</span><span class="op">:</span> C}</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a>type GetContent<span class="op">&lt;</span>T<span class="op">&gt;</span> <span class="op">=</span> T <span class="kw">extends</span> HasContent <span class="op">&lt;</span>infer C<span class="op">&gt;</span> <span class="op">?</span> C <span class="op">:</span> T</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true"></a><span class="kw">const</span> getContent <span class="op">=</span> <span class="op">&lt;</span>C<span class="op">,</span> T <span class="kw">extends</span> HasContent<span class="op">&lt;</span>C<span class="op">&gt;&gt;</span> (t<span class="op">:</span> T)<span class="op">:</span> GetContent<span class="op">&lt;</span>T<span class="op">&gt;</span> <span class="kw">=&gt;</span> {</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true"></a>   <span class="co">//return t.content //compiler error:  Type 'C' is not assignable to type 'GetContent&lt;T&gt;'</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true"></a>   <span class="cf">return</span> t<span class="op">.</span><span class="at">content</span> <span class="im">as</span> any <span class="co">//ghrrr!</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true"></a>}</span></code></pre></div>
+<p>It feels clunky. It feels like type level and value level have a broken marriage. This lack of synergy also feels very confusing.</p>
+<p>These issues look to me like growing pains, or maybe I am doing something wrong.<br />
+I think, TS type level programming will keep improving and we may see some very interesting use cases in the future.</p>
+<h2 id="subtyping">Subtyping</h2>
+<p>This series has discussed subtyping already. I will keep this section short.</p>
+<p>Personally, I try to avoid using subtyping features. Subtyping is related to Object Orientation. OO programming has an appeal of simplicity and I was seduced by it for many years. It took me a long time to realize that OO is not that simple. In reality OO is very complex, to the point that even language designers often get it wrong (this series has shown this statement to be true in the context of TypeScript).<br />
+This comment should be filed under IMO as many developers disagree.</p>
+<p>Before continuing reading pass this code, please try to implement (at least in your head) the <code>amIFooOrBar</code> function:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="kw">function</span> verifyExtends<span class="op">&lt;</span>T2 <span class="kw">extends</span> T1<span class="op">,</span> T1<span class="op">&gt;</span>() {}</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a><span class="co">//more specific, fewer variants</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true"></a>type FooOrBar <span class="op">=</span>  </span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true"></a><span class="op">|</span> {<span class="dt">foo</span><span class="op">:</span> string} </span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true"></a><span class="op">|</span> {<span class="dt">bar</span><span class="op">:</span> string}</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true"></a></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true"></a><span class="co">//A challenge: implement this function:</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true"></a>declare <span class="kw">function</span> <span class="fu">amIFooOrBar</span>(o<span class="op">:</span> FooOrBar)<span class="op">:</span> <span class="st">&quot;foo&quot;</span> <span class="op">|</span> <span class="st">&quot;bar&quot;</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true"></a></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true"></a>declare <span class="kw">function</span> <span class="fu">genFooOrBar</span>()<span class="op">:</span> FooOrBar</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true"></a></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true"></a><span class="co">//more general, more variants</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true"></a>type FooOrBarOrBuz <span class="op">=</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true"></a><span class="op">|</span> {<span class="dt">foo</span><span class="op">:</span> string} </span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true"></a><span class="op">|</span> {<span class="dt">bar</span><span class="op">:</span> string}</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true"></a><span class="op">|</span> {<span class="dt">baz</span><span class="op">:</span> string}</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true"></a></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true"></a>declare <span class="kw">function</span> <span class="fu">genFooOrBarOrBuz</span>()<span class="op">:</span> FooOrBarOrBuz</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true"></a></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true"></a><span class="kw">const</span> fooOrBarOrBuz<span class="op">:</span> FooOrBarOrBuz <span class="op">=</span> <span class="fu">genFooOrBar</span>() <span class="co">//compiles assigns specific to more general </span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true"></a><span class="co">//const fooOrBar: FooOrBar = genFooOrBarOrBuz() //will not compile tries to assign general to more specific</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true"></a></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true"></a>verifyExtends<span class="op">&lt;</span>FooOrBar<span class="op">,</span> FooOrBarOrBuz<span class="op">&gt;</span>() <span class="co">//compiles, FooOrBar extends FooOrBarOrBuz</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true"></a><span class="co">//verifyExtends&lt;FooOrBarOrBuz, FooOrBar&gt;() //does not compile, FooOrBarOrBuz does not extend FooOrBar</span></span></code></pre></div>
+<p>The thing to remember is that <code>{foo: string} | {bar: string}</code> extends <code>{foo: string} | {bar: string}| {baz: string}</code> not the other way around.</p>
+<p>Did you implement <code>amIFooOrBar</code>, great, let’s move on.</p>
+<p>Subtyping in object types will feel familiar to OO developers. Roughly speaking, you can assign object with more properties to object with fewer properties:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a>type FooAndBar <span class="op">=</span> {<span class="dt">foo</span><span class="op">:</span> string<span class="op">,</span> <span class="dt">bar</span><span class="op">:</span> string} <span class="co">//more general</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a>declare <span class="kw">function</span> <span class="fu">genFooAndBar</span>()<span class="op">:</span> FooAndBar</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true"></a>type FooAndBarAndBaz <span class="op">=</span> {<span class="dt">foo</span><span class="op">:</span> string<span class="op">,</span> <span class="dt">bar</span><span class="op">:</span> string<span class="op">,</span> <span class="dt">baz</span><span class="op">:</span> string} <span class="co">//more specific</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true"></a>declare <span class="kw">function</span> <span class="fu">genFooAndBarAndBaz</span>()<span class="op">:</span> FooAndBarAndBaz</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true"></a><span class="kw">const</span> fooAndBar<span class="op">:</span> FooAndBar <span class="op">=</span> <span class="fu">genFooAndBarAndBaz</span>()  <span class="co">//specific assigned to general is valid assignment</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true"></a><span class="co">//const fooAndBarAndBuz: FooAndBarAndBaz = genFooAndBar() // will not compile, tries to assign general to specific</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true"></a></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true"></a>verifyExtends<span class="op">&lt;</span>FooAndBarAndBaz<span class="op">,</span> FooAndBar<span class="op">&gt;</span>() <span class="co">//compiles, FooAndBarAndBaz extends FooAndBar</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true"></a><span class="co">//verifyExtends&lt;FooAndBar, FooAndBarAndBaz&gt;() //does not compile, FooAndBar does not extend FooAndBarAndBaz</span></span></code></pre></div>
+<p>Subtyping gets more involved if you combine adding properties to objects and variants to union types. But I think you get the gist.</p>
+<p>Now let’s revisit the above challenge. What will your function return in this call:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a><span class="co">// challenge check:</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true"></a><span class="co">// what does your function return when used on this value?</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true"></a><span class="co">// </span><span class="al">NOTE</span><span class="co"> this does compile, you can assign FooAndBar to FooOrBar, since 'and' implies 'or'</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true"></a><span class="kw">const</span> whatIsThat <span class="op">=</span> <span class="fu">amIFooOrBar</span>({<span class="dt">foo</span><span class="op">:</span> <span class="st">&quot;foo&quot;</span><span class="op">,</span> <span class="dt">bar</span><span class="op">:</span> <span class="st">&quot;bar&quot;</span>}) </span></code></pre></div>
+<p>This is just one of the many gotchas associated with subtyping.</p>
+<h2 id="thunks-and-callbacks-never-and-unknown.">Thunks and callbacks, <code>never</code> and <code>unknown</code>.</h2>
+<p>To finish this post I want to pick 4 concepts fundamental to TypeScript: variables, callbacks, <code>never</code> and <code>unknown</code> types and discuss how they relate in a somewhat more theoretical setting.<br />
+I believe the relationship between these concepts is not commonly understood.</p>
+<p>We have seen <code>&lt;T&gt; () =&gt; T</code> before, we called it a <a href>type hole <code>_: &lt;T&gt;() =&gt; T</code></a>. Now I am changing my mind and want to call it a generic thunk.<br />
+We can think about it as a ‘lazy’ value.<br />
+Instead of defining <code>const t: T</code> (which TS does not allow to define) I can define a function that, when called, will return me that <code>t</code>. Basically thunks are variables you put <code>()</code> after. A referentially transparent (no side-effects) <code>&lt;T&gt; () =&gt; T</code> thunk is morally equivalent to a variable of type <code>T</code>.</p>
+<p>A thunk produces a value of type <code>T</code>. A generic callback <code>&lt;T&gt; (_: T) =&gt; void</code> consumes a value of type <code>T</code>. There is, clearly, some type of duality between thunks and callbacks.<br />
+Incidentally, many programming languages define a <em>unit</em> type often denoted as <code>()</code> instead of the <em>C</em>-style <code>void</code>. If this was the case for TS, we would have written: <code>&lt;T&gt; T =&gt; ()</code> for the callback and <code>&lt;T&gt; () =&gt; T</code> for the thunk. You can get from one type to the other by reversing the arrow <code>=&gt;</code>. These concepts become dual in the categorical sense. This post is not about the Category Theory but this section will have just a bit of it.</p>
+<p>In TS, the generic thunk <code>&lt;T&gt; () =&gt; T</code> type is equivalent to <code>never</code>.<br />
+You may remember that the <a href>type hole <code>_()</code></a>, was implemented by throwing error (that is <code>never</code> in TS).<br />
+In TS never assigns to everything but you cannot assign anything else to it. Well, except for the generic thunk:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true"></a><span class="co">//type hole assigned to never</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true"></a><span class="kw">const</span> nevr <span class="op">:</span> never <span class="op">=</span> <span class="fu">_</span>()</span></code></pre></div>
+<p>Another words <code>&lt;T&gt; () =&gt; T</code> and <code>never</code> can be assigned to each other, thus, I consider them equivalent.</p>
+<p>If you replay the same argument with arrows reversed, you will establish equivalence between the generic callback <code>&lt;T&gt; (_: T) =&gt; ()</code> and the <code>unknown</code> callback types.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true"></a>declare <span class="kw">function</span> <span class="fu">someUnknownCallback</span>(t<span class="op">:</span> unknown)<span class="op">:</span> <span class="kw">void</span> </span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true"></a><span class="kw">const</span> overbar<span class="op">:</span> <span class="op">&lt;</span>T<span class="op">&gt;</span>(_<span class="op">:</span>T) <span class="kw">=&gt;</span> <span class="kw">void</span> <span class="op">=</span>  someUnknownCallback</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true"></a>declare <span class="kw">function</span> someOverbar<span class="op">&lt;</span>T<span class="op">&gt;</span>(t<span class="op">:</span>T)<span class="op">:</span> <span class="kw">void</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true"></a><span class="kw">const</span> unknownCallback<span class="op">:</span> (_<span class="op">:</span> unknown) <span class="kw">=&gt;</span> <span class="kw">void</span> <span class="op">=</span> someOverbar</span></code></pre></div>
+<p>The <a href><code>never</code> type</a> is the TS’s <em>bottom</em> type (can be assigned to anything), while the <a href><code>unknown</code> type</a> is the TS’s top type (anything can be assigned to it). These concepts are also dual in the sense of reversing the direction of assignment.</p>
+<p>Let’s think about referential transparency again. There are no interesting referentially transparent functions that return <code>void</code>. To do something meaningful, such a function would need to mutate some shared state or do some other effectful thing. E.g. when coding in React a callback could compute a new state (let me call it <code>r: R</code> and invoke a state hook to make the change. I like to think about such a callback as having an imaginary type <code>&lt;T,R&gt; (t: T) =&gt; R</code>.</p>
+<p>The duality between variables/thunks and callback is quite fascinating and has quite some depth.<br />
+Let’s fix the type variable <code>T</code> to, say, <code>Person</code>. Any type would do, I just want to remove the quantification (remove the genericity) to simplify the explanation. JS / TS programs often use higher order functions that accept callbacks as parameters. Consider a callback that accepts a callback <code>(f: (_: Person) =&gt; void) =&gt; void</code> and computes the same value. The imaginary referrencially transparent type for it could be</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true"></a><span class="co">//TS pseudo-code</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true"></a><span class="op">&lt;</span>R<span class="op">&gt;</span> (f<span class="op">:</span> (_<span class="op">:</span> Person) <span class="kw">=&gt;</span> R) <span class="kw">=&gt;</span> R</span></code></pre></div>
+<p>It turns out that this type is equivalent (isomorphic) to the thunk <code>() =&gt; Person</code> (or, ignoring side-effects, to just <code>Person</code>)!<br />
+These are not equivalent based on assignments, they are equivalent because one can be easily converted to the other.</p>
+<p>It kinda makes sense for a dual of a dual to end up back were we started.<br />
+However, this equivalence is a bit stronger, in a sense that it holds for every fixed type <code>T</code>. It is also weaker, since what we get is only isomorphism<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>.</p>
+<p>This equivalence is a special case of Yoneda Lemma in Category Theory<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a>.</p>
+<p>I can express this succinctly in TS as (note a <a href>higher rank type</a> used]):</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true"></a><span class="co">//all of these compile</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true"></a>type Yoneda<span class="op">&lt;</span>T<span class="op">&gt;</span> <span class="op">=</span> () <span class="kw">=&gt;</span> <span class="op">&lt;</span>R<span class="op">&gt;</span>(f<span class="op">:</span> (_<span class="op">:</span> T) <span class="kw">=&gt;</span> R) <span class="kw">=&gt;</span> R</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true"></a>type Thunk<span class="op">&lt;</span>T<span class="op">&gt;</span> <span class="op">=</span> () <span class="kw">=&gt;</span> T</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true"></a></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true"></a><span class="co">//Yoneda&lt;T&gt; is isomorphic to Thunk&lt;T&gt;</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true"></a><span class="co">//here are functions defining the isomorphism:</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true"></a><span class="kw">const</span> toYoneda <span class="op">=</span> <span class="op">&lt;</span>T<span class="op">&gt;</span> (th<span class="op">:</span> Thunk<span class="op">&lt;</span>T<span class="op">&gt;</span>)<span class="op">:</span> Yoneda<span class="op">&lt;</span>T<span class="op">&gt;</span> <span class="kw">=&gt;</span> {</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true"></a>   <span class="kw">const</span> res <span class="op">=</span> () <span class="kw">=&gt;</span> <span class="op">&lt;</span>R<span class="op">&gt;</span> (<span class="dt">f</span><span class="op">:</span> (<span class="dt">_</span><span class="op">:</span> T) <span class="kw">=&gt;</span> R)<span class="op">:</span> R <span class="kw">=&gt;</span> <span class="fu">f</span>(<span class="fu">th</span>())</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true"></a>   <span class="cf">return</span> res</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true"></a>}</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true"></a></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true"></a><span class="kw">const</span> fromYoneda <span class="op">=</span> <span class="op">&lt;</span>T<span class="op">&gt;</span> (y<span class="op">:</span> Yoneda<span class="op">&lt;</span>T<span class="op">&gt;</span>)<span class="op">:</span> Thunk<span class="op">&lt;</span>T<span class="op">&gt;</span> <span class="kw">=&gt;</span> {</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true"></a>    <span class="kw">const</span> res <span class="op">=</span> ()<span class="op">:</span> T <span class="kw">=&gt;</span> <span class="fu">y</span>()(x <span class="kw">=&gt;</span> x)</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true"></a>    <span class="cf">return</span> res</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true"></a> }</span></code></pre></div>
+<p>Programmers are divided into 2 camps when exploring this type of information: some consider it fascinating and important, some consider it a lot of useless nonsense.<br />
+If you are still reading this series, chances are you are in the first camp.</p>
+<p> <div class="side-note"><strong>Callback in JS:</strong> JavaScripters intuitively know that equivalence and callbacks are viewed almost as a coding style.<br />
+Except, for some reason, JS decided to endure callback hell for about 2 decades.<br />
+Today’s <code>async</code> / <code>await</code> code finally brings an end to this mystery.<br />
+Understanding that programming with callbacks (<em>Continuation Passing Style</em>) and vanilla synchronous programming can offer very similar interface dates back to the very early 1990-ties.<br />
+It has to do with programming abstraction that comes from the Category Theory called the <em>monad</em>. Minus the callback hell self inflicted injury, JS programmers have used callbacks to accomplish all kinds of things. This equivalence should not be surprising to anyone.  </div></p>
+<p>Category Theory is very related to types, I found it only fitting to finish this installment with a note that discusses a little bit of it.</p>
+<h2 id="next-and-the-last-chapter">Next and the last Chapter</h2>
+<p>I will finish the series with some final thoughts and rants. I do not know yet what they exactly will be, I will take a month or a little longer to write these.</p>
+<section class="footnotes" role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1" role="doc-endnote"><p>One type can be converted onto the other without any information loss or gain<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2" role="doc-endnote"><p>It is Yoneda applied to the <em>Identity functor</em><a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
+
+    </section>
+</article>
+
+        </main>
+
+        <footer>
+             <span><a href="../atom.xml">Atom</a></span>
+             <span><a href="../RSS.xml">RSS</a></span>
+             <span>Site generated by <a href="http://jaspervdj.be/hakyll">Hakyll</a></span>
+        </footer>
+    </body>
+</html>
