@@ -44,7 +44,7 @@
         
         
         
-        <div class="changelog"> <div>Revision History: <ul> <li> (2022.02.14) Fixed list example <a href="#fn2">footnote [2]</a> </ul> </div></div>
+        <div class="changelog"> <div>Revision History: <ul> <li> (2022.02.14) Fixed list example <a href="#fn2">footnote [2]</a> </li> <li> (2022.02.15) Clarifying comments in <a href="#type-level-programming" < a>type level programming</a> code examples</li> </ul> </div></div>
         
         
         <div class="info">Tags: <a title="All pages tagged 'TypeScript-Notes'." href="../tags/TypeScript-Notes.html">TypeScript-Notes</a></div>
@@ -129,20 +129,20 @@ TS cannot and should not do either. We do not want JavaScript (or very similar) 
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a>type Flatten<span class="op">&lt;</span>Type<span class="op">&gt;</span> <span class="op">=</span> Type <span class="kw">extends</span> <span class="bu">Array</span><span class="op">&lt;</span>infer Item<span class="op">&gt;</span> <span class="op">?</span> Item <span class="op">:</span> Type<span class="op">;</span> </span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a></span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a><span class="kw">const</span> head <span class="op">=</span> <span class="op">&lt;</span>T<span class="op">&gt;</span> (t<span class="op">:</span> T[]) <span class="op">:</span> Flatten<span class="op">&lt;</span>T[]<span class="op">&gt;</span> <span class="kw">=&gt;</span> {</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a>    <span class="cf">return</span> t[<span class="dv">0</span>] <span class="co">//compiles</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a>    <span class="cf">return</span> t[<span class="dv">0</span>] <span class="co">//compiles (as expected)</span></span>
 <span id="cb3-6"><a href="#cb3-6" aria-hidden="true"></a>}</span></code></pre></div>
 <div class="sourceCode" id="cb4"><pre class="sourceCode java"><code class="sourceCode java"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="dt">const</span> generalizedHead = &lt;T&gt; (t: T) : Flatten&lt;T&gt; =&gt; {</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a>    <span class="kw">if</span>(<span class="bu">Array</span>.<span class="fu">isArray</span>(t)) </span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a>        <span class="kw">return</span> t[<span class="dv">0</span>]  <span class="co">//still compiles!</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a>        <span class="kw">return</span> t[<span class="dv">0</span>]  <span class="co">//still compiles (as expected)</span></span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a>    <span class="kw">else</span> </span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true"></a>        <span class="kw">return</span> t <span class="co">//compiler error: Type 'T' is not assignable to type 'Flatten&lt;T&gt;'</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true"></a>        <span class="kw">return</span> t <span class="co">//compiler error: Type 'T' is not assignable to type 'Flatten&lt;T&gt;' (not as expected)</span></span>
 <span id="cb4-6"><a href="#cb4-6" aria-hidden="true"></a>}</span></code></pre></div>
 <p>here is another one:</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a>type HasContent<span class="op">&lt;</span>C<span class="op">&gt;</span> <span class="op">=</span> {<span class="dt">content</span><span class="op">:</span> C}</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a>type GetContent<span class="op">&lt;</span>T<span class="op">&gt;</span> <span class="op">=</span> T <span class="kw">extends</span> HasContent <span class="op">&lt;</span>infer C<span class="op">&gt;</span> <span class="op">?</span> C <span class="op">:</span> T</span></code></pre></div>
 <div class="sourceCode" id="cb6"><pre class="sourceCode java"><code class="sourceCode java"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a><span class="dt">const</span> getContent = &lt;C, T <span class="kw">extends</span> HasContent&lt;C&gt;&gt; (t: T): GetContent&lt;T&gt; =&gt; {</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a>   <span class="co">//return t.content //compiler error:  Type 'C' is not assignable to type 'GetContent&lt;T&gt;'</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a>   <span class="co">//return t.content //compiler error:  Type 'C' is not assignable to type 'GetContent&lt;T&gt;' (not as expected)</span></span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true"></a>}</span></code></pre></div>
 <p>It feels clunky. It feels like type level and value level have a broken marriage. This lack of synergy also feels very confusing.</p>
 <p>I think TS type level programming will keep improving and we may see some very interesting use cases in the future.</p>
