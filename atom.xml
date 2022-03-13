@@ -8,8 +8,326 @@
         <name>Robert Peszek</name>
         <email>rpeszek.io@gmail.com</email>
     </author>
-    <updated>2022-02-13T00:00:00Z</updated>
+    <updated>2022-03-13T00:00:00Z</updated>
     <entry>
+    <title>Type Enthusiast's Notes about TypeScript. Part 6. Reasoning using Types</title>
+    <link href="https://rpeszek.github.io//posts/2022-03-13-ts-types-part6.html" />
+    <id>https://rpeszek.github.io//posts/2022-03-13-ts-types-part6.html</id>
+    <published>2022-03-13T00:00:00Z</published>
+    <updated>2022-03-13T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<article>
+    <section class="header">
+        Posted on March 13, 2022
+        
+            by Robert Peszek
+        
+        
+        
+        
+        <div class="info">Tags: <a title="All pages tagged 'TypeScript-Notes'." href="../tags/TypeScript-Notes.html">TypeScript-Notes</a></div>
+        
+    </section>
+    <section>
+
+    </section>
+    <section>
+        <div class="toc"><div class="header">Table of Contents</div>
+<ul>
+<li><a href="#nutshell">Nutshell</a></li>
+<li><a href="#about-clarity">About Clarity</a>
+<ul>
+<li><a href="#declare-function-return-types">Declare function return types</a></li>
+<li><a href="#variables-named-x">Variables named <code>x</code></a></li>
+<li><a href="#enums">Enums</a></li>
+<li><a href="#clarity-vs-encapsulation">Clarity vs encapsulation</a></li>
+<li><a href="#referential-transparency-purity-and-explicit-types">Referential transparency, purity, and explicit types</a></li>
+</ul></li>
+<li><a href="#about-productivity">About Productivity</a>
+<ul>
+<li><a href="#a-walk-in-the-park">A walk in the park</a></li>
+<li><a href="#inference-reversed-and-typedd">Inference reversed and T(ype)DD</a></li>
+</ul></li>
+<li><a href="#about-simplicity">About Simplicity</a>
+<ul>
+<li><a href="#total-vs-partial">Total vs Partial</a></li>
+</ul></li>
+<li><a href="#about-safety">About Safety</a>
+<ul>
+<li><a href="#monads">Monads</a></li>
+</ul></li>
+<li><a href="#about-correctness">About Correctness</a></li>
+<li><a href="#about-maintainability">About Maintainability</a></li>
+<li><a href="#universal">Universal</a>
+<ul>
+<li><a href="#advanced-types-as-patterns">Advanced Types as Patterns</a></li>
+</ul></li>
+<li><a href="#unpopular">Unpopular</a>
+<ul>
+<li><a href="#gradual-progress">Gradual Progress</a></li>
+</ul></li>
+<li><a href="#final-words">Final words</a></li>
+</ul>
+</div>
+<p><em>Please Leave Feedback in: <a href="https://github.com/rpeszek/rpeszek.github.io/discussions/1" target="_blank">git discussions</a></em></p>
+<p>Previous post: <a href="2022-02-13-ts-types-part5.html" target="_blank">Part 5. Advanced Types</a>.<br />
+Back to the beginning post: <a href="2021-12-12-ts-types-part1.html" target="_blank">Part 1. Typing in Anger</a></p>
+<p><strong>DRAFT version</strong> <em>(I am sorry about any misprints. It seems I have goblins in my laptop that toy with me, remove or change words. When this note disappears, you will know that I gave up.)</em></p>
+<h2 id="nutshell">Nutshell</h2>
+<p>This post wraps up my series about types in TS. In this series, we explored type-centric approaches to writing code and pushed TS to its limits, sometimes a little beyond its limits.</p>
+<p>In any mainstream programming language there is a group of users interested in using types. Similarly to the rest of the industry, this group is a very small subset of the TS community. Developers interested in types tend to be unappreciated and underutilized.</p>
+<p>Types in programming get very formal and are very interesting for mathematically inclined developers. Mathematical inclinations are probably a necessary condition for enjoying types. This partially explains why types are such a niche, but IMO there are other reasons I will try to discuss some of them in this post.</p>
+<p>This post will discuss these aspects of types: types are</p>
+<ul>
+<li>About Clarity</li>
+<li>About Productivity</li>
+<li>About Simplicity</li>
+<li>About Safety</li>
+<li>About Correctness</li>
+<li>About Maintainability</li>
+<li>Universal</li>
+<li>Unpopular</li>
+</ul>
+<p>I will finish my series with a short rant about each of the bullet points. This will allow me to revisit and summarize some of the things we have discussed in previous parts and mention a few things this series did not cover.<br />
+This post will be mostly a high level rant. I want to talk a bit about what is possible. Some of the discussion will not be very relevant to TS as the language lacks the capabilities. I think these topics are still relevant to TS developers as the ideas behind these concepts can still be useful.<br />
+Simply put, my goal is to discuss how types (including advanced stuff) can be used in TS.</p>
+<p>Like all of my other posts in the series, this one is a big longish and tries to cover a lot of ground. I hope you will find it worth the effort.</p>
+<p>Some readers may disagree when reading this post. You may have valid reasons for disagreeing with me. Please let me know what they are.</p>
+<h2 id="about-clarity">About Clarity</h2>
+<p>What are coding conventions and standards? When I hear these terms being used, I know I will soon hear about code formatting and linting, importance of code comments, even things like readme files and git hygiene. However, I am unlikely to hear about types. It is not that types are not important, they are. They are also harder to discuss. This phenomenon has a name, it is called <a href="https://wiki.haskell.org/Wadler%27s_Law" target="_blank">Wadler’s Law</a> or <a href="https://bikeshed.com/" target="_blank">bikeshed</a>.</p>
+<p>I have discussed using types to achieve code clarity in <a href="2021-12-24-ts-types-part2.html#referential-transparency" target="_blank">referential transparency</a> and <a href="2021-12-24-ts-types-part2.html#types-as-documentation" target="_blank">types as documentation</a> sections of Part 2. Let’s revisit the topic here.</p>
+<p>It is much harder to comprehend the whole program than it is to comprehend its types. Types can provide a high level information about the program the way that theorems provide high level information about proofs in mathematics. Types can give a valid high level representation of the app. Programs often can’t, they often contain tedious details, performance optimizations, and lots of other persisted developer’s sweat.<br />
+When done right, one can use types as <em>specs</em>, at least on a small unit level of the code types should be viewed as specifications.</p>
+<p>Types have a synergy with FP. This series was not about FP but it was hard for me to completely stay away, the synergy is so deep. Types help express functional concepts clearly.</p>
+<p>Advanced types come with a learning curve. It is important to acknowledge that clarity is subjective and can easily be replaced with confusion unless developers are familiar with the concepts.</p>
+<blockquote>
+<p><em>“WTFPM: WTF Per Minute is an actual measurement for code value.”</em></p>
+</blockquote>
+<p>I imagine some topics covered in <a href="2022-01-09-ts-types-part4.html" target="_blank">Part 4</a> or <a href="2022-02-13-ts-types-part5.html" target="_blank">Part 5</a> could have a high WTFPM number. IMO, types used in production projects should be accessible to the project contributors. This means pushing the envelope just a bit but not too far.</p>
+<p>The following subsections examine a few concepts related to clarity.</p>
+<h3 id="declare-function-return-types">Declare function return types</h3>
+<p>TS does not require it but why would you not do that?</p>
+<h3 id="variables-named-x">Variables named <code>x</code></h3>
+<p>Are variable names essential to clarity? It is a bit of a telltale. One of the most common criticisms of languages that heavily use types (like Haskell) is:</p>
+<blockquote>
+<p><em>“Whats up with the variable names, why everything is <code>x,y,z</code>, <code>xs,ys,zs</code>, <code>f,g,h</code> or <code>a,b,c</code>?”</em></p>
+</blockquote>
+<p>Part of the reason is that the code can be very general. If a variable can be literally anything, why not call it <code>x</code>? The other reason is where the reader gets the information from: variable names or types? Personally, I believe in more explicit variable names when implementing a specific business logic and the implementation is long. However, even in such cases, the info should be in the types. If it is not, the code probably can benefit from refactoring.</p>
+<h3 id="enums">Enums</h3>
+<p>Another bit of a telltale. Are enums clearer than literal types? This code has 3 types (“foo”, “bar” and the union):</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a>type FooBar <span class="op">=</span> <span class="st">&quot;foo&quot;</span> <span class="op">|</span> <span class="st">&quot;bar&quot;</span></span></code></pre></div>
+<p>This code defines one type (<code>FooBar</code>) and is more verbose:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="kw">enum</span> FooBar {</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a>  <span class="dt">Foo</span><span class="op">:</span> <span class="st">&quot;foo&quot;</span><span class="op">,</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a>  <span class="dt">Bar</span><span class="op">:</span> <span class="st">&quot;bar&quot;</span><span class="op">,</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a>}</span></code></pre></div>
+<p>What is the advantage of using this <code>enum</code>? I don’t see a safety advantage, please let me know if I am missing something. This does not add clarity or readability either. String literals are much more readable.</p>
+<p>I think <code>enum</code>-s are used because they are a familiar translation of a concept from other programming languages. In this series I am suggesting building up cross language prowess based on types and not on habits developed in other languages. This would suggest preferring the first example.</p>
+<h3 id="clarity-vs-encapsulation">Clarity vs encapsulation</h3>
+<p>Encapsulation does not help clarity. I consider encapsulation to be very useful when designing micro-services, not so much when designing programs. Encapsulation often means not expressive types. Encapsulating is hiding things from the types. It often makes types simpler than they should be. To get the benefits of types, we need to give them a chance. Type checker will not type check what is invisible to it.</p>
+<p>On the other hand, explicit types (types that contain a lot of information) have a higher maintenance cost.<br />
+I like to compare this to documentation. If app functionality changes you should change the documentation. You are likely to do that only in the most obvious places. Explicit types are different, they create domino effects forcing you to propagate the changes to all the relevant places.<br />
+This overhead is not always desirable and there are patterns and tools to minimize such cost (e.g. TS subtyping, existential types, FP concept called <em>smart constructors</em>). Changing functionality should create compilation errors but ideally these errors should not be hard to fix.</p>
+<p>Encapsulated code does not test well and often requires mocking frameworks. You will know you are doing something right when you stop using mocks for unit tests.</p>
+<h3 id="referential-transparency-purity-and-explicit-types">Referential transparency, purity, and explicit types</h3>
+<p>I have discussed these concepts already in <a href="2021-12-24-ts-types-part2.html#referential-transparency" target="_blank">Referential Transparency (Part 2)</a>. I want to return to this topic for another rant.<br />
+Referential transparency does not have an agreed upon formal definition. It typically means:</p>
+<p><em>A computation is referentially transparent if it can be safely replaced with its return value<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>.</em></p>
+<p>This is clearly related to clarity and simplicity. It is hard to reason about code that does different things every time it is called.</p>
+<p><em>Function is pure if it does not perform any side-effects (e.g. does not mutate things)</em></p>
+<p>These concepts are related but not equivalent, e.g. a function that finds a shortest path in a graph is likely to be referentially transparent even if its implementation mutates its local variables (most standard graph algorithms are imperative and mutate stuff). Such functions “look” pure from the outside and maybe in some cases that is good enough. I may want to care about referential transparency more than about strict purity.</p>
+<p>I like to treat referential transparency loosely. In my loose approach, referential transparency simply means that what the function does is exposed in its type (so <em>referentially transparent</em> and <em>has an explicit type</em> become the same thing). Thinking in these lines makes referential transparency less of a checkbox and more a progress bar.</p>
+<p>Consider the following versions of code that are supposed to establish a WebSocket using some imaginary API (we are implementing a PetStore):</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="co">//(1) gets config from a global place and globally stores WS connection</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a><span class="kw">const</span> initWs<span class="op">:</span> ()<span class="op">:</span> <span class="kw">void</span> <span class="op">=</span> <span class="op">...</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a><span class="co">//(2) gets config from a global place</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a><span class="kw">const</span> connectWs<span class="op">:</span> () <span class="kw">=&gt;</span> WsConnection <span class="op">=</span> <span class="op">...</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true"></a><span class="co">//(3) gets config from passed parameter, incomplete return type</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true"></a><span class="kw">const</span> connectWs<span class="op">:</span> (conf<span class="op">:</span> PetStoreConfig) <span class="kw">=&gt;</span> WsConnection <span class="op">=</span> <span class="op">...</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true"></a><span class="co">//(4) gets config from passed parameter, incomplete return type</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true"></a><span class="kw">const</span> connectWs<span class="op">:</span> (conf<span class="op">:</span> {<span class="dt">loggerConf</span><span class="op">:</span> LoggerConfig<span class="op">;</span> <span class="dt">wsUrl</span><span class="op">:</span> Url}) <span class="kw">=&gt;</span> WsConnection <span class="op">=</span> <span class="op">...</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true"></a></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true"></a><span class="co">//(5) null, option, optional, maybe ... types do not contain much error context</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true"></a><span class="kw">const</span> connectWs<span class="op">:</span> (conf<span class="op">:</span> {<span class="dt">loggerConf</span><span class="op">:</span> LoggerConfig<span class="op">;</span> <span class="dt">wsUrl</span><span class="op">:</span> Url}) <span class="kw">=&gt;</span> WsConnection <span class="op">|</span> <span class="kw">null</span> <span class="op">=</span> <span class="op">...</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true"></a></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true"></a><span class="co">//(6) gets config from passed parameter, complete return type </span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true"></a><span class="co">//(most likely will involve subtyping at usage point) </span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true"></a><span class="kw">const</span> connectWs<span class="op">:</span> (conf<span class="op">:</span> {<span class="dt">loggerConf</span><span class="op">:</span> LoggerConfig<span class="op">;</span> <span class="dt">wsUrl</span><span class="op">:</span> Url}) <span class="kw">=&gt;</span> WsConnection <span class="op">|</span> WsError <span class="op">=</span> <span class="op">...</span></span></code></pre></div>
+<p>Note that there is no much benefit between using <code>PetStoreConfig</code> and <code>{loggerConf: LoggerConfig; wsUrl: Url}</code> or between <code>WsConnection | null</code> vs <code>WsConnection | WsError</code> from the point of view of strict referential transparency. There is, however, a big difference if you think about the information contained in the types.<br />
+(1) and (2) are very opaque, (3) and (4) are similar but not all <code>PetStoreConfig</code> is relevant, thus (4) type is more transparent and precise.<br />
+In my experience, even programmers who know a lot about types end up not thinking about exceptions and will code some equivalent of (5). The goal is to get to (6). (6) is very explicit, IMO it is the best. Subtyping is likely to be used at some point as <code>PetStoreConfig</code> probably will be passed to it. However, the first (the least explicit) approach is probably more commonly used at large.</p>
+<p>Readers working with React can alternatively think about a component that uses an internal state hook (encapsulates state) vs a component that accepts a setter callback and a getter property as input arguments. You can also think about React Context API or a similar approach and compare it with explicit setters/getters.</p>
+<p>Each computation has an input and an output even if TypeScript / JavaScript code does its darndest to hide it. TS code can pull the inputs out of thin air (configuration, stuff stored on the window object, etc) and sink the output by saving it somewhere. The above <code>initWs</code> is guilty of both of these felonies. Still, there is a referentially transparent computation hiding somewhere. In the above example the last <code>connectWs</code> type describes the inputs and output within the heavily encapsulated <code>initWs</code>.</p>
+<p>Inputs and outputs are essential to clarity. The developer should try to understand what these inputs and outputs are at the very least. Ideally, the explicitly typed computation within can be factored out. This is not just for clarity, you are likely to find future uses for it (e.g. the last example above could be factored out of the PetStore and used in other apps or used to open 2 connections). And, it will be easier to test.</p>
+<h2 id="about-productivity">About Productivity</h2>
+<p>We are not leaving clarity behind. Clarity and productivity are obviously related. I am only changing the angle.</p>
+<p>When I write code in an untyped language, I still think about types, the only difference is that I do not have any verification from the type checker. Not having a type checker or working with poorly designed types slows me down. Moving to a strongly typed functional language has made me much more effective, possibly 4x-5x times more effective (I am sure such stats are very personal and depend on many factors).</p>
+<p>IMO all developers, whether they admit it or not, use types in their heads. The question is: how effectively?</p>
+<p>The following subsections examine some concepts related to productivity.</p>
+<h3 id="a-walk-in-the-park">A walk in the park</h3>
+<p>Types can guide the process of writing code. I can write code by ‘following the types’ if the API gives me well designed types to follow. The analogy is following a path in the park.</p>
+<p>We have seen examples of this in <a href="2021-12-24-ts-types-part2.html" target="_blank">Part 2</a> where I twisted <em>office.js</em> arm to get the types right and was able to type predicate myself to a much faster to write and safer code.</p>
+<p>We have also seen this in Part 4 (<a href="2022-01-09-ts-types-part4.html#preventing-information-escape" target="_blank">preventing information escape</a>, <a href="2022-01-09-ts-types-part4.html#phantom-types" target="_blank">phantom types</a>) where types formed jigsaw puzzles allowing the computations to fit together in only certain ways.</p>
+<p> <div class="side-note">There is a technique often called <em>Hole Driven Development</em> in which the developer interacts with the type checker to write code. You can try to use this <a href="2021-12-12-ts-types-part1.html#type-holes" target="_blank">type hole</a> with a mixed success to accomplish some of it in TS.<br />
+The idea is that by examining the type of a still missing code (the hole) you should be able to figure out the right piece of the puzzle to fit in (replace that hole with a piece of code that has the needed type). The new piece can have some type holes too and the process is iterative. The language that provides the best experience (and a lot of fun) doing this is Idris. You can implement certain functions by just using keyboard shortcuts to deconstruct, pattern match, search solution space for the right function in scope and insert it to the program<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a>.<br />
+OK, TS does not do that, but you do not need such tooling to benefit from the jigsaw approach to designing your code.  </div></p>
+<h3 id="inference-reversed-and-typedd">Inference reversed and T(ype)DD</h3>
+<p>This section is not very relevant to TS, but I think it is interesting to note.</p>
+<p>Type inference allows a programming language to compute the types without needing the developer to specify them.<br />
+Ideally, the future will bring tooling where the developer defines the types and the compiler computes the program.</p>
+<p> <div class="side-note">A lot of this unicornish utopia is available today in some FP languages like Haskell. Certain code is considered boilerplate and the tooling can derive it automatically. Examples are: equality, ordering, JSON parsing/formatting, <code>map</code> functions for non-list types, folding/unfolding for non-list types, traversing non-list types, recursion scheme folds and unfolds, optics… All of this boilerplate would be available for free for something like the <code>Json</code> grammar example from Part 1 and Part 5. Programming in Haskell often involves creating some involved custom type and automatically deriving a lot of boilerplate for it.<br />
+The are also many experimental (typically short lived) projects for auto generating code. I have curated a short list <a href="https://github.com/rpeszek/IdrisTddNotes/wiki/Part2_Sec3_2_3_gen#program-synthesis-some-relevant-links" target="_blank">here</a> (I expect it to be mostly outdated).<br />
+The stronger the types, the more code generation is possible (I have already mentioned interactive code development in the dependently typed Idris).  </div></p>
+<p>TS will not automatically implement code for us, however, starting with types and following with (a manually written for now) programs is often quite productive. This is the TDD approach to programming, only T means <em>Type</em>. The simplest way to go about it is to start on a small unit level (define types for small building blocks first). It helps to know some solid building blocks (e.g. FP types) and to use a lot of type variables.</p>
+<h2 id="about-simplicity">About Simplicity</h2>
+<p>I consider the terms <em>simple</em> and <em>easy</em> to have different meaning. Easy: The low barrier to entry (e.g. language). Simple: Low effort to reason about (e.g. code written in that language). There is no free lunch, to get simplicity you need to accept that things will not be easy.<br />
+Simplicity is about ability to reason about things and as such is closely related to all other bullet points in this post.<br />
+IMO, the popularity of easy and the unpopularity of simple are a systemic problem in today’s programming and elsewhere.</p>
+<p>I consider TS to be complex (the opposite of simple). I devoted <a href="2022-01-03-ts-types-part3.html" target="_blank">Part 3</a> to explaining why.</p>
+<p>On some basic level, simplicity is associated with strictness. Flexibility seems to cause complexity. <em>Flow’s exact</em> objects are strict and simple, existential types are more flexible and more complex, subtyping makes types very flexible and very complex. However, there are many modern concepts that programming languages are still trying to figure out, e.g. dependent types (Idris, Agda, Coq), linear types (Rust, Haskell v.9, Idris 2). These concepts should be filed under strict and complex today. I have a feeling that in 5 years I will consider them less complex than subtyping (see the current <a href="https://doc.rust-lang.org/nomicon/subtyping.html" target="_blank">subtyping</a> doc from Rust).</p>
+<p>One aspect critical to simplicity that is <em>easy</em> to explain and one that we have not discussed yet is <em>totality</em>.</p>
+<h3 id="total-vs-partial">Total vs Partial</h3>
+<p>Another related term is non-termination. Does the function return a value as expected? Bunch of things can go wrong: function can throw exception, loop forever, have unbounded recursion, return unexpected <code>null</code> or <code>undefined</code><a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a>. Functions that return a result for all inputs are called <em>total</em> otherwise are called <em>partial</em>.</p>
+<p>Total is simple. Reasoning about partial functions is much harder. Any non-termination bypasses the type checker. <em>Using partial functions means that the types are misleading.</em></p>
+<p>Exceptions seem to be the most frequent reason for the non-termination. Developers who like types avoid throwing exceptions, they will favor TS union types instead.</p>
+<p>Let’s think again about computations from the input-output perspective and consider conditional control flow of the program.<br />
+TS’s ternary can be viewed as a function. <em>if-else</em> not so much. <em>if_else</em> does not have a type. It was designed for mutating things and in today’s more immutable approach to programming it should feel antiquated. However, it is idiomatic to both JS and TS and is impossible to avoid.<br />
+I use <em>if_else</em> blocks only with return statements (with exception of <code>void</code> functions). I do not use <em>if</em> without the matching <em>else</em> even if the code looks repetitive (again, with exception of <code>void</code> functions).<br />
+If you think about the “referentially transparent computation within”, you will notice that <em>if</em> without <em>else</em> is partial. Several programming languages offer <em>if_else</em> syntax without the <em>if</em> only option.</p>
+<p>One could go (IMO too) far with this approach and use <code>if-else</code> as a lambda:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="co">// if-else as a lambda, this seems overkill</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a><span class="kw">const</span> x <span class="op">=</span> (() <span class="kw">=&gt;</span> {</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a>    <span class="cf">if</span> (condition) {</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a>        <span class="op">...</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true"></a>        <span class="cf">return</span> <span class="st">&quot;yes&quot;</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true"></a>    } </span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true"></a>    <span class="cf">else</span> {</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true"></a>        <span class="op">...</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true"></a>        <span class="cf">return</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true"></a>    }</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true"></a>    }) ()</span></code></pre></div>
+<p>I fully expect some pushback on this. My view is opposite to what you can frequently find on the internet (<em>else</em> is sometimes considered evil). Developers consider a sequence of <em>if</em>-s better than <em>if_else</em> chains.<br />
+For simple control flows it should not matter. For more complex code using partial <em>if</em>-s is concerning.</p>
+<p> <div class="side-note">In general case verifying totality is <em>undecidable</em> (it is impossible for a compiler to do that for an arbitrary program). This is the famous Turing’s counterexample to Hilbert’s <a href="https://en.wikipedia.org/wiki/Entscheidungsproblem" target="_blank">decidability problem</a>. You may also know it as the <a href="https://en.wikipedia.org/wiki/Halting_problem" target="_blank">halting problem</a>. However, interesting things can be done and languages like Agda, COQ, Idris can guarantee totality for a large subset of programs<a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a>.<br />
+Outside of this small set of dependently typed languages, the totality is something that developers need to try to enforce on their own (that obviously includes TS).  </div></p>
+<h2 id="about-safety">About Safety</h2>
+<p>Here are some interesting examples of safety that could be provided by types: safe routing in a single page app (no broken routes), safe use of environment configuration (e.g. types prevent accessing arbitrary environment variables), safe backend communication (imagine the same types in frontend and backend with safety preventing broken urls and payload parsing errors).<br />
+Safety can be very interesting, we have seen some examples e.g. <a href="2022-01-09-ts-types-part4.html#preventing-information-escape" target="_blank">no information escape</a>, <a href="2022-01-09-ts-types-part4.html#safety-preventing-unknown" target="_blank">no <code>unknown</code></a>, <a href="2022-01-09-ts-types-part4.html#safety-preventing-subtyping" target="_blank">no subtyping</a>.</p>
+<p> <div class="side-note">Here are some very sophisticated examples of safety (outside of TS scope): safe linear algebra (e.g. consistent sizes of matrices in matrix multiplication), safety preventing deadlocks, safe resource management (e.g. no memory leaks, type safety over which resources are used, etc.). One of the wildest type guarantees I have encountered was a guarantee for a linear computation cost.</p>
+<p>Safety is really needed and often missing. Here are some examples outside of TS scope: <a href="https://visualstudiomagazine.com/articles/2019/07/18/microsoft-eyes-rust.aspx" target="_blank">Microsoft eyes Rust</a>, <a href="https://www.zdnet.com/article/chrome-70-of-all-security-bugs-are-memory-safety-issues/" target="_blank">Security bugs in Chrome</a>.</p>
+<p>To summarize what has been said:</p>
+<ul>
+<li>Best programming practices are not good enough to avoid these problems</li>
+<li>Approaches like smart pointers in newer versions of C++ are not good enough either</li>
+<li>Type safety: works  </div></li>
+</ul>
+<p>We are seeing a slow industry shift towards a more sophisticated use of types, IMO, TS could play a role in that shift.</p>
+<h3 id="monads">Monads</h3>
+<p>I have stayed away from the topic thinking that there are enough monad tutorials already, but it is hard to not mention this concept. Monad types provide interesting safety: monads can control the ability to leave monadic computation. A value can easily enter a monad but once there it is hard to leave. This is clearly interesting from the safety standpoint and can be used to achieve all kinds of interesting guarantees. Things get really very interesting in the jigsaw puzzle building department with the addition of dependent types<a href="#fn5" class="footnote-ref" id="fnref5" role="doc-noteref"><sup>5</sup></a>.</p>
+<p>Monads allow for a very imperative code. However, this requires some syntax sugar that the programming language needs to offer. This is called <em>do notation</em> in several languages or <em>for comprehension</em> in Scala. TS does not offer it. That makes monadic computing far less accessible.</p>
+<p><a href="https://www.npmjs.com/package/fp-ts" target="_blank"><em>fp-ts</em></a> library provides support for monads and other functional types in TS. Thumbs up to all developers who use it or work on <em>fp-ts</em>.<br />
+I am not using <em>fp-ts</em> in my TS project (even though Haskell development is my main job function).<br />
+Each project needs to decide on the level of abstraction it allows to make developers working in it productive.</p>
+<h2 id="about-correctness">About Correctness</h2>
+<p>This series is not about formal verification, types and correctness could be its own blog (or book) series, one I am not qualified to write. I will only point out that, gradual typing or not, in TS correctness and soundness are a baby thrown with the bath water.<br />
+Making things conceptually easy at the cost of correctness (e.g. <a href="2022-01-03-ts-types-part3.html#variance-problems" target="_blank">incorrect variance</a>, incorrect or at least very unclear <a href="2022-01-03-ts-types-part3.html#semantics-rejected-overlap" target="_blank">narrowing semantics</a>) should not be on the table.</p>
+<p>Subtle falsehoods can sometimes be more concerning than the obvious once.<br />
+Here is a coding challenge: There is a common belief that compilation flags like <code>strictNullChecks</code> prevent escaped <code>null</code> and <code>undefined</code>. Exploit the incorrectness of variance in TS to create a partial function that has <code>number</code> return type but returns <code>undefined</code> for some of its input parameter values.</p>
+<p>This series discouraged the use of TS’s <code>any</code> type. Undeniably, combining <code>any</code> with stricter types can lead to some very interesting and useful code if one is careful. In a way, I view <code>any</code> as more straightforward and less damaging than other violations of logical soundness in the TypeScript language.</p>
+<h2 id="about-maintainability">About Maintainability</h2>
+<p>Considering who is still reading this, I am now only preaching to the quire so I will keep this short.</p>
+<p>Developers often go to great lengths to avoid compilation errors. Sure, committing code that does not compile is not very professional but this attitude sometimes goes beyond that. IMO, designing types to be resilient to changes in functionality may equate to not taking advantage of type safety. Compilation errors are why we use types, compilation errors are a good thing. What you want are errors that are easy to fix.</p>
+<p>Clearly all the points we made so far are related to maintainability. My favorite definition of high code quality is a low maintenance cost. Everything else is subjective. Types have a big beneficial impact on that cost.</p>
+<p>It is well known that types can prevent trivial errors (like using a <code>string</code> instead of <code>object</code>). It is hard to catch all such cases in tests and they do show up in production. This is the reason, I believe, TS is used in most of its projects.<br />
+Let me point out a less trivial high level bit. Types can simplify adding new functionality! If you think about the app as a big union type of various requirements (this is oversimplification but let me keep going), then adding handling of a new piece of functionality to that union could give you compilation errors unless you fix all the relevant places. Think about TS-s <a href="2022-01-03-ts-types-part3.html#switch-exhaustive-check" target="_blank"><code>switch</code></a> or <a href="https://dev.to/gvergnaud/bringing-pattern-matching-to-typescript-introducing-ts-pattern-v3-0-o1k" target="_blank"><em>ts-pattern</em></a> library exhaustive checks<a href="#fn6" class="footnote-ref" id="fnref6" role="doc-noteref"><sup>6</sup></a>.</p>
+<h2 id="universal">Universal</h2>
+<p>Types are more fundamental than a programming language. For example, most FP languages are effectively a syntax sugar over some version of lambda calculus. Lambda calculi come with very well understood formal type semantics.<br />
+I am reminded about the <a href="https://www.youtube.com/watch?v=IOiZatlZtGU&amp;t=1816s" target="_blank">Propositions as Types</a> presentation by Phil Wadler himself. It makes a compelling and funny argument that the movie <em>Independence Day</em> got it all wrong. Aliens would not have used C. C is being created by an engineering effort, types and LC are being discovered<a href="#fn7" class="footnote-ref" id="fnref7" role="doc-noteref"><sup>7</sup></a>. Aliens would have discovered typed lambda calculi or have engineered something much different than C or Java.<br />
+This is very philosophical, but it also has a pragmatic implication. Discovered programs are, by definition, timeless. If Wadler is right (and if we will keep programming in the future) that would be kinda amazing. In Part 4, I have referenced the <a href="https://www.goodreads.com/book/show/112252.Types_and_Programming_Languages" target="_blank">TAPL</a> book, IMO, the best textbook to learn types. This book is 20 years old. Recursion schemes (Part 5) are 20+ years old. Rank-2 types discussed in Part 4 were studied in 1980-ties and 90-ties. Many language features we consider new and modern are really old ideas, some date back to 1970ties.</p>
+<p>Robert Harper has coined a term <a href="https://existentialtype.wordpress.com/2011/03/27/the-holy-trinity/" target="_blank">The Holly Trinity of CS</a> and types are one of the three.</p>
+<p>Types are playing an increasing role in foundations of mathematics, the relatively new and “hot” topic is <a href="https://en.wikipedia.org/wiki/Homotopy_type_theory" target="_blank">HoTT</a>.</p>
+<p>This series was written by a TypeScript newb. I am using TS since November 2021 and only on one project.<br />
+We have covered a lot of ground that probably is not well known to many seasoned TypeScripters. I think the existence of this series provides a good verification for my claim: it is more about knowing the types than it is about knowing the programming language.</p>
+<p>Types could unify how we think and talk about programs. Effective development teams are small, the threshold seems to be somewhere around 4-5. Why is that? I had worked once inside a team of 8 (two teams with different core competencies were merged to work on a new project). Design meetings, OMG, we had a hard time agreeing on anything.<br />
+Nobody disputes that natural numbers satisfy <code>2 + 2 = 4</code>, and that has to do with types. One of my goals in this series was to sell the idea that types are fundamental to programming and are mostly not something open to endless debates. Types could help facilitate an agreement.</p>
+<h3 id="advanced-types-as-patterns">Advanced Types as Patterns</h3>
+<p>Advanced types are worth learning even if TypeScript is not able to support them. Advanced uses of types often come with very well behaving principled computations. TypeScript may not be able to express such types in full generality, but it is often possible to use the principled approach as a pattern.<br />
+An example is the <a href="https://github.com/rpeszek/ts-experiments/blob/master/ts-notes/src/RecSchemes.ts" target="_blank">Recursion Scheme</a> code I wrote for Part 5. I see <code>map</code> being added to all kinds of types as a pattern. Monads are used as a pattern too. The concept of <em>async</em>, <em>await</em> uses monads as a pattern. <a href="https://www.npmjs.com/package/fast-check" target="_blank"><em>fast_check</em></a> library uses some monadic computing as a pattern to accomplish randomized property testing.</p>
+<p>The burden to understand the principles lies on the authors of libraries and APIs. For example, developers using <em>async</em> / <em>await</em> do not need to understand the concept of a monad. You need to understand it to create the <em>async / await</em> concept.<br />
+It is also much easier to learn the underlying concept after experiencing examples of its use.</p>
+<h2 id="unpopular">Unpopular</h2>
+<p>There are two directions to writing high quality low defect rate software. Both approaches complement each other.</p>
+<ol type="1">
+<li>Increase project effort and cost (e.g. testing)</li>
+<li>Increase effort / cost outside of project scope (e.g. learning types)</li>
+</ol>
+<p>In the industry focused on short term goals 2 will be unpopular even if benefits of 2 are significant.<br />
+The ramp up time for the new project needs to be short. This explains why all mainstream languages look and feel alike. As far as programming languages go, the software industry is not innovation friendly. Any progress needs to be very gradual. Developers need to be able to “hit the ground running” when using a new language.</p>
+<p>I have already mentioned <a href="https://wiki.haskell.org/Wadler%27s_Law" target="_blank">Wadler’s Law</a> and <a href="https://bikeshed.com/" target="_blank">bikeshed</a>. Types are about semantics. That puts them at the far end of the popularity ranking scale. I have mentioned the easy vs simple dilemma. Simple is less popular. Types are theoretical, that makes them less popular as well.</p>
+<p>Let’s look at what the type friendly job market looks like. The job market for typed functional programming jobs is, frankly, dismal. At the same time, languages like Haskell and Rust top the list for the weekend use based on stackoverflow surveys<a href="#fn8" class="footnote-ref" id="fnref8" role="doc-noteref"><sup>8</sup></a>.</p>
+<p>How can we explain both of these phenomena? One issue is that only a small minority of programmers are interested in the more principled methods of writing code. Weekend learners playing with Rust appear to outnumber devs doing weekend project work in, say, PHP. That is good, but the numbers are still not there. There needs to be a critical mass of enthusiasts and there isn’t one. At the very minimum, managers expect to have a solid supply of headcounts. Managers will consider use of an FP language risky. You do not get fired or criticized for selecting Java.<br />
+The other issue is the correlation between interest in types with interest in mathematics. Current rush towards machine learning sways the precious few mathematically inclined CS students towards well paying data science careers.<br />
+Yet another issue is education and how mathematics and CS are being taught.</p>
+<p>Let’s take a bit more controversial take on this. A stronger version of “Someone is wrong on the internet” is <em>Lack of popularity is a necessary but not sufficient condition of doing something right.</em> “Popular =&gt; wrong” is a law (or hypothesis) of life that dates back to at least Socrates.<br />
+If you assume this to be true, you can view the progress as a process of being less and less wrong.<br />
+People look at the history of the software industry and see a never ending aggressive progress. A more insightful hindsight exposes a history of embracing bad ideas (e.g. <code>null</code>) and resisting good ideas (e.g. type parameters<a href="#fn9" class="footnote-ref" id="fnref9" role="doc-noteref"><sup>9</sup></a>).<br />
+You probably think of all of this as too hyperbolic. The benefit of taking my stance is a chance of noticing things that others don’t.</p>
+<p>Lack of popularity can translate to some <strong>frustration</strong> for the type enthusiasts. The frustration comes in the form of rejected designs, rejected pool requests, failed job interviews. I heard stories and experienced some of it first hand. That is just part of life, the criticism can have validity as more advanced programming techniques could make the project confusing and not accessible to its contributors.<br />
+It also should be expected. One comment I received about Part 1 of this series said “this code is quite different from what we do”. “Different” could imply worth pursuing but unavoidably will at some point lead to a confrontation.</p>
+<p>Types lack the critical mass of acceptance to become disruptive, they work well when the team is ready and/or when applied in a very gradual way. Thumbs up to projects and developer teams who learn types and select the unpopular!</p>
+<blockquote>
+<p><em>“Only in our dreams are we free. The rest of the time we need wages.”</em> <em>Terry Pratchett and <a href="https://wiki.lspace.org/Hwel" target="_blank">Hwel</a>. A good metaphor to describe life of a programmer.</em></p>
+</blockquote>
+<h3 id="gradual-progress">Gradual Progress</h3>
+<p>There is a steady and slow progress. Mainstream languages are introducing a little bit of types and FP.<br />
+<code>async</code>-<code>await</code> is now supported by many languages. <em>Sum/variant types</em> are supported by many languages (TS’s union types stand out for their readability). Record types are being introduced as well (e.g. Java 14 <em>records</em>, C# 10 record struts, …). C# has type safe <code>equals</code>. Advanced types in TS we have discussed in <a href="2022-01-09-ts-types-part4.html" target="_blank">Part 4</a> and <a href="2022-02-13-ts-types-part5.html" target="_blank">Part 5</a>. The list slowly grows.</p>
+<h2 id="final-words">Final words</h2>
+<p>TS does a poor job implementing types. However, it has types and it even allows to do some advanced things with them. The last two installments (<a href="2022-01-09-ts-types-part4.html" target="_blank">Part 4</a> and <a href="2022-02-13-ts-types-part5.html" target="_blank">Part 5</a>) allowed me to go places I would not be able to reach in most mainstream languages.</p>
+<p>If developers start using types, the languages will expand support for them.<br />
+This will feed some gradual change. The hope for existence of such a feedback loop is what prompted me to write this series.<br />
+My hope is that mainstream programming will eventually transition itself to more principled programming approaches.</p>
+<p><strong>Should more advanced types be used in a project?</strong> Ideally (and IMO) that decision should be made by the developers. I have presented plenty of <em>pros</em>. The biggest obstacle is the learning curve. I am afraid this learning needs to happen outside of the project work. In reality, this means that the decision has to be made based on what the team knows already. So the answer for some teams could <em>yes</em> today, for some could be <em>no</em> today but a <em>yes</em> in the future.<br />
+My personal approach is to make sure that TS code is approachable and my goal is to make it principled within this constraint.<br />
+This is not very easy to do, it is much easier to use principled types than principled patterns. It is also easier to write principled code in an environment where principled is not considered odd.<br />
+It is also good to be able to scratch the itch and keep practicing the real thing, I have my backend work to do that, lots of people do not have that luxury.</p>
+<blockquote>
+<p><em>“She fumbled in her apron pocket for her tobacco pouch.<br />
+‘Has anyone got a light?’ she inquired.<br />
+A couple of actors produced bundles of matches.<br />
+Nanny nodded, and put the pouch away.<br />
+‘Good,’ she said. ‘Now, has anyone got any tobacco?’”</em></p>
+</blockquote>
+<p><em><a href="https://en.wikipedia.org/wiki/Nanny_Ogg" target="_blank">Nanny Ogg</a>’s behavior describes how I sometimes feel trying to use advanced types as patterns.</em></p>
+<p><strong>Next steps</strong>: Over the next few months I plan to slowly proofread everything and make final corrections. I will remove the draft warnings and post a note on reddit r/typescript when this is all done. I do not expect any significant content changes.</p>
+<p>This series was a long journey, I am happy I took it, and I am happy it is mostly behind me. Big thanks to all of you who stayed with me all the way to this end.<br />
+Thank you to everyone who messaged me corrections. Please let me know your thoughts on this installment.<br />
+Good luck with your projects, I hope you will use types!</p>
+<section class="footnotes" role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1" role="doc-endnote"><p>Not very relevant to TS, but could be interesting to philosophically inclined readers. Can a function returning, say, the current time be ever referentially transparent? Some languages (like Idris or Haskell) are big on referential transparency. In such languages functions can be executed only inside <code>main</code>. Evaluating a timestamp function would not return the current time. Instead, it would return a computation that returns the time when eventually executed inside <code>main</code>. This allows some purists to claim that the function is referentially transparent and has practical implications too. You could simulate a similar purity in TS by returning <a href="2022-02-13-ts-types-part5.html#thunks-and-callbacks-never-and-unknown." target="_blank">thunks</a>.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2" role="doc-endnote"><p>You can see some of it in this <a href="https://www.youtube.com/watch?v=DRq2NgeFcO0" target="_blank">youtuble</a><a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn3" role="doc-endnote"><p>In TS, of course, we have the ability to configure the compiler to verify null safety. In some languages (e.g. JS) you also get partial function by writing code that in certain cases simply does not return. TS is relatively good in preventing this situation, compiler will say “Not all code paths return a value”.<a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn4" role="doc-endnote"><p>These languages can be used as proof assistants. One could prove anything (including falsehoods) using, say, unbound recursion. Proof assistant that does not check totality would not be assisting well, would it?<br />
+Side note: When using proof assistant, you are proving a type and you are proving it by implementing it.<br />
+This equivalence has a name: Curry-Howard correspondence. “Propositions are types, proofs are programs”.<a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn5" role="doc-endnote"><p><a href="https://www.manning.com/books/type-driven-development-with-idris" target="_blank">TDD in Idris</a> book contains some very interesting and accessible examples of monadic computations in dependently typed setting.<a href="#fnref5" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn6" role="doc-endnote"><p>It is good to note that this safety is unique to union types, you will not get the same safety when adding a property to an object. It is interesting and telling that the industry is adding co-product types to programming languages just now.<a href="#fnref6" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn7" role="doc-endnote"><p>A similar and relevant philosophical discussion has been happening in mathematics for centuries (see <a href="https://en.wikipedia.org/wiki/Philosophy_of_mathematics#Mathematical_realism" target="_blank">wikipedia</a>). My opinion on this is that a creative process tends to be iterative leaving a historical evidence of iterations. Mathematics, for most part, has been additive. There was rarely a need to rewire an old theory. As far as I know not in last 100 years.<a href="#fnref7" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn8" role="doc-endnote"><p>I remember Haskell firmly in the first position for the stackoverflow weekend use statistics for several years. I found this link: <a href="https://stackoverflow.blog/2017/02/07/what-programming-languages-weekends/" target="_blank">2017</a>. These stats are hard to find but I also found this one: <a href="https://stackoverflow.blog/2019/10/28/research-update-coding-on-the-weekends/" target="_blank">2019</a>. In 2019 Rust moved ahead of Haskell.<br />
+At the same time, the job ranking (based on the UK’s <a href="https://www.itjobswatch.co.uk/jobs/uk/haskell.do" target="_blank">IT Jobs Watch</a>, I have not found a similar ranking for the US.) puts Haskell at 932 as of 2022/02/06. Haskell moved ahead of COBOL in that ranking in 2017.<br />
+This ranking is possibly exaggerated too, lots of jobs list Haskell and good to have but will have you code in PHP. This bias exist in any language but is stronger for something like Haskell than say COBOL.<a href="#fnref8" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn9" role="doc-endnote"><p>As an example, Java has resisted type variables for a long time. “Although our generics extensions were put on hold for six years, Sun developed a much keener interest in the compiler I had written for GJ. It proved to be more stable and maintainable than their first Java compiler. So they decided to make the GJ compiler the standard javac compiler from their 1.3 release on, which came out in 2000.” (<a href="https://www.artima.com/articles/the-origins-of-scala" target="_blank">quote from Martin Odersky</a>). Generics remained disabled until Java version 1.5 (2004). Oderky is always very diplomatic in his statements.<a href="#fnref9" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
+
+    </section>
+</article>
+]]></summary>
+</entry>
+<entry>
     <title>Type Enthusiast's Notes about TypeScript. Part 5. Advanced Types</title>
     <link href="https://rpeszek.github.io//posts/2022-02-13-ts-types-part5.html" />
     <id>https://rpeszek.github.io//posts/2022-02-13-ts-types-part5.html</id>
@@ -1435,7 +1753,7 @@ This series needed a JS library with TS bindings to draw examples from, I decide
 <li><a href="2022-01-03-ts-types-part3.html" target="_blank">Part 3</a>. Will cover some of the TS type safety features that I absolutely love. Throughout the series, we will encounter several examples where TS compiler does not work as expected. One of my notes will argue that what TS is and does it quite complex.</li>
 <li><a href="2022-01-09-ts-types-part4.html" target="_blank">Part 4</a>, <a href="2022-02-13-ts-types-part5.html" target="_blank">Part 5</a>. Will be more theoretical. Notes in Parts 4-5 will discuss topics such as TS’s structural, recursive types, subtyping, phantom types, type variable scoping, higher-rank polymorphism (TS supports a version of it!), and type level programming. I will show a trick to increase type safety that prevents widening to <code>unknown</code> or other supertype.<br />
 </li>
-<li>Part 6. Will be a wrap-up with some final thoughts.</li>
+<li><a href="2022-03-13-ts-types-part6.html" target="_blank">Part 6</a>. Will be a wrap-up with some final thoughts.</li>
 </ul>
 <p><strong>Why am I writing these notes?</strong><br />
 To be honest, it is because I am really impressed and excited about some of the type safety features in TS.</p>
@@ -2965,371 +3283,6 @@ It most likely will end up being used (I have seen it) in ways similar to what I
 It is important that the developers are aware of the gotchas that come with some of the instances.</p>
 <p>Any code (alternative or not) producing confusing error output is a concern.<br />
 IMO, every abstraction and every instance needs to be concerned about the error output quality. <em>Not being designed for error handling</em> should not be a thing. At the same time, error friendlier instances should be a good thing.</p>
-
-    </section>
-</article>
-]]></summary>
-</entry>
-<entry>
-    <title>Maybe Overuse, Stories About Error Information Loss</title>
-    <link href="https://rpeszek.github.io//posts/2021-01-17-maybe-overuse.html" />
-    <id>https://rpeszek.github.io//posts/2021-01-17-maybe-overuse.html</id>
-    <published>2021-01-17T00:00:00Z</published>
-    <updated>2021-01-17T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<article>
-    <section class="header">
-        Posted on January 17, 2021
-        
-            by Robert Peszek
-        
-        
-          <br /> Last Modified on February 17, 2021
-        
-        
-        <div class="changelog"> <div>Revision History: <ul> <li> (2021.01.18) Added <a href="#monadfail-and-maybe">MonadFail</a> subsection to <a href="#maybe-on-hackage">Maybe on Hackage</a> </li> <li> (2021.02.17-now) <a href="#more-links">More Links</a> (list of related links)</li> </ul> </div></div>
-        
-        
-        <div class="info">Tags: <a title="All pages tagged 'Haskell'." href="../tags/Haskell.html">Haskell</a>, <a title="All pages tagged 'error-messages'." href="../tags/error-messages.html">error-messages</a>, <a title="All pages tagged 'maintainability'." href="../tags/maintainability.html">maintainability</a></div>
-        
-    </section>
-    <section>
-
-    </section>
-    <section>
-        <div class="toc"><div class="header">Table of Contents</div>
-<ul>
-<li><a href="#nutshell">Nutshell</a></li>
-<li><a href="#error-clarity-rule">Error Clarity Rule</a></li>
-<li><a href="#harmful-real-world-examples">Harmful Real-World Examples</a>
-<ul>
-<li><a href="#maybe-on-hackage"><code>Maybe</code> on Hackage</a></li>
-<li><a href="#cut-catmaybes">Cut <code>catMaybes</code></a></li>
-<li><a href="#hkd-pattern">HKD pattern</a></li>
-<li><a href="#traversable-with-maybe"><code>Traversable</code> with <code>Maybe</code></a></li>
-</ul></li>
-<li><a href="#questioning-record-types-with-all-maybe-fields">Questioning Record Types with all <code>Maybe</code> Fields</a>
-<ul>
-<li><a href="#recreating-java-beans-with-maybe">Recreating <em>Java Beans</em> with <code>Maybe</code> ;)</a></li>
-<li><a href="#maybe-first-monoid-fields"><em>Maybe-First</em> <code>Monoid</code> fields</a></li>
-</ul></li>
-<li><a href="#alternative-typeclass"><code>Alternative</code> typeclass</a></li>
-<li><a href="#good-uses-of-maybe">Good uses of Maybe</a></li>
-<li><a href="#why-maybe-is-overused-possible-explanations">Why <code>Maybe</code> is Overused? Possible Explanations</a></li>
-<li><a href="#more-links">More Links</a></li>
-</ul>
-</div>
-<h4 id="motivating-references">Motivating References:</h4>
-<p>I was very happy to find Michael Snoyman’s <a href="https://www.snoyman.com/blog/2020/10/haskell-bad-parts-1/" target="_blank">Haskell The Bad Parts</a> series.<br />
-I was also motivated by <a href="https://www.michaelpj.com/blog/2021/01/02/elementary-programming.html" target="_blank">Elementary Programming</a> post (<a href="https://www.reddit.com/r/haskell/comments/kst0d3/elementary_programming/" target="_blank">reddit</a>).</p>
-<p><strong>Similar:</strong> <a href="https://www.reddit.com/r/haskell/comments/jxj8i/data_maybe_harmful/" target="_blank">reddit data_maybe_harmful</a></p>
-<p>This post is Haskell specific.<br />
-This post treats the term error colloquially, it does not distinguish between <a href="https://wiki.haskell.org/Error_vs._Exception" target="_blank"><em>exceptions</em> and <em>errors</em></a>. In particular, <em>error information loss</em> refers to exceptions not errors.</p>
-<h2 id="nutshell">Nutshell</h2>
-<p><code>Maybe</code> is the functional answer to <code>null</code> - the <a href="https://en.wikipedia.org/wiki/Tony_Hoare" target="_blank">billion dollar mistake</a>. I claim that using <code>Maybe</code> can still be problematic.</p>
-<p>IMO <code>Maybe</code> is often overused. I have started to question the use of <code>Maybe</code> every time I see it in the code base I maintain. The result is either accepting its usage or rewriting the code to use <code>Either</code>. This approach has been effective in creating more robust code. I am not claiming that <code>Maybe</code> has no place in a well written code, only that its use should be closely examined. I have seen brilliant code that has been hard to maintain because of its overuse of <code>Maybe</code>. This post shares a perspective of someone who maintains a complex Haskell code base.</p>
-<p><code>Maybe</code> improves over <code>null</code>. But it does not supersede it. Languages that have <code>null</code> also have easy access to logging, stack traces etc.</p>
-<p><code>Maybe</code> typically represents data that can be <em>missing</em> or a computation that can result in an <em>unknown error</em>.<br />
-What you typically care about is <em>what data is missing</em> and <em>what is the error</em>.</p>
-<p><em>Code correctness</em>, <em>reasoning about code</em> are, arguably, the defining aspects of FP. <em>Reasoning about code</em> typically refers to some advanced use of the type system or formal methods. IMO “reasoning about code” should start with reasoning about errors and corner cases (like missing data). This is why the use of <code>Maybe</code> needs to be examined and questioned. In my experience this aspect of reasoning about code is often overlooked.</p>
-<p>Reasoning about errors is not easy: The type system can’t help with errors that bypass it (e.g. <code>error :: String -&gt; a</code>). It can’t help with exceptions which were intentionally suppressed into <code>Nothing</code> <em>(the focus of this post)</em>. And, the list goes on…</p>
-<p>My points / pleas are:</p>
-<ul>
-<li>The ecosystem would be better off without offering convenience combinators that return <code>Maybe</code> if an equivalent returning <code>Either</code> exists</li>
-<li>Examples, tutorials, and blog posts should favor <code>Either</code> over <code>Maybe</code></li>
-<li>Developers should be careful about not overusing <code>Maybe</code></li>
-</ul>
-<h2 id="error-clarity-rule">Error Clarity Rule</h2>
-<p><em>What does <code>Nothing</code> mean? If the reason behind it can be disambiguated to one root cause, then I consider the use of <code>Maybe</code> justified. Otherwise, I question its use.</em></p>
-<p>Consider this code:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Data.Map</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Prelude</span> <span class="kw">hiding</span> (lookup)</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a><span class="kw">type</span> <span class="dt">Key</span> <span class="ot">=</span> <span class="dt">String</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a><span class="kw">type</span> <span class="dt">Value</span> <span class="ot">=</span> <span class="op">...</span></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a><span class="co">-- OK</span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a><span class="ot">phone ::</span> <span class="dt">Map</span> <span class="dt">Key</span> <span class="dt">Value</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Value</span></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a>phone <span class="ot">=</span> <span class="fu">lookup</span> <span class="st">&quot;phone&quot;</span></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true"></a></span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true"></a><span class="co">-- OK</span></span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true"></a><span class="ot">email ::</span> <span class="dt">Map</span> <span class="dt">Key</span> <span class="dt">Value</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Value</span></span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true"></a>email <span class="ot">=</span> <span class="fu">lookup</span> <span class="st">&quot;email&quot;</span></span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true"></a></span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true"></a><span class="co">-- OK</span></span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true"></a><span class="ot">creditCardNum ::</span> <span class="dt">Map</span> <span class="dt">Key</span> <span class="dt">Value</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Value</span></span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true"></a>creditCardNum <span class="ot">=</span> <span class="fu">lookup</span> <span class="st">&quot;card-number&quot;</span></span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true"></a></span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">FormData</span> <span class="ot">=</span> <span class="dt">FormData</span> {</span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true"></a><span class="ot">   fdPhone ::</span> <span class="dt">Value</span></span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true"></a>   ,<span class="ot"> fdEmail ::</span> <span class="dt">Value</span></span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true"></a>   ,<span class="ot"> fdCardNum ::</span> <span class="dt">Value</span></span>
-<span id="cb1-23"><a href="#cb1-23" aria-hidden="true"></a>   }</span>
-<span id="cb1-24"><a href="#cb1-24" aria-hidden="true"></a></span>
-<span id="cb1-25"><a href="#cb1-25" aria-hidden="true"></a><span class="co">-- less OK</span></span>
-<span id="cb1-26"><a href="#cb1-26" aria-hidden="true"></a><span class="ot">formData ::</span> <span class="dt">Map</span> <span class="dt">Key</span> <span class="dt">Value</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">FormData</span>  </span>
-<span id="cb1-27"><a href="#cb1-27" aria-hidden="true"></a>formData <span class="fu">map</span> <span class="ot">=</span> <span class="dt">FormData</span> <span class="op">&lt;$&gt;</span> phone <span class="fu">map</span> <span class="op">&lt;*&gt;</span> email <span class="fu">map</span> <span class="op">&lt;*&gt;</span> creditCardNum <span class="fu">map</span> </span></code></pre></div>
-<p>you can clearly explain the first 3 functions:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="ot">explain ::</span> err <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a <span class="ot">-&gt;</span> <span class="dt">Either</span> err a</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a>explain <span class="ot">=</span> <span class="op">...</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Err</span> <span class="ot">=</span> <span class="dt">MissingEmail</span> <span class="op">|</span> <span class="dt">MissingPhone</span> <span class="op">|</span> <span class="dt">MissingCardNum</span> </span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true"></a><span class="ot">email' ::</span> <span class="dt">Map</span> <span class="dt">Key</span> <span class="dt">Value</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">Err</span> <span class="dt">Value</span></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true"></a>email' <span class="ot">=</span> explain <span class="dt">MissingEmail</span> <span class="op">.</span> email</span></code></pre></div>
-<p>How do I explain <code>formData</code>? I am stuck with:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">UnknownFieldMissing</span> <span class="ot">=</span> <span class="dt">UnknownFieldMissing</span> </span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a><span class="ot">formData' ::</span> <span class="dt">Map</span> <span class="dt">Key</span> <span class="dt">Value</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">Err</span> <span class="dt">Value</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a>formData' <span class="ot">=</span> explain <span class="dt">UnknownFieldMissing</span> <span class="op">.</span> formData</span></code></pre></div>
-<p>and that “Unknown” is not a field name.<br />
-The bigger the record, the bigger the problem.</p>
-<h2 id="harmful-real-world-examples">Harmful Real-World Examples</h2>
-<p>These are in no particular order, other than this presentation reuses types defined earlier.</p>
-<h3 id="maybe-on-hackage"><code>Maybe</code> on Hackage</h3>
-<h4 id="servant-multipart-example"><em>servant-multipart</em> example:</h4>
-<p>If you used older versions of <a href="https://hackage.haskell.org/package/servant-multipart" target="_blank">servant-multipart</a> you are familiar with</p>
-<p><em>status code 400, message “fromMultipart returned Nothing”</em>.</p>
-<p>You must have noticed that your logs have been silent as well.<br />
-The fix was implemented in 0.11.6</p>
-<p>New version (much better):</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="co">-- version 0.11.6</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a><span class="kw">class</span> <span class="dt">FromMultipart</span> tag a <span class="kw">where</span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a><span class="ot">   fromMultipart ::</span> <span class="dt">MultipartData</span> tag <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">String</span> a</span></code></pre></div>
-<p>Old version:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="co">-- version 0.11.5</span></span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a><span class="kw">class</span> <span class="dt">FromMultipart</span> tag a <span class="kw">where</span></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a><span class="ot">  fromMultipart ::</span> <span class="dt">MultipartData</span> tag <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a</span></code></pre></div>
-<p>Any typo, missed form field, wrong form field type submitted from the calling program resulted in a meaningless 400 error.<br />
-To work around this issue I ended up implementing <code>fromMultipart</code> in <code>Either MultiformError</code> monad and converting it to <code>Maybe</code> with something like that:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a><span class="ot">loggedMultipartMaybe ::</span>  <span class="dt">Either</span> <span class="dt">MultipartException</span> a <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a>loggedMultipartMaybe (<span class="dt">Left</span> err) <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true"></a>    <span class="kw">let</span> logDetails <span class="ot">=</span> <span class="op">...</span></span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true"></a>    <span class="fu">seq</span> </span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true"></a>      (debugLogger logDetails) <span class="co">-- uses unsafePeformIO to match your logging style</span></span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true"></a>      <span class="dt">Nothing</span></span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true"></a>loggedMultipartMaybe (<span class="dt">Right</span> r) <span class="ot">=</span> <span class="dt">Just</span> r </span></code></pre></div>
-<p>to, at least, get some logs.</p>
-<p>In just one project, that saved me hours in both new development and troubleshooting cost.<br />
-For a more complex multipart form that implements both <code>FromMultipart</code> and <code>ToMultipart</code> by hand, verifying that <code>fromMultipart . toMultipart</code> is the identity would have been very hard without some information about errors. If the multipart is called from a different program, different language …</p>
-<h4 id="convenience-combinators">Convenience Combinators:</h4>
-<p>It should be noted that many popular packages offer convenience <code>Maybe</code> functions even though it is very easy to write this natural transformation:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a><span class="ot">unExplain ::</span> <span class="dt">Either</span> err a <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a</span></code></pre></div>
-<p>Why is that? Why not just provide <code>Either</code> versions? Looking at <em>aeson</em> as an example:</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true"></a><span class="ot">decode ::</span> <span class="dt">FromJSON</span> a <span class="ot">=&gt;</span> <span class="dt">ByteString</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true"></a><span class="ot">eitherDecode ::</span> <span class="dt">FromJSON</span> a <span class="ot">=&gt;</span> <span class="dt">ByteString</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">String</span> a </span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true"></a><span class="ot">parseEither ::</span> (a <span class="ot">-&gt;</span> <span class="dt">Parser</span> b) <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">String</span> b </span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true"></a><span class="ot">parseMaybe ::</span> (a <span class="ot">-&gt;</span> <span class="dt">Parser</span> b) <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">Maybe</span> b </span></code></pre></div>
-<p>the name <code>decode</code> is suggestive of being the one commonly used.</p>
-<p>Having <code>aeason</code> in the spotlight, I like this part of their <a href="https://hackage.haskell.org/package/aeson-1.5.5.1/docs/Data-Aeson-Types.html##v:parse" target="_blank">documentation</a>:</p>
-<blockquote>
-<p><em>The basic ways to signal a failed conversion are as follows:</em></p>
-<ul>
-<li><em>fail yields a custom error message: it is the recommended way of reporting a failure;</em></li>
-<li><em>empty (or mzero) is uninformative: use it when the error is meant to be caught by some (&lt;|&gt;);</em></li>
-</ul>
-</blockquote>
-<p>Overuse of <code>mzero</code> in parsing code is as bad as the overuse of <code>Maybe</code>.</p>
-<h4 id="monadfail-and-maybe"><code>MonadFail</code> and <code>Maybe</code>:</h4>
-<p>Number of packages try to be polymorphic and use <code>MonadFail</code> constraint to provide information about unexpected errors (e.g. <em>time</em>, <em>mongoDB</em>). Sadly <em>base</em> provides no standard way to retrieve this information. The <a href="https://gitlab.haskell.org/ghc/ghc/-/issues/12160" target="_blank">ticket</a> to add <code>Either String</code> instance is a no-go for now.</p>
-<p>The packages which use <code>MonadFail</code> do not offer convenience <code>MonadFail</code> monads either. It seems wrong and asymmetric to force the caller to define their type for retrieving error information.</p>
-<p>But <code>MonadFail</code> has <code>Maybe</code> instance! I strongly believe in <em>make writing good code easy, bad code hard</em> design principle. This is clearly violated here.</p>
-<p>Also, notice this part of documentation (in <em>base</em> Control.Monad.Fail):</p>
-<blockquote>
-<p>If your Monad is also MonadPlus, a popular definition is</p>
-<p><code>fail _ = mzero</code></p>
-</blockquote>
-<p><em>(quiet sob)</em></p>
-<h3 id="cut-catmaybes">Cut <code>catMaybes</code></h3>
-<p>Replacing</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true"></a><span class="ot">catMaybes ::</span> [<span class="dt">Maybe</span> a] <span class="ot">-&gt;</span> [a]</span></code></pre></div>
-<p>with</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true"></a><span class="ot">partitionEithers ::</span> [<span class="dt">Either</span> e a] <span class="ot">-&gt;</span> ([e], [a])</span></code></pre></div>
-<p>very often improves the robustness of code.</p>
-<p>Consider <code>Contact</code> record type with <code>cEmail :: Maybe Email</code> field. We can get</p>
-<ul>
-<li>lists of emails by using <code>catMaybes</code></li>
-<li>list of emails and the information which <code>Contact</code>-s do not have an email using <code>partitionEithers</code>.</li>
-</ul>
-<p>The <code>Contact</code> list could come from a parsed JSON and could contain a list of company employees or is a parsed mail-mime <em>CC:</em> header. Missing email should be rare.</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Control.Arrow</span> ((&amp;&amp;&amp;))</span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true"></a></span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true"></a><span class="co">-- maybe version</span></span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true"></a><span class="ot">getEmails ::</span> [<span class="dt">Contact</span>] <span class="ot">-&gt;</span> [<span class="dt">Email</span>]</span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true"></a>getEmails <span class="ot">=</span> catMaybes <span class="op">.</span> <span class="fu">map</span> cEmail</span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true"></a></span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true"></a><span class="co">-- either version</span></span>
-<span id="cb11-8"><a href="#cb11-8" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">MissingData</span> a <span class="ot">=</span> <span class="dt">MissingEmailData</span> a <span class="op">|</span> <span class="op">...</span></span>
-<span id="cb11-9"><a href="#cb11-9" aria-hidden="true"></a></span>
-<span id="cb11-10"><a href="#cb11-10" aria-hidden="true"></a><span class="ot">getEmails' ::</span> [<span class="dt">Contact</span>] <span class="ot">-&gt;</span> ([<span class="dt">MissingData</span> <span class="dt">Contact</span>], [<span class="dt">Email</span>])</span>
-<span id="cb11-11"><a href="#cb11-11" aria-hidden="true"></a>getEmails' <span class="ot">=</span> partitionEithers <span class="op">.</span> <span class="fu">map</span> (<span class="fu">uncurry</span> explain <span class="op">.</span> (<span class="dt">MissingEmailData</span> <span class="op">&amp;&amp;&amp;</span> cEmail))</span></code></pre></div>
-<p>These are “it is rare, therefore can be ignored” vs “it is rare and therefore cannot be ignored” approaches.<br />
-I do not know what is the proper name for software that does not handle corner cases. I call it <em>expensive</em> ;)<br />
-I question the use of <code>catMaybes</code> every time I see it.</p>
-<p>I try to be terse in the above example, but it is clear that <code>Either</code> is more work. Terseness and ease of programming are IMO some of the reasons for <code>Maybe</code> overuse.</p>
-<h3 id="hkd-pattern">HKD pattern</h3>
-<p>Higher-Kinded Data pattern is super cool and can be very useful. This post explains what it is: <a href="https://reasonablypolymorphic.com/blog/higher-kinded-data/" target="_blank">reasonablypolymorphic on HKD pattern</a>. My example follows <em>reasonablypolymorphic</em> blog closely.</p>
-<p>In nutshell, we can create a record type like</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Person</span> f <span class="ot">=</span> <span class="dt">Person</span> { </span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true"></a><span class="ot">    pName ::</span> f <span class="dt">String</span></span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true"></a>  ,<span class="ot"> pAge  ::</span> f <span class="dt">Int</span></span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true"></a>  <span class="co">-- imagine a lot more fields here</span></span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true"></a>  } </span></code></pre></div>
-<p>parametrized by a type of kind <code>* -&gt; *</code> e.g. <code>Maybe</code> or <code>Identity</code>. All or some of the fields in that record type have an <code>f</code> in front of them.<br />
-<em>HKD Patter</em> is about using generic programming to transform that record based on operations that work on the fields.<br />
-For example, we can hoist <code>forall a . f a -&gt; g a</code> functions to <code>hkd f -&gt; hkd g</code> (here <code>Person f -&gt; Person g</code>).</p>
-<p>Imagine that <code>Person</code> has a long list of fields and there is a web form for entering them.<br />
-The post descibes a completely generic validation function that, when restricted to our <code>Person</code> type, looks like this:</p>
-<div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true"></a><span class="ot">validate ::</span> <span class="dt">Person</span> <span class="dt">Maybe</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> (<span class="dt">Person</span> <span class="dt">Identity</span>)</span></code></pre></div>
-<p>I hate when this is done to me: it took 5 minutes to enter the information, the submit button is grayed out, and I see no way to move forward. Typically, when that happens, it is caused by a JavaScript error.</p>
-<p>In this example it is not a programming bug, it is a design decision: a very sophisticated way to check that user entered all fields that does not provide information about which fields they missed.<br />
-Web form data entry aside, I challenge you to find one meaningful example where the above <code>validate</code> is useful. A one off data science code that processes massive amount of data and requires all fields to be present to be useful? All examples I can come up with seem far-fetched and still would benefit from having <code>Either</code>.</p>
-<p>Questions I am asking:</p>
-<ul>
-<li>Would you expect a production code somewhere out there that validates user input using HKD pattern and actually uses <code>Maybe</code>?</li>
-<li>Did <em>reasonablypolymorphic</em> confuse or simplify things by using <code>Maybe</code> in its example?</li>
-</ul>
-<p>In <em>reasonablypolymorphic</em> post <code>Maybe</code> is not just in the <code>validate</code> function. The post defines the whole <code>GValidate</code> boilerplate that assumes <code>Maybe</code>.</p>
-<p>Fortunately, the approach can be generalized to other <code>f</code> types.<br />
-A meaningful validation would have a type</p>
-<div class="sourceCode" id="cb14"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">FieldInfo</span> <span class="ot">=</span> <span class="op">...</span></span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true"></a></span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true"></a><span class="ot">validate ::</span> <span class="dt">Person</span> <span class="dt">Maybe</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> [<span class="dt">FieldInfo</span>] (<span class="dt">Person</span> <span class="dt">Identity</span>)</span></code></pre></div>
-<p>This is arguably more work to do and beyond what <em>HKD pattern</em> can offer. However, it is quite possible to do something like this generically:</p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">FieldInfo</span> <span class="ot">=</span> <span class="op">...</span></span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true"></a></span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true"></a><span class="ot">validate ::</span> <span class="dt">Person</span> (<span class="dt">Either</span> <span class="dt">FieldInfo</span>) <span class="ot">-&gt;</span> <span class="dt">Either</span> [<span class="dt">FieldInfo</span>] (<span class="dt">Person</span> <span class="dt">Identity</span>)</span></code></pre></div>
-<p>Check out the documentation for the <a href="https://hackage.haskell.org/package/barbies" target="_blank">barbies</a> package, it comes with exactly this example! Notice, some boilerplate work is still needed to annotate missing values with field information:</p>
-<div class="sourceCode" id="cb16"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true"></a><span class="ot">addFieldInfo ::</span>  <span class="dt">Person</span> <span class="dt">Maybe</span> <span class="ot">-&gt;</span> <span class="dt">Person</span> (<span class="dt">Either</span> <span class="dt">FieldInfo</span>) </span></code></pre></div>
-<p><code>addFieldInfo</code> would need to happen outside of the <em>HKD pattern</em>.<br />
-One can argue that a better solution would be not to use <code>Person Maybe</code> and convert user form data entry directly to <code>Person (Either FieldInfo)</code>.</p>
-<h3 id="traversable-with-maybe"><code>Traversable</code> with <code>Maybe</code></h3>
-<p><em>barbies</em> validation of <code>Person</code> required a traversal of the <em>HKD</em> type. So, maybe, we should consider a somewhat simpler design where fields are unified into one type. Keeping up with the <em>reasonablypolymorphic</em> example:</p>
-<div class="sourceCode" id="cb17"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true"></a><span class="ot">{-# LANGUAGE DeriveFunctor #-}</span></span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true"></a><span class="ot">{-# LANGUAGE DeriveFoldable #-}</span></span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true"></a><span class="ot">{-# LANGUAGE DeriveTraversable #-}</span></span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true"></a></span>
-<span id="cb17-5"><a href="#cb17-5" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Person'</span> a <span class="ot">=</span> <span class="dt">Person'</span> { </span>
-<span id="cb17-6"><a href="#cb17-6" aria-hidden="true"></a><span class="ot">    pName' ::</span> a</span>
-<span id="cb17-7"><a href="#cb17-7" aria-hidden="true"></a>  ,<span class="ot"> pAge'  ::</span> a</span>
-<span id="cb17-8"><a href="#cb17-8" aria-hidden="true"></a>  <span class="co">-- imagine a lot more fields here</span></span>
-<span id="cb17-9"><a href="#cb17-9" aria-hidden="true"></a>  } <span class="kw">deriving</span> (<span class="op">...</span>, <span class="dt">Functor</span>, <span class="dt">Foldable</span>, <span class="dt">Traversable</span>)</span></code></pre></div>
-<p>And “now we are cooking with gas”!</p>
-<div class="sourceCode" id="cb18"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">FieldData</span> <span class="ot">=</span> <span class="op">...</span> <span class="co">-- unifying type for Person' fields</span></span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true"></a></span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true"></a><span class="ot">validateMaybe ::</span> <span class="dt">Person'</span> (<span class="dt">Maybe</span> <span class="dt">FieldData</span>) <span class="ot">-&gt;</span> <span class="dt">Maybe</span> (<span class="dt">Person'</span> <span class="dt">FieldData</span>)</span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true"></a>validateMaybe <span class="ot">=</span> <span class="fu">traverse</span> <span class="fu">id</span></span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true"></a></span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true"></a><span class="ot">validateEither ::</span> <span class="dt">Person'</span> (<span class="dt">Either</span> <span class="dt">FieldInfo</span> <span class="dt">FieldData</span>) <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">FieldInfo</span> (<span class="dt">Person'</span> <span class="dt">FieldData</span>)</span>
-<span id="cb18-7"><a href="#cb18-7" aria-hidden="true"></a>validateEither <span class="ot">=</span> <span class="fu">traverse</span> <span class="fu">id</span></span></code></pre></div>
-<p>New <code>validateEither</code> is not as good as the <em>barbies</em> version. It gives the user only one of the fields they missed.<br />
-IMO <code>validateMaybe</code> is useless for any data entry form validation.</p>
-<p>The <code>validateMaybe</code> example is here for a reason. It directly mimics the example discussed in <a href="https://www.michaelpj.com/blog/2021/01/02/elementary-programming.html" target="_blank">Elementary Programming</a>, which used</p>
-<div class="sourceCode" id="cb19"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true"></a><span class="ot">mapMaybe ::</span> (a <span class="ot">-&gt;</span> <span class="dt">Maybe</span> b) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> <span class="dt">Maybe</span> [b]</span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true"></a>mapMaybe <span class="ot">=</span> <span class="fu">traverse</span></span></code></pre></div>
-<p>as its only example.</p>
-<p><code>Maybe</code> is viral.</p>
-<h2 id="questioning-record-types-with-all-maybe-fields">Questioning Record Types with all <code>Maybe</code> Fields</h2>
-<p>Besides being a natural fit for data coming from something like a web form, there are other reasons for designing record types with many <code>Maybe</code> fields.<br />
-Here is my attempt at debunking some of them.</p>
-<h3 id="recreating-java-beans-with-maybe">Recreating <em>Java Beans</em> with <code>Maybe</code> ;)</h3>
-<p>Defining record types with many <code>Maybe</code> fields allows to construct such records easily if you care about only some of the fields.</p>
-<p>This can be done via some <code>empty</code> defaulting mechanism (I will use the <code>Person</code> type defined above to serve as an example):</p>
-<div class="sourceCode" id="cb20"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true"></a><span class="ot">emptyPerson ::</span> <span class="dt">Person</span> <span class="dt">Maybe</span></span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true"></a>emptyPerson <span class="ot">=</span> <span class="dt">Person</span> <span class="dt">Nothing</span> <span class="dt">Nothing</span></span></code></pre></div>
-<p>or with a use of <code>Monoid</code> and <code>mempty</code>. <code>emptyPerson</code> could be defined in a generic way as well (see <a href="https://hackage.haskell.org/package/hkd-default" target="_blank">hkd-default</a>).</p>
-<p>Say, your code cares about <code>pAge</code> only, you can just set <code>pAge</code>:</p>
-<div class="sourceCode" id="cb21"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true"></a><span class="ot">isDrinkingAge ::</span> <span class="dt">Person</span> <span class="dt">Identity</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span></span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true"></a>isDrinkingAge p <span class="ot">=</span> runIdentity (pAge p) <span class="op">&gt;=</span> <span class="dv">21</span></span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true"></a></span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true"></a>test10YearOld <span class="ot">=</span> emptyPerson {pAge <span class="ot">=</span> <span class="dt">Identity</span> <span class="dv">10</span>}</span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true"></a>test <span class="ot">=</span> isDrinkinAge test10YearOld</span></code></pre></div>
-<p>I do not like this approach. It feels like a poorly typed code.</p>
-<p>It also reminds me of <code>null</code> and hence the <em>Java Bean</em> reference. (<a href="https://stackoverflow.com/questions/1612334/difference-between-dto-vo-pojo-javabeans" target="_blank">Java Bean</a> was a popular pattern in the Java ecosystem. A <em>Bean</em> needs to have an empty constructor, and a <em>setter</em> / <em>getter</em> method for each field. It seems very similar to a record type with lots of <code>Maybe</code> fields.)</p>
-<p>An easy improvement would be to create <code>Age</code> type</p>
-<div class="sourceCode" id="cb22"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true"></a><span class="kw">newtype</span> <span class="dt">Age</span> <span class="ot">=</span> <span class="dt">Age</span> <span class="dt">Int</span> </span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true"></a></span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Person''</span> f <span class="ot">=</span> <span class="dt">Person''</span> { </span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true"></a>  <span class="op">...</span></span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true"></a>  ,<span class="ot"> pAge''  ::</span> f <span class="dt">Age</span></span>
-<span id="cb22-6"><a href="#cb22-6" aria-hidden="true"></a>  <span class="co">-- imagine a lot more fields here</span></span>
-<span id="cb22-7"><a href="#cb22-7" aria-hidden="true"></a>  } </span>
-<span id="cb22-8"><a href="#cb22-8" aria-hidden="true"></a></span>
-<span id="cb22-9"><a href="#cb22-9" aria-hidden="true"></a><span class="ot">isDrinkingAge' ::</span> <span class="dt">Age</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span></span>
-<span id="cb22-10"><a href="#cb22-10" aria-hidden="true"></a>isDrinkingAge' (<span class="dt">Age</span> a) <span class="ot">=</span> a <span class="op">&gt;=</span> <span class="dv">21</span></span></code></pre></div>
-<p>If we feel strongly about checking age on the <code>Person</code> type, we can use Haskell’s ability to program with polymorphic fields:</p>
-<div class="sourceCode" id="cb23"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true"></a><span class="ot">{-# LANGUAGE TypeApplications #-}</span></span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true"></a><span class="ot">{-# LANGUAGE DataKinds #-}</span></span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true"></a><span class="ot">{-# LANGUAGE FlexibleContexts #-}</span></span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true"></a><span class="ot">{-# LANGUAGE DuplicateRecordFields #-}</span></span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true"></a></span>
-<span id="cb23-6"><a href="#cb23-6" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">GHC.Records</span></span>
-<span id="cb23-7"><a href="#cb23-7" aria-hidden="true"></a></span>
-<span id="cb23-8"><a href="#cb23-8" aria-hidden="true"></a><span class="ot">isDrinkingAge ::</span> <span class="dt">HasField</span> <span class="st">&quot;pAge&quot;</span> p (<span class="dt">Identity</span> <span class="dt">Int</span>) <span class="ot">=&gt;</span> p <span class="ot">-&gt;</span> <span class="dt">Bool</span></span>
-<span id="cb23-9"><a href="#cb23-9" aria-hidden="true"></a>isDrinkingAge p <span class="ot">=</span> runIdentity (getField <span class="op">@</span> <span class="st">&quot;pAge&quot;</span> p) <span class="op">&gt;=</span> <span class="dv">21</span></span>
-<span id="cb23-10"><a href="#cb23-10" aria-hidden="true"></a></span>
-<span id="cb23-11"><a href="#cb23-11" aria-hidden="true"></a><span class="kw">newtype</span> <span class="dt">AgeTest</span> <span class="ot">=</span> <span class="dt">AgeTest</span> {<span class="ot"> pAge ::</span> <span class="dt">Identity</span> <span class="dt">Int</span>}</span>
-<span id="cb23-12"><a href="#cb23-12" aria-hidden="true"></a></span>
-<span id="cb23-13"><a href="#cb23-13" aria-hidden="true"></a>test40YearOld <span class="ot">=</span> isDrinkingAge <span class="op">$</span> <span class="dt">AgeTest</span> (<span class="dt">Identity</span> <span class="dv">40</span>)</span></code></pre></div>
-<p>IMO creating record types with lots of <code>Maybe</code> fields for the benefit of easy construction is not a good pattern.</p>
-<h3 id="maybe-first-monoid-fields"><em>Maybe-First</em> <code>Monoid</code> fields</h3>
-<p><code>Maybe (First _)</code> is a valid <code>Monoid</code>.<br />
-Using Maybe-First semantics, <code>mappend</code> selects the first non-<code>Nothing</code> element. Appending can be implemented as:</p>
-<div class="sourceCode" id="cb24"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Data.Semigroup</span> (<span class="dt">First</span> (..))</span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true"></a></span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true"></a>a <span class="op">&lt;&gt;</span> b <span class="ot">=</span> <span class="fu">fmap</span> getFirst <span class="op">$</span> <span class="fu">fmap</span> <span class="dt">First</span> a <span class="op">&lt;&gt;</span> <span class="fu">fmap</span> <span class="dt">First</span> b</span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true"></a></span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true"></a><span class="co">-- or in more &quot;elemenary&quot; way as:</span></span>
-<span id="cb24-6"><a href="#cb24-6" aria-hidden="true"></a></span>
-<span id="cb24-7"><a href="#cb24-7" aria-hidden="true"></a><span class="dt">Nothing</span> <span class="op">&lt;&gt;</span> b <span class="ot">=</span> b</span>
-<span id="cb24-8"><a href="#cb24-8" aria-hidden="true"></a>a <span class="op">&lt;&gt;</span> <span class="dt">Nothing</span> <span class="ot">=</span> a</span>
-<span id="cb24-9"><a href="#cb24-9" aria-hidden="true"></a>a <span class="op">&lt;&gt;</span> b <span class="ot">=</span> a</span></code></pre></div>
-<p>You can use this approach on each field to define <code>Monoid</code> instances for large record types that consist of <code>Maybe</code> fields.<br />
-This pattern provides a convenient defaulting mechanism and allows to set groups of fields at once using <code>mappend</code>.</p>
-<div class="sourceCode" id="cb25"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true"></a>overrides <span class="op">&lt;&gt;</span> record</span></code></pre></div>
-<p>This approach can also result in very weird data combinations if one is not careful:</p>
-<div class="sourceCode" id="cb26"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true"></a>gd <span class="ot">=</span> (<span class="fu">mempty</span><span class="ot"> ::</span> <span class="dt">Person</span> <span class="dt">Maybe</span>) {pName <span class="ot">=</span> <span class="st">&quot;grandpa&quot;</span>} <span class="co">-- missing age</span></span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true"></a>baby <span class="ot">=</span> (<span class="fu">mempty</span><span class="ot"> ::</span> <span class="dt">Person</span> <span class="dt">Maybe</span>) {pName <span class="ot">=</span> <span class="dt">Just</span> <span class="st">&quot;baby&quot;</span>, pAge <span class="ot">=</span> <span class="dt">Just</span> <span class="dv">1</span>} </span>
-<span id="cb26-3"><a href="#cb26-3" aria-hidden="true"></a></span>
-<span id="cb26-4"><a href="#cb26-4" aria-hidden="true"></a>grampatoddler <span class="ot">=</span> gd <span class="op">&lt;&gt;</span> baby <span class="co">-- it is easy to create surprising data</span></span></code></pre></div>
-<p>The reverse: <code>First (Maybe _)</code> <code>Monoid</code> instance is far less convenient to use but is much less surprising.</p>
-<p>I do not think that <code>Maybe-First</code> <code>Monoid</code> is necessarily bad. There is simply a trade-off between the conveniences it offers and its gotchas. I prefer designs that provide more safety over accidental bugs.</p>
-<h2 id="alternative-typeclass"><code>Alternative</code> typeclass</h2>
-<p><code>Alternaive</code> <code>(&lt;|&gt;)</code> is very convenient tool often used with parsers. It can be dangerous on its own merit. It can suppress error information in questionable ways if overused (I wrote a separate <a href="https://rpeszek.github.io/posts/2021-02-13-alternative.html" target="_blank">post</a> about it).</p>
-<p>There is currently no <code>Alternative</code> instance for <code>Either err</code> but there is one for <code>Maybe</code>. This creates temptation to <code>unExplain</code> the <code>err</code> …</p>
-<h2 id="good-uses-of-maybe">Good uses of Maybe</h2>
-<p>I think the following old design principle (Postel’s law) is still valid (on the implementation side)</p>
-<p><em>Lenient input, Strict Output</em>.</p>
-<p>This means <code>Maybe</code> is great as input parameter, less so in the result. The above <em>Error Clarity Rule</em> should be the overriding factor here. If the call-site can disambiguate what <code>Nothing</code> is, then <code>Maybe</code> results are fine.</p>
-<p>In particular, <em>prisms</em> are typically used on not nested coproducts, thus, the call-site can disambiguate at which level the pattern match failed. <code>lookup</code> in <code>Data.Map</code>, <code>find</code> for a <code>Foldabe</code> are all perfectly good choices for a <code>Maybe</code> result type.</p>
-<h2 id="why-maybe-is-overused-possible-explanations">Why <code>Maybe</code> is Overused? Possible Explanations</h2>
-<p>IMO these are the main causes of the overuse:</p>
-<ol type="1">
-<li><p>Using <code>Maybe</code> is simpler that <code>Either</code>. If doing the right thing takes more time and effort it will often not be done.</p></li>
-<li><p>Coding with <code>Maybe</code> is terser. Thus, coding with <code>Maybe</code> may seem more elegant.</p></li>
-<li><p><code>Maybe</code> is more expressive. Examples: <code>Alternative</code> instance; to use <code>Monad</code>, <code>Applicative</code> with <code>Either err</code> you need to unify on the <code>err</code> type which is extra work.</p></li>
-<li><p>Sophisticated abstractions can obscure common sense. <code>Maybe</code> is likely to fit the abstraction more often and easier than <code>Either</code>.</p></li>
-</ol>
-<p>Oversimplifications are nothing new in mathematical modeling. Anyone who studied, for example, mathematical physics has seen a lot of crazy oversimplifications. Code design appears not that different.</p>
-<ol start="5" type="1">
-<li>Non production code. Lots of Haskell code is about CS research. Lots of Haskell code is pet projects. Such code does not need to be maintained in production. <code>Maybe</code> is good enough.</li>
-</ol>
-<p>If developer can disambiguate the reason for <code>Nothing</code>, then use of <code>Either</code> is optional. This is not an overuse case and is justified.</p>
-<p>I started with link to <a href="https://www.michaelpj.com/blog/2021/01/02/elementary-programming.html" target="_blank">Elementary Programming</a> post and want to end with it. Would more explicit “elementary” programs help in spotting obvious things like error information loss? I think they could. Starting from requirements and going back to most elementary solution would probably never arrive at:</p>
-<div class="sourceCode" id="cb27"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true"></a><span class="ot">mapMaybe ::</span> (a <span class="ot">-&gt;</span> <span class="dt">Maybe</span> b) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> <span class="dt">Maybe</span> [b]</span></code></pre></div>
-<p>if only the requirements cared about errors.<br />
-I do not advocate avoiding abstractions, just do not forget errors on the way. Don’t throw the baby out with the bathwater.</p>
-<p>I am sure I do not have a full understanding of why and how <code>Maybe</code> is overused. The intent of this post is to start a discussion.</p>
-<p>Discussion links:</p>
-<ul>
-<li>github <a href="https://github.com/rpeszek/rpeszek.github.io/discussions" target="_blank">discussions</a></li>
-<li><a href="https://www.reddit.com/r/haskell/comments/kyo4xk/maybe_considered_harmful/" target="_blank">reddit</a></li>
-</ul>
-<h2 id="more-links">More Links</h2>
-<p>(Links and information added later, after the original post)</p>
-<ul>
-<li><p><a href="https://www.parsonsmatt.org/2018/11/03/trouble_with_typed_errors.html" target="_blank">The Trouble with Typed Errors</a> - My post is often read as “Use Either” (I would prefer just “Do not overuse Maybe”). Matt Parsons’s great article talks about problems with monolithic error types and more. Extensible error types is important topic worth its own github awesome page.</p></li>
-<li><p><a href="https://haskellweekly.news/episode/35.html" target="_blank">Haskell Weekly Podcast</a> has discussed this post. Thank you so much!</p></li>
-</ul>
 
     </section>
 </article>
