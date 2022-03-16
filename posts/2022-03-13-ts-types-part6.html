@@ -44,6 +44,8 @@
         
         
         
+        <div class="changelog"> <div>Revision History: <ul> <li> (2021.03.15) Edited <a href="#enums">Enums</a> section</li> </ul> </div></div>
+        
         
         <div class="info">Tags: <a title="All pages tagged 'TypeScript-Notes'." href="../tags/TypeScript-Notes.html">TypeScript-Notes</a></div>
         
@@ -134,15 +136,23 @@ When done right, one can use types as <em>specs</em>, at least on a small unit l
 </blockquote>
 <p>Part of the reason is that the code can be very general. If a variable can be literally anything, why not call it <code>x</code>? The other reason is where the reader gets the information from: variable names or types? Personally, I believe in more explicit variable names when implementing a specific business logic and the implementation is long. However, even in such cases, the info should be in the types. If it is not, the code probably can benefit from refactoring.</p>
 <h3 id="enums">Enums</h3>
-<p>Another bit of a telltale. Are enums clearer than literal types? This code has 3 types (“foo”, “bar” and the union):</p>
+<p><em>This section is now somewhat misplaced. I am keeping this edited version for consistency with my original post. It reflects, IMO, valid points made by the reddit community. My original position was that <em>enums</em> are obsoleted by union types.</em></p>
+<p>Are enums clearer than literal types? This code has 3 types (“foo”, “bar” and the union):</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a>type FooBar <span class="op">=</span> <span class="st">&quot;foo&quot;</span> <span class="op">|</span> <span class="st">&quot;bar&quot;</span></span></code></pre></div>
 <p>This code defines one type (<code>FooBar</code>) and is more verbose:</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="kw">enum</span> FooBar {</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a>  <span class="dt">Foo</span><span class="op">:</span> <span class="st">&quot;foo&quot;</span><span class="op">,</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a>  <span class="dt">Bar</span><span class="op">:</span> <span class="st">&quot;bar&quot;</span><span class="op">,</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a>  Foo <span class="op">=</span> <span class="st">&quot;foo&quot;</span><span class="op">,</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a>  Bar <span class="op">=</span> <span class="st">&quot;bar&quot;</span><span class="op">,</span></span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a>}</span></code></pre></div>
-<p>What is the advantage of using this <code>enum</code>? I don’t see a safety advantage, please let me know if I am missing something. This does not add clarity or readability either. String literals are much more readable.</p>
-<p>I think <code>enum</code>-s are used because they are a familiar translation of a concept from other programming languages. In this series I am suggesting building up cross language prowess based on types and not on habits developed in other languages. This would suggest preferring the first example.</p>
+<p>What is the advantage of using this <code>enum</code>?</p>
+<p><strong>EDIT:</strong> <em>I got a pushback to my criticism of <code>enum</code> (<a href="https://www.reddit.com/r/typescript/comments/tdymsp/comment/i0p5q8c/?utm_source=share&amp;utm_medium=web2x&amp;context=3" target="_blank">reddit</a>). Here is a list of valid reasons to use <code>enum</code> in TS:</em></p>
+<ul>
+<li><em>Intellisense is likely to work better (go to definition, search for usage - these niceties may not even make sense with union types)</em></li>
+<li><em>Type inference is likely to be much better as the name of the <code>enum</code> is specified at the usage point</em></li>
+<li><em>Enums can be more descriptive than some literals (e.g. <code>OK</code> is nicer than <code>200</code>)</em></li>
+<li><em>Enums are nominally typed which can be often useful. Two enums have different types even if they have the same content. (note that in TS even classes are structurally typed, class content matters, class name not so much)</em></li>
+</ul>
+<p><em>However, most type safety appears to be identical. For example, switch statement exhaustive checks are equivalent. IMO literal string types are often more readable. Readers familiar with languages that have a nice implementation of Algebraic Data Types are likely to gravitate towards unions.</em></p>
 <h3 id="clarity-vs-encapsulation">Clarity vs encapsulation</h3>
 <p>Encapsulation does not help clarity. I consider encapsulation to be very useful when designing micro-services, not so much when designing programs. Encapsulation often means not expressive types. Encapsulating is hiding things from the types. It often makes types simpler than they should be. To get the benefits of types, we need to give them a chance. Type checker will not type check what is invisible to it.</p>
 <p>On the other hand, explicit types (types that contain a lot of information) have a higher maintenance cost.<br />
