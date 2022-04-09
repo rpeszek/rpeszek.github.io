@@ -1995,11 +1995,11 @@ Sadly, the <code>_&lt;T&gt;(): T</code> is not universally useful, e.g. this wi
 <span id="cb29-4"><a href="#cb29-4" aria-hidden="true"></a><span class="dt">const</span> testfn = <span class="fu">curry</span>(_()) </span></code></pre></div>
 <div class="sourceCode" id="cb30"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true"></a><span class="co">//interestingly the following compiles as curry&lt;unknown, unknown, unknown&gt;</span></span>
 <span id="cb30-2"><a href="#cb30-2" aria-hidden="true"></a><span class="kw">const</span> testfn <span class="op">=</span> <span class="fu">curry</span>({} <span class="im">as</span> any)</span></code></pre></div>
-<p>TS type checker does not work with type variables at the top level. That makes testing expressions like <code>curry(_())</code> rather pointless. The logically most general type for the first <code>curry</code> parameter is rather useless:</p>
+<p>TS type checker does not work with type variables at the top level. That makes testing expressions like <code>curry(_())</code> rather pointless. The following compiles just fine, and would be a good (not very useful but good) choice for the inferred type of <code>_()</code>:</p>
 <div class="sourceCode" id="cb31"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true"></a>type GenFn2Type <span class="op">=</span> (ax<span class="op">:</span> never<span class="op">,</span> bx<span class="op">:</span> never) <span class="kw">=&gt;</span> unknown</span>
 <span id="cb31-2"><a href="#cb31-2" aria-hidden="true"></a></span>
 <span id="cb31-3"><a href="#cb31-3" aria-hidden="true"></a><span class="kw">const</span> compiles <span class="op">=</span> <span class="fu">curry</span>(_<span class="op">&lt;</span>GenFn2Type<span class="op">&gt;</span>()) </span></code></pre></div>
-<p>but TS does not infer that type (as IMO it should).</p>
+<p>but TS fails instead of inferring that type.</p>
 <p>There is an interesting relationship between the <code>never</code> type and <code>_&lt;T&gt;(): T</code>. There will be a future note about it.<br />
 The type hole <code>_</code> function is a useful tool and we will keep using it in future type explorations.</p>
 <p>Using types requires some experience, knowledge, and patience. More advanced types come with more misleading error messages, it takes experience to find the underlying cause of a misleading compilation error, and that is true in any language. Eventually, I (and you) will look at a TS compilation error and will say “ah, you really meant this: …”.</p>
