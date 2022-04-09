@@ -44,6 +44,8 @@
         
         
         
+        <div class="changelog"> <div>Revision History: <ul> <li> (2022.01.03 - Present) Changes are documented in <a href="#summary-of-final-edits">Summary of final edits</a>. </ul> </div></div>
+        
         
         <div class="info">Tags: <a title="All pages tagged 'TypeScript-Notes'." href="../tags/TypeScript-Notes.html">TypeScript-Notes</a></div>
         
@@ -72,7 +74,10 @@
 <li><a href="#variance-problems">Variance problems</a></li>
 <li><a href="#summary">Summary</a></li>
 </ul></li>
-<li><a href="#next-chapter">Next Chapter</a></li>
+<li><a href="#next-chapter">Next Chapter</a>
+<ul>
+<li><a href="#summary-of-final-edits">Summary of final edits</a></li>
+</ul></li>
 </ul>
 </div>
 <p><em>Please Leave Feedback in: <a href="https://github.com/rpeszek/rpeszek.github.io/discussions/1" target="_blank">git discussions</a></em></p>
@@ -274,7 +279,7 @@ I will hopefully bring this point even closer to home by the end of this post.</
 <span id="cb16-7"><a href="#cb16-7" aria-hidden="true"></a>    <span class="dt">hello</span><span class="op">:</span> string<span class="op">;</span></span>
 <span id="cb16-8"><a href="#cb16-8" aria-hidden="true"></a>    <span class="dt">since</span><span class="op">:</span> number<span class="op">;</span></span>
 <span id="cb16-9"><a href="#cb16-9" aria-hidden="true"></a>}</span></code></pre></div>
-<p>IMO, widening object property types is an arbitrary complexity.</p>
+<p>TS allows to define the above object types using <code>as const</code>, e.g. <code>const helloDolly = {hello: "Dolly!"} as const</code> and <code>const datedHello = {hello: "world!", since:2022} as const</code>. It this is done <code>helloDolly === datedHello</code> will no longer compile but IMO, widening object property types is an arbitrary complexity.</p>
 <h3 id="diy-equality">DIY equality</h3>
 <p>The question is how far can I get by trying to reproduce safety around the <code>===</code> on my own.</p>
 <div class="sourceCode" id="cb17"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true"></a>declare <span class="kw">function</span> eq<span class="op">&lt;</span>T<span class="op">&gt;</span>(t1<span class="op">:</span> T<span class="op">,</span> t2<span class="op">:</span> T)<span class="op">:</span> boolean</span></code></pre></div>
@@ -433,6 +438,10 @@ Seems like a catch-22 problem.</p>
 <p>This post has been about the “messy” in TS. The next installment will focus on programming with type variables and will present TS in a better light. I decided to split advanced topics into 2 smaller posts. I plan to discuss phantom types, type variable scoping, a pattern emulating existential types, and rank 2 types. I consider these to be quite useful typing approaches. I will also show a trick that prevents <code>unknown</code> and supertype widening.</p>
 <p>Here is the link: <a href="2022-01-09-ts-types-part4.html" target="_blank">Part 4</a>.</p>
 <p>Happy New Year to all of my readers. Thank you for reading.</p>
+<h3 id="summary-of-final-edits">Summary of final edits</h3>
+<ul>
+<li>Added information about <code>as const</code> in <a href="#hidden-blooper-side-note">Hidden blooper note</a></li>
+</ul>
 <section class="footnotes" role="doc-endnotes">
 <hr />
 <ol>

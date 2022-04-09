@@ -969,6 +969,8 @@ Some of the readers have experienced very weird font size irregularities, making
         
         
         
+        <div class="changelog"> <div>Revision History: <ul> <li> (2022.01.03 - Present) Changes are documented in <a href="#summary-of-final-edits">Summary of final edits</a>. </ul> </div></div>
+        
         
         <div class="info">Tags: <a title="All pages tagged 'TypeScript-Notes'." href="../tags/TypeScript-Notes.html">TypeScript-Notes</a></div>
         
@@ -997,7 +999,10 @@ Some of the readers have experienced very weird font size irregularities, making
 <li><a href="#variance-problems">Variance problems</a></li>
 <li><a href="#summary">Summary</a></li>
 </ul></li>
-<li><a href="#next-chapter">Next Chapter</a></li>
+<li><a href="#next-chapter">Next Chapter</a>
+<ul>
+<li><a href="#summary-of-final-edits">Summary of final edits</a></li>
+</ul></li>
 </ul>
 </div>
 <p><em>Please Leave Feedback in: <a href="https://github.com/rpeszek/rpeszek.github.io/discussions/1" target="_blank">git discussions</a></em></p>
@@ -1199,7 +1204,7 @@ I will hopefully bring this point even closer to home by the end of this post.</
 <span id="cb16-7"><a href="#cb16-7" aria-hidden="true"></a>    <span class="dt">hello</span><span class="op">:</span> string<span class="op">;</span></span>
 <span id="cb16-8"><a href="#cb16-8" aria-hidden="true"></a>    <span class="dt">since</span><span class="op">:</span> number<span class="op">;</span></span>
 <span id="cb16-9"><a href="#cb16-9" aria-hidden="true"></a>}</span></code></pre></div>
-<p>IMO, widening object property types is an arbitrary complexity.</p>
+<p>TS allows to define the above object types using <code>as const</code>, e.g. <code>const helloDolly = {hello: "Dolly!"} as const</code> and <code>const datedHello = {hello: "world!", since:2022} as const</code>. It this is done <code>helloDolly === datedHello</code> will no longer compile but IMO, widening object property types is an arbitrary complexity.</p>
 <h3 id="diy-equality">DIY equality</h3>
 <p>The question is how far can I get by trying to reproduce safety around the <code>===</code> on my own.</p>
 <div class="sourceCode" id="cb17"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true"></a>declare <span class="kw">function</span> eq<span class="op">&lt;</span>T<span class="op">&gt;</span>(t1<span class="op">:</span> T<span class="op">,</span> t2<span class="op">:</span> T)<span class="op">:</span> boolean</span></code></pre></div>
@@ -1358,6 +1363,10 @@ Seems like a catch-22 problem.</p>
 <p>This post has been about the “messy” in TS. The next installment will focus on programming with type variables and will present TS in a better light. I decided to split advanced topics into 2 smaller posts. I plan to discuss phantom types, type variable scoping, a pattern emulating existential types, and rank 2 types. I consider these to be quite useful typing approaches. I will also show a trick that prevents <code>unknown</code> and supertype widening.</p>
 <p>Here is the link: <a href="2022-01-09-ts-types-part4.html" target="_blank">Part 4</a>.</p>
 <p>Happy New Year to all of my readers. Thank you for reading.</p>
+<h3 id="summary-of-final-edits">Summary of final edits</h3>
+<ul>
+<li>Added information about <code>as const</code> in <a href="#hidden-blooper-side-note">Hidden blooper note</a></li>
+</ul>
 <section class="footnotes" role="doc-endnotes">
 <hr />
 <ol>
@@ -1734,6 +1743,7 @@ Here is the link: <a href="2022-01-03-ts-types-part3.html" target="_blank">Part 
 <li><a href="#compilation-bloopers">Compilation bloopers</a></li>
 <li><a href="#its-all-worth-it">It’s all worth it</a></li>
 </ul></li>
+<li><a href="#relevant-typescript-language-tickets">Relevant TypeScript Language tickets</a></li>
 <li><a href="#next-chapter">Next Chapter</a>
 <ul>
 <li><a href="#summary-of-final-edits">Summary of final edits</a></li>
@@ -2040,6 +2050,13 @@ A lot of the improvement comes from using <code>await</code> <code>async</code> 
 <p>In my book, there is just no comparing TS to JS, TS is the clear winner.<br />
 How does TS compare to statically type checked frontend languages that compile to JS and have capable type checkers and solid types (e.g. Reason, Elm, PureScript, even Haskell)? I am not in a good position to discuss this yet.<br />
 Lots of projects need to stay close to JS, my project at work falls into this group. For such projects TS is the right choice IMO.</p>
+<h2 id="relevant-typescript-language-tickets">Relevant TypeScript Language tickets</h2>
+<ul>
+<li><a href="https://github.com/microsoft/TypeScript/issues/43187" target="_blank">43187</a> the overloading issue</li>
+<li><a href="https://github.com/microsoft/TypeScript/issues/48624" target="_blank">48624</a> widening to <code>unknown</code> issue (I entered it)</li>
+<li><a href="https://github.com/microsoft/TypeScript/issues/48625" target="_blank">48625</a> <code>curry(_())</code> not compiling issue (I entered it)</li>
+</ul>
+<p>I am sure the ones I entered could be duplicates, I will post updated information if I learn more.</p>
 <h2 id="next-chapter">Next Chapter</h2>
 <p>We are not done with <em>office.js</em>. I will use it in future notes.</p>
 <p>Do statically defined types reflect the actual runtime values? How to assure that they do?<br />
