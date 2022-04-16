@@ -67,10 +67,8 @@
 <li><a href="#its-all-worth-it">It’s all worth it</a></li>
 </ul></li>
 <li><a href="#relevant-typescript-language-tickets">Relevant TypeScript Language tickets</a></li>
-<li><a href="#next-chapter">Next Chapter</a>
-<ul>
+<li><a href="#next-chapter">Next Chapter</a></li>
 <li><a href="#summary-of-final-edits">Summary of final edits</a></li>
-</ul></li>
 </ul>
 </div>
 <p><em>Please Leave Feedback in: <a href="https://github.com/rpeszek/rpeszek.github.io/discussions/1" target="_blank">git discussions</a></em></p>
@@ -260,11 +258,12 @@ Overloading is known for being not type inference friendly (incidentally, that i
 <p><em>If you are an API owner, my advice is to not overload. IntelliSense works better, type inference works better, developer head hurts less without overloads.</em></p>
 <p>One type that is notorious for needing annotations is the TypeScript’s <em>tuple</em>. Typescript overloads array syntax <code>[]</code> to define tuples (some readers may prefer the term heterogeneous lists). This is an example of a tuple: <code>[2,"two"]: [number, string]</code>. The syntax overloading probably does not help TS in inferring the type and the type checker often gives up or infers the array type.</p>
 <p>I am concerned that <strong>many developers will give up</strong> trying to write this type of code. My concern is also that developers will resort to unsafe type coercion / type casting. There will be a lot of <code>myvar as IWantIt</code>, or a lot of the <code>any</code> type.</p>
-<p> <div class="side-note"><strong>Side note:</strong> I can push this code to a ridiculous limit and <strong>demonstrate the first example of code that should not compile but it does</strong>:</p>
+<p> <div class="side-note"><strong>Side note:</strong> I can push this code to a ridiculous limit and <strong>demonstrate the first example of code compiles but I would not expect it to</strong>:</p>
 <div class="sourceCode" id="cb16"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true"></a><span class="co">//this compiles by using a wrong input parameter type and returns 'body4: unknown'</span></span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true"></a><span class="kw">const</span> crazyConfig <span class="op">:</span> (_<span class="op">:</span> Office<span class="op">.</span><span class="at">AsyncResult</span><span class="op">&lt;</span>string<span class="op">&gt;</span>) <span class="kw">=&gt;</span> <span class="kw">void</span> <span class="op">=</span> x <span class="kw">=&gt;</span> <span class="st">&quot;&quot;</span></span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true"></a><span class="kw">const</span> body4 <span class="op">=</span> <span class="cf">await</span> <span class="fu">officePromise</span> (<span class="fu">curry3</span>(item<span class="op">.</span><span class="at">body</span><span class="op">.</span><span class="at">getAsync</span>)(Office<span class="op">.</span><span class="at">CoercionType</span><span class="op">.</span><span class="at">Html</span>)(crazyConfig)) </span></code></pre></div>
-<p>Besides this being completely wrong, I do not understand what causes the widening of <code>body4</code> type to <code>unknown</code>. There is enough information in the overloaded <code>item.body.getAsync</code> method for the type checker to infer the <code>string</code>. My guesswork is too hypothetical to discuss it here. Accepting invalid <code>unknown</code> appears to be a common pattern to how TS sometimes works. We will come back to it later in this post and we will discuss the <code>unknown</code> problem more in future notes.  </div></p>
+<p>Accepting invalid <code>unknown</code> appears to be a common pattern to how TS sometimes works. We will come back to this example later in this post and we will discuss the <code>unknown</code> problem more in future notes.<br />
+ </div></p>
 <p>Was this enough gore for you? You say it was not? I say you did not see the content of that email!</p>
 <h3 id="bump-leveling-tools">Bump leveling tools</h3>
 <h4 id="readable-type-definitions">Readable Type Definitions</h4>
@@ -340,8 +339,8 @@ The type hole <code>_</code> function is a useful tool and we will keep using it
 The good news is that this gets easier and easier with practice. I have been working in TS for only about 2 months now and I already see a difference.</p>
 <p><em>Good code requires two type checkers: TypeScript and You</em></p>
 <h3 id="compilation-bloopers">Compilation bloopers</h3>
-<p>We already saw “correct” programs that should have compiled but did not (e.g. <code>curry(_())</code>, <code>body3</code> example) and we will see more in the future notes. Our <code>body4</code> example compiled but was clearly wrong.<br />
-This note shows other, less contrived, examples that compile but clearly should not.</p>
+<p>We already saw “correct” programs that should have compiled but did not (e.g. <code>curry(_())</code>, <code>body3</code> example) and we will see more in the future notes. Our <code>body4</code> example compiled but it was a bug.<br />
+This note shows other, less contrived, examples that compile and are clearly bugs.</p>
 <p>All of these type check:</p>
 <div class="sourceCode" id="cb32"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true"></a><span class="co">//annotated correct code added for reference, this code compiles</span></span>
 <span id="cb32-2"><a href="#cb32-2" aria-hidden="true"></a><span class="kw">const</span> good<span class="op">:</span> (a<span class="op">:</span> Office<span class="op">.</span><span class="at">CoercionType</span>) </span>
@@ -359,11 +358,22 @@ This note shows other, less contrived, examples that compile but clearly should 
 <span id="cb32-14"><a href="#cb32-14" aria-hidden="true"></a><span class="kw">const</span> nonsense2 <span class="op">=</span> <span class="fu">curry</span>(curry)</span>
 <span id="cb32-15"><a href="#cb32-15" aria-hidden="true"></a></span>
 <span id="cb32-16"><a href="#cb32-16" aria-hidden="true"></a><span class="co">//... more examples in the linked github project</span></span></code></pre></div>
-<p>and all, except the first one, should not.</p>
-<p>I expect the type checker to be effective at rejecting nonsensical code. If a blooper happens, it should be rare, contrived code, unlikely for developers to write. My examples are somewhat surprising since higher order functions are not uncommon in JavaScript. The second example is a piece of code I accidentally wrote in my project.<br />
-This is very concerning since errors like these are likely to remain uncaught and become escaped bugs.</p>
-<p>No compiler is perfect, but you probably noticed by now that TS compiler seems to get in trouble a lot. Compared to other programming languages I use, TS’s rate of compilation issues is much higher, the issues are more dangerous, and these bloopers are happening on more commonly used vanilla code (well… at least commonly used by me).<br />
-I have no idea what the underlying issues are but I can see two general reasons for this: gradual typing on top of JS is not easy, subtyping is not easy. I plan to write a note about the complexity of TS types in a future post. One pattern, however is clearly visible: <code>unknown</code> somewhere in the type<a href="#fn5" class="footnote-ref" id="fnref5" role="doc-noteref"><sup>5</sup></a>. I curated a longer list of examples where TS accepts invalid code in the linked repo and <a href="https://github.com/rpeszek/typescript-issues/blob/master/src/AcceptingWrongCode/IncorrectlyAcceptingUnknown.ts" target="_blank">here</a>. I am sure that TS keeps improving and fixing such issues but I expect the progress to be slow.</p>
+<p>and all, except the first one, are bugs.<br />
+One pattern is clearly visible: <code>unknown</code> somewhere in the type<a href="#fn5" class="footnote-ref" id="fnref5" role="doc-noteref"><sup>5</sup></a>.<br />
+The underlying reason seems to be much simpler: TS does not exactly match the types of parameters that are functions. The underlying reason is that <a href="https://github.com/Microsoft/TypeScript/wiki/FAQ#why-are-functions-with-fewer-parameters-assignable-to-functions-that-take-more-parameters" target="_blank">functions with fewer parameters are assignable to functions that take more parameters</a><a href="#fn6" class="footnote-ref" id="fnref6" role="doc-noteref"><sup>6</sup></a>:</p>
+<div class="sourceCode" id="cb33"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true"></a>declare <span class="kw">function</span> <span class="fu">testfn</span>(fn<span class="op">:</span> (str<span class="op">:</span>string) <span class="kw">=&gt;</span> number)<span class="op">:</span>number</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true"></a></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true"></a><span class="co">//compiles, calculated type is: const num: number</span></span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true"></a><span class="kw">const</span> num <span class="op">=</span> <span class="fu">testfn</span>(() <span class="kw">=&gt;</span> <span class="dv">1</span>)</span></code></pre></div>
+<p>IMO this language design decision can lead to very confusing escaped bugs and it smells like subtyping. Higher order functions are not uncommon in JavaScript. The <code>nonsense1</code> example is a piece of code I accidentally wrote in my project.<br />
+This is very concerning since errors like these are likely to remain uncaught and become escaped bugs.<br />
+Careful reader will notice that my <code>body4</code> example is a perfect storm. Here it is again:</p>
+<div class="sourceCode" id="cb34"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true"></a><span class="co">//this compiles by using a wrong input parameter type and returns 'body4: unknown'</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true"></a><span class="kw">const</span> crazyConfig <span class="op">:</span> (_<span class="op">:</span> Office<span class="op">.</span><span class="at">AsyncResult</span><span class="op">&lt;</span>string<span class="op">&gt;</span>) <span class="kw">=&gt;</span> <span class="kw">void</span> <span class="op">=</span> x <span class="kw">=&gt;</span> <span class="st">&quot;&quot;</span></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true"></a><span class="kw">const</span> body4 <span class="op">=</span> <span class="cf">await</span> <span class="fu">officePromise</span> (<span class="fu">curry3</span>(item<span class="op">.</span><span class="at">body</span><span class="op">.</span><span class="at">getAsync</span>)(Office<span class="op">.</span><span class="at">CoercionType</span><span class="op">.</span><span class="at">Html</span>)(crazyConfig)) </span></code></pre></div>
+<p>TS picks a (wrong) 2 parameter overload of <code>item.body.getAsync</code> because it was defined last by <em>office.js</em>. It assigns it to <code>curry3</code> because <code>curry3</code> expects a 3 parameter function and 2 &lt; 3 is OK. Sigh.</p>
+<p>Compared to other programming languages I use, TS’s rate of compiler issues I encounter is much higher, the issues are more dangerous, and are likely to happen on more commonly used vanilla code (well… at least commonly used by me).<br />
+I can see two general reasons for this: gradual typing on top of JS is not easy, subtyping is not easy. I plan to write a note about the complexity of TS types in a future post.</p>
 <h3 id="its-all-worth-it">It’s all worth it</h3>
 <p>One common concern related to using types (especially more advanced types) is a slowdown in the development speed.<br />
 There is some truth to this in general because of things like compilation times in some language environments. I cannot comment on TS compilation times for large projects, so far it is not a problem for me. In my experience, having a type checker is a huge productivity bust. In my experience, the more types the faster the development speed. That is true even with compilation bloopers.<br />
@@ -375,19 +385,18 @@ How does TS compare to statically type checked frontend languages that compile t
 Lots of projects need to stay close to JS, my project at work falls into this group. For such projects TS is the right choice IMO.</p>
 <h2 id="relevant-typescript-language-tickets">Relevant TypeScript Language tickets</h2>
 <ul>
-<li><a href="https://github.com/microsoft/TypeScript/issues/43187" target="_blank">43187</a> the overloading issue</li>
-<li><a href="https://github.com/microsoft/TypeScript/issues/48624" target="_blank">48624</a> widening to <code>unknown</code> issue (I entered it)</li>
-<li><a href="https://github.com/microsoft/TypeScript/issues/48625" target="_blank">48625</a> <code>curry(_())</code> not compiling issue (I entered it)</li>
+<li><a href="https://github.com/microsoft/TypeScript/issues/43187" target="_blank">43187</a> the overloading issue (type inference considers the last overload only) has been known and has been marked as “Docs”.</li>
+<li><a href="https://github.com/microsoft/TypeScript/issues/48624" target="_blank">48624</a> (I entered it) about my blooper examples has been marked as “Working as Intended”</li>
+<li><a href="https://github.com/microsoft/TypeScript/issues/48625" target="_blank">48625</a> <code>curry(_())</code> not compiling issue (I entered it) has been marked as “Working as Intended”</li>
 </ul>
-<p>I am sure the ones I entered could be duplicates, I will post updated information if I learn more.</p>
 <h2 id="next-chapter">Next Chapter</h2>
 <p>We are not done with <em>office.js</em>. I will use it in future notes.</p>
 <p>Do statically defined types reflect the actual runtime values? How to assure that they do?<br />
 We will discuss these questions in the next installment. Here is the link: <a href="2021-12-24-ts-types-part2.html" target="_blank">Part 2. Typing Honestly</a></p>
-<h3 id="summary-of-final-edits">Summary of final edits</h3>
-<p>Linked <a href="https://github.com/rpeszek/typescript-issues/blob/master/src/RejectingCorrectCode/RejectingOverloads.ts" target="_blank">overloading examples</a> to demonstrate the issue of TS type inference not working well with overloaded methods, creating compilation issues unless the last overload is used.</p>
-<p>Linked a curated <a href="https://github.com/rpeszek/typescript-issues/blob/master/src/AcceptingWrongCode/IncorrectlyAcceptingUnknown.ts" target="_blank">examples list</a> where compiler accepts invalid code by computing <code>unknown</code> in the type.</p>
-<p>Added context to <code>curry(_())</code> not compiling.</p>
+<h2 id="summary-of-final-edits">Summary of final edits</h2>
+<p>Added context to <a href="#bumps-on-the-path">bumps on the path</a> section about type inference not working well with overloaded methods.</p>
+<p>Added context to why <code>curry(_())</code> is not compiling.</p>
+<p>Added context to <a href="#compilation-bloopers">compilation bloopers</a> section explaining the underlying reason for TS accepting my blooper examples: TS allows to assign a function with fewer parameters to a function type with more parameters. The arity does not need to match.</p>
 <section class="footnotes" role="doc-endnotes">
 <hr />
 <ol>
@@ -396,6 +405,7 @@ We will discuss these questions in the next installment. Here is the link: <a hr
 <li id="fn3" role="doc-endnote"><p>As the previously linked <a href="https://github.com/rpeszek/typescript-issues/blob/master/src/RejectingCorrectCode/RejectingOverloads.ts" target="_blank">example</a> shows, I indeed should worry.<a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 <li id="fn4" role="doc-endnote"><p>It should be noted that with this syntax type variables will be defined in the <em>lhs</em> of the definition and will be outside of the lexical scope in the <em>rhs</em>. You would have to re-declare them which makes this approach much less usable in the presence of type variables.<a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 <li id="fn5" role="doc-endnote"><p><code>nonsense1</code> will will show <code>unknown</code> if you remove the type annotation.<a href="#fnref5" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn6" role="doc-endnote"><p>This took me a long time to figure out and was added late.<a href="#fnref6" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section>
 

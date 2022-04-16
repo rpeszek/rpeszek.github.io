@@ -74,10 +74,8 @@
 <li><a href="#variance-problems">Variance problems</a></li>
 <li><a href="#summary">Summary</a></li>
 </ul></li>
-<li><a href="#next-chapter">Next Chapter</a>
-<ul>
+<li><a href="#next-chapter">Next Chapter</a></li>
 <li><a href="#summary-of-final-edits">Summary of final edits</a></li>
-</ul></li>
 </ul>
 </div>
 <p><em>Please Leave Feedback in: <a href="https://github.com/rpeszek/rpeszek.github.io/discussions/1" target="_blank">git discussions</a></em></p>
@@ -211,6 +209,7 @@ On the other hand, preventing <code>{bye: "world!"} === {hello: "world!"}</code>
 <li>This is a bug caused by a complexity of TS’s semantic rules</li>
 <li>This is a feature indicating that the rules are indeed complex</li>
 </ol>
+<p>This appears to be one of the “Working as Intended” or known issues (see <a href="#fn4">footnote 4</a>).</p>
 <h3 id="semantics-whats-an-overlap"><code>===</code> semantics, what’s an overlap?</h3>
 <p>Let’s focus on this part of the error message: “types … and … have no overlap”.</p>
 <p><strong>(EQ-SAFETY attempt 2):</strong> <em><code>x === y</code> compiles if <code>x: X</code> and <code>y: Y</code> and the compiler successfully computes some special non-<code>never</code> <code>Overlap</code> type that widens to both <code>X</code> and <code>Y</code></em></p>
@@ -357,6 +356,8 @@ These languages also come with well thought out semantic rules that are often fo
 The types in these languages are much simpler (not necessarily easier but simpler).</p>
 <p>Type complexity translates to a confused type checker and to a confused developer.<br />
 <em>Programming in a language in which I do not fully understand the types equates to me writing programs I do not fully understand.</em></p>
+<p>I expect that to become a seasoned TS developer, one needs to remember a big dictionary of idiosyncratic compiler behaviors. <a href="https://github.com/Microsoft/TypeScript/wiki/FAQ#common-bugs-that-arent-bugs" target="_blank">Common Bugs that aren’t bugs</a> is, I think, just a warm up page.<br />
+Were you surprised about the gotchas we have uncovered in <a href="2021-12-12-ts-types-part1.html" target="_blank">Part 1</a>? Is the above <a href="#semantics-rejected-overlap">overlap issue</a> a well known problem<a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a>? Call me weird, but I would rather be learning PLT or Type Theory than these idiosyncrasies.</p>
 <p>It is worth noting that TypeScript has over a million users. FP languages have tens of thousands of users (if combined). TypeScript has more resources to improve. What makes for fewer bugs, lots of dollars or clean types?<br />
 I do not think there is a clear answer to this question. However, resources can’t solve all the problems. Programming languages are almost paranoid about backward compatibility and backward compatibility does not like changing things, even if the change is fixing bugs.<br />
 So I am afraid, a simple language like Elm will always be cleaner and more robust.</p>
@@ -420,7 +421,7 @@ Seems like a catch-22 problem.</p>
 <li>subtyping adds significant complexity and lowers type safety</li>
 <li>ad-hoc semantic narrowing around JS operators partially recovers safety, but is complex by itself and scope limited</li>
 </ul>
-<p>Languages with simpler and more reliable type systems are not a superset of JS syntax and are idiomatically far from JS<a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a>.</p>
+<p>Languages with simpler and more reliable type systems are not a superset of JS syntax and are idiomatically far from JS<a href="#fn5" class="footnote-ref" id="fnref5" role="doc-noteref"><sup>5</sup></a>.</p>
 <p>We have observed some compilation issues and irregularities. To summarize these:</p>
 <ul>
 <li>issues inferring literal types widened to a union (<a href="#subtyping"><code>eq(1, "boo")</code></a>)</li>
@@ -438,9 +439,10 @@ Seems like a catch-22 problem.</p>
 <p>This post has been about the “messy” in TS. The next installment will focus on programming with type variables and will present TS in a better light. I decided to split advanced topics into 2 smaller posts. I plan to discuss phantom types, type variable scoping, a pattern emulating existential types, and rank 2 types. I consider these to be quite useful typing approaches. I will also show a trick that prevents <code>unknown</code> and supertype widening.</p>
 <p>Here is the link: <a href="2022-01-09-ts-types-part4.html" target="_blank">Part 4</a>.</p>
 <p>Happy New Year to all of my readers. Thank you for reading.</p>
-<h3 id="summary-of-final-edits">Summary of final edits</h3>
+<h2 id="summary-of-final-edits">Summary of final edits</h2>
 <ul>
 <li>Added information about <code>as const</code> in <a href="#hidden-blooper-side-note">Hidden blooper note</a></li>
+<li>Added note about tickets relevant to the <a href="#semantics-rejected-overlap">overlap issue</a> (see footnote <a href="#fn4">4</a>)</li>
 </ul>
 <section class="footnotes" role="doc-endnotes">
 <hr />
@@ -448,7 +450,8 @@ Seems like a catch-22 problem.</p>
 <li id="fn1" role="doc-endnote"><p><a href="#semantics-rejected-overlap">rejected overlap</a> section explains why I call it a guess.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 <li id="fn2" role="doc-endnote"><p>All can be used for frontend development and can be compiled to JS.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 <li id="fn3" role="doc-endnote"><p>Haskell is still improving on this aspect. IMO, the need for polymorphic access to record fields is overrated. I would trade it for a capable compiler any time.<a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn4" role="doc-endnote"><p>I have not used <em>flow</em> recently, and I cannot compare TS to it. However <em>flow</em> has subtyping which I do not consider simple. Indeed, some level of subtyping support is needed to support commonly used JS idioms.<a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn4" role="doc-endnote"><p>See <a href="https://github.com/microsoft/TypeScript/issues/27910" target="_blank">#27910</a> I created <a href="https://github.com/microsoft/TypeScript/issues/48628" target="_blank">#48628</a> which was originally marked as “Working as Intended” and then moved to “Duplicate” status.<a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn5" role="doc-endnote"><p>I have not used <em>flow</em> recently, and I cannot compare TS to it. However <em>flow</em> has subtyping which I do not consider simple. Indeed, some level of subtyping support is needed to support commonly used JS idioms.<a href="#fnref5" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section>
 
