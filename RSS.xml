@@ -1048,7 +1048,7 @@ One cool example of <code>===</code> type safety combines type narrowing with li
 I have seen analogous issues in many programming languages including even <em>Scala</em>.</p>
 <h3 id="switch-exhaustive-check"><code>switch</code> exhaustive check</h3>
 <p><code>if-else</code> does not provide any mechanism for the type checker to verify that the program checked all possible conditions.<br />
-Interestingly, TS uses the <code>switch</code> statement to solve this problem:</p>
+Interestingly, we can use the <code>switch</code> statement in TS to solve this problem:</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="co">//This compiles!</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a><span class="kw">const</span> contrived_better <span class="op">=</span> (n<span class="op">:</span> <span class="dv">1</span> <span class="op">|</span> <span class="dv">2</span>)<span class="op">:</span> number <span class="kw">=&gt;</span> {</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a>    <span class="cf">switch</span>(n) {</span>
@@ -1072,7 +1072,7 @@ Interestingly, TS uses the <code>switch</code> statement to solve this problem:<
 <p>IMO an even better solution is provided by the <em>ts-pattern</em> library. See this blog post: <a href="https://dev.to/gvergnaud/bringing-pattern-matching-to-typescript-introducing-ts-pattern-v3-0-o1k" target="_blank">Introducing ts-pattern v3.0</a></p>
 <h3 id="null-undefined-safety"><code>null</code> / <code>undefined</code> safety</h3>
 <p>We have seen <code>null</code> safety already. There is a semantic difference between <code>null</code> and <code>undefined</code> but most code does not care. My personal preference is to unify these two.</p>
-<p>In my very first example in the series, <a href="2021-12-12-ts-types-part1.html#typescript-is-great" target="_blank"><code>getName(p: NullablePerson)</code></a>, was not <code>undefined</code> safe, only <code>null</code> safe. Using it with <code>undefined</code> (e.g. typed as <code>any</code>) will cause an error.</p>
+<p>In my very first example in the series, <a href="2021-12-12-ts-types-part1.html#typescript-is-great" target="_blank"><code>getName(p: NullablePerson)</code></a>, was not <code>undefined</code> safe, only <code>null</code> safe. Using it with <code>undefined</code> (e.g. on expressions typed as <code>any</code>) will cause an error.</p>
 <p>My coding preference would be to rewrite my first example like this:</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="co">//Reusable utility type</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a><span class="im">export</span> type Undefined <span class="op">=</span> <span class="kw">null</span> <span class="op">|</span> <span class="kw">undefined</span></span>
@@ -1134,7 +1134,7 @@ On the other hand, preventing <code>{bye: "world!"} === {hello: "world!"}</code>
 <li>This is a bug caused by a complexity of TS’s semantic rules</li>
 <li>This is a feature indicating that the rules are indeed complex</li>
 </ol>
-<p>This appears to be one of the “Working as Intended” or known issues (see <a href="#fn4">footnote 4</a>).</p>
+<p>This appears to be one of the “Working as Intended” or at least known issues (see <a href="#fn4">footnote 4</a>).</p>
 <h3 id="semantics-whats-an-overlap"><code>===</code> semantics, what’s an overlap?</h3>
 <p>Let’s focus on this part of the error message: “types … and … have no overlap”.</p>
 <p><strong>(EQ-SAFETY attempt 2):</strong> <em><code>x === y</code> compiles if <code>x: X</code> and <code>y: Y</code> and the compiler successfully computes some special non-<code>never</code> <code>Overlap</code> type that widens to both <code>X</code> and <code>Y</code></em></p>
@@ -1230,7 +1230,7 @@ Let’s see, starting with these type holes:</p>
 <span id="cb20-7"><a href="#cb20-7" aria-hidden="true"></a><span class="co">//Argument of type '{ hello: string; }' is not assignable to parameter of type '&quot;boo&quot;'.ts(2345)</span></span>
 <span id="cb20-8"><a href="#cb20-8" aria-hidden="true"></a><span class="fu">eq</span>(<span class="st">&quot;boo&quot;</span>, {hello: <span class="st">&quot;world&quot;</span>})</span></code></pre></div>
 <p><em>This is very unfortunate</em>, you want generic functions to work <em>consistently</em> across types. IMO this is a bug or an arbitrary complexity.<br />
-The quirkiness seems to be related to the type inference working inconsistently and failing to widen the types if a string literal type is involved (next section discussed it).</p>
+The quirkiness seems to be related to the type inference working inconsistently and failing to widen the types if a string literal type is involved (next section will discussed it).</p>
 <p>The narrative has run away from me, but the point should be somewhat clear: Generics provide only limited type safety in TS.<br />
 E.g. enhanced safety semantics around <code>===</code> does not transfer to a DIY safety that a library solution could expose.</p>
 <h3 id="subtyping">Subtyping</h3>
@@ -1259,7 +1259,7 @@ Here is a somewhat clever trick to see that:</p>
 <span id="cb27-2"><a href="#cb27-2" aria-hidden="true"></a><span class="fu">eq</span>(booone, oneboo) </span></code></pre></div>
 <div class="sourceCode" id="cb28"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true"></a><span class="co">//finally compiles with type application on 'eq'</span></span>
 <span id="cb28-2"><a href="#cb28-2" aria-hidden="true"></a>eq<span class="op">&lt;</span>(<span class="dv">1</span> <span class="op">|</span> <span class="st">&quot;boo&quot;</span>)<span class="op">&gt;</span>(booone<span class="op">,</span> oneboo)</span></code></pre></div>
-<p>In our above examples we have seen that <code>===</code> narrowing is partially consistent with the intersection (<code>&amp;</code> operator).<br />
+<p>We have seen that <code>===</code> narrowing is partially consistent with the intersection (<code>&amp;</code> operator).<br />
 Let’s look at <code>&amp;</code> semantics a little closer.</p>
 <p>We can try to double check how the <code>&amp;</code> intersection works by doing this:</p>
 <div class="sourceCode" id="cb29"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true"></a><span class="co">//both compile suggesting that Person is equivalent to the intersection  (number | Person) &amp; (string | Person)</span></span>
@@ -1271,6 +1271,10 @@ Let’s look at <code>&amp;</code> semantics a little closer.</p>
 <span id="cb30-3"><a href="#cb30-3" aria-hidden="true"></a>verifyExtends&lt;(<span class="dv">1</span> | <span class="st">&quot;boo&quot;</span>) &amp; (<span class="st">&quot;boo&quot;</span> | Person), <span class="st">&quot;boo&quot;</span>&gt;()</span></code></pre></div>
 <p><em>Complexity is a super food for bugs.</em></p>
 <p>Here is my quick summary: subtyping is complex and it weakens type safety. TS tries to recover the safety by building complex narrowing semantics around a selected set of JS operators. There are many inconsistencies in both the implementation of subtyping and the implementation of narrowing semantics.</p>
+<p> <div class="side-note"><strong>Side Note about Arity</strong>: In TypeScript, functions are also subject to subtyping rules.</p>
+<div class="sourceCode" id="cb31"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true"></a>verifyExtends<span class="op">&lt;</span>() <span class="kw">=&gt;</span> number<span class="op">,</span> (_<span class="op">:</span>string) <span class="kw">=&gt;</span> number<span class="op">&gt;</span>()</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true"></a>verifyExtends<span class="op">&lt;</span>(_<span class="op">:</span>string) <span class="kw">=&gt;</span> number<span class="op">,</span> (_1<span class="op">:</span>string<span class="op">,</span>_2<span class="op">:</span>boolean) <span class="kw">=&gt;</span> number<span class="op">&gt;</span>()<span class="op">&gt;</span></span></code></pre></div>
+<p>see also <a href="https://github.com/Microsoft/TypeScript/wiki/FAQ#why-are-functions-with-fewer-parameters-assignable-to-functions-that-take-more-parameters" target="_blank">functions with fewer parameters are assignable to functions that take more parameters</a>. We have seen this leading to surprising behavior in <a href="2021-12-12-ts-types-part1.html#compilation-bloopers" target="_blank">Part 1, Compilation bloopers</a> section.  </div></p>
 <h3 id="comparative-complexity-rant">Comparative complexity rant</h3>
 <p>A “type enthusiast” will associate types with correctness, even formal verification. To me, the words “messy” and “type” are self contradictory. TS “types” support some interesting features but are a mess.</p>
 <p>I want to contrast the above <code>===</code> and <code>eq</code> examples against a programming language that has been designed around types from the beginning. An example could be an FP language like Elm, PureScript, or Haskell (I am not that familiar with ReasonML or OCaml)<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a>.<br />
@@ -1281,8 +1285,8 @@ These languages also come with well thought out semantic rules that are often fo
 The types in these languages are much simpler (not necessarily easier but simpler).</p>
 <p>Type complexity translates to a confused type checker and to a confused developer.<br />
 <em>Programming in a language in which I do not fully understand the types equates to me writing programs I do not fully understand.</em></p>
-<p>I expect that to become a seasoned TS developer, one needs to remember a big dictionary of idiosyncratic compiler behaviors. <a href="https://github.com/Microsoft/TypeScript/wiki/FAQ#common-bugs-that-arent-bugs" target="_blank">Common Bugs that aren’t bugs</a> is, I think, just a warm up page.<br />
-Were you surprised about the gotchas we have uncovered in <a href="2021-12-12-ts-types-part1.html" target="_blank">Part 1</a>? Is the above <a href="#semantics-rejected-overlap">overlap issue</a> a well known problem<a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a>? Call me weird, but I would rather be learning PLT or Type Theory than these idiosyncrasies.</p>
+<p>I expect that to become a seasoned TS developer, one needs to remember a big dictionary of idiosyncratic compiler behaviors. <a href="https://github.com/Microsoft/TypeScript/wiki/FAQ#common-bugs-that-arent-bugs" target="_blank">Common Bugs that aren’t bugs</a> is, I think, just a warm up reading to achieve such mastery.<br />
+Were you surprised about the gotchas we have uncovered in <a href="2021-12-12-ts-types-part1.html" target="_blank">Part 1</a>? Is the above <a href="#semantics-rejected-overlap">overlap issue</a> a well known problem<a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a>? Call me weird, but I would rather be learning PLT or Type Theory than these gotchas.</p>
 <p>It is worth noting that TypeScript has over a million users. FP languages have tens of thousands of users (if combined). TypeScript has more resources to improve. What makes for fewer bugs, lots of dollars or clean types?<br />
 I do not think there is a clear answer to this question. However, resources can’t solve all the problems. Programming languages are almost paranoid about backward compatibility and backward compatibility does not like changing things, even if the change is fixing bugs.<br />
 So I am afraid, a simple language like Elm will always be cleaner and more robust.</p>
@@ -1290,50 +1294,50 @@ So I am afraid, a simple language like Elm will always be cleaner and more robus
 This trade-off is IMO not trivial and very project dependent. Clean types vs clean JS, I typically select the clean types. The ecosystem compatibility issue is a little harder to ignore and the main reason I am writing code in TS. Projects with a high correctness requirement, IMO, should select an FP language, the optimal choice for other projects is less clear.</p>
 <h3 id="variance-problems">Variance problems</h3>
 <p>I will finish with some examples that may feel even more surprising.</p>
-<div class="sourceCode" id="cb31"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true"></a><span class="kw">const</span> bye <span class="op">=</span> {<span class="dt">bye</span><span class="op">:</span> <span class="st">&quot;world&quot;</span>}</span>
-<span id="cb31-2"><a href="#cb31-2" aria-hidden="true"></a><span class="kw">const</span> hello <span class="op">=</span> {<span class="dt">hello</span><span class="op">:</span> <span class="st">&quot;world&quot;</span>}</span>
-<span id="cb31-3"><a href="#cb31-3" aria-hidden="true"></a></span>
-<span id="cb31-4"><a href="#cb31-4" aria-hidden="true"></a>declare <span class="kw">function</span> eqArrays<span class="op">&lt;</span>T<span class="op">&gt;</span>(t1<span class="op">:</span> T[]<span class="op">,</span> t2<span class="op">:</span> T[])<span class="op">:</span> boolean</span>
-<span id="cb31-5"><a href="#cb31-5" aria-hidden="true"></a></span>
-<span id="cb31-6"><a href="#cb31-6" aria-hidden="true"></a><span class="fu">eqArrays</span>([{<span class="dt">bye</span><span class="op">:</span> <span class="st">&quot;world&quot;</span>}]<span class="op">,</span> [{<span class="dt">hello</span><span class="op">:</span> <span class="st">&quot;world&quot;</span>}]) <span class="co">//compiles</span></span></code></pre></div>
-<div class="sourceCode" id="cb32"><pre class="sourceCode java"><code class="sourceCode java"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true"></a><span class="co">//Compilation error</span></span>
-<span id="cb32-2"><a href="#cb32-2" aria-hidden="true"></a><span class="co">//Property 'bye' is missing in type '{ hello: string; }' but required in type '{ bye: string; }'.ts(2741)</span></span>
-<span id="cb32-3"><a href="#cb32-3" aria-hidden="true"></a><span class="fu">eqArrays</span>([bye], [hello])</span></code></pre></div>
+<div class="sourceCode" id="cb32"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true"></a><span class="kw">const</span> bye <span class="op">=</span> {<span class="dt">bye</span><span class="op">:</span> <span class="st">&quot;world&quot;</span>}</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true"></a><span class="kw">const</span> hello <span class="op">=</span> {<span class="dt">hello</span><span class="op">:</span> <span class="st">&quot;world&quot;</span>}</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true"></a></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true"></a>declare <span class="kw">function</span> eqArrays<span class="op">&lt;</span>T<span class="op">&gt;</span>(t1<span class="op">:</span> T[]<span class="op">,</span> t2<span class="op">:</span> T[])<span class="op">:</span> boolean</span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true"></a></span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true"></a><span class="fu">eqArrays</span>([{<span class="dt">bye</span><span class="op">:</span> <span class="st">&quot;world&quot;</span>}]<span class="op">,</span> [{<span class="dt">hello</span><span class="op">:</span> <span class="st">&quot;world&quot;</span>}]) <span class="co">//compiles</span></span></code></pre></div>
+<div class="sourceCode" id="cb33"><pre class="sourceCode java"><code class="sourceCode java"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true"></a><span class="co">//Compilation error</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true"></a><span class="co">//Property 'bye' is missing in type '{ hello: string; }' but required in type '{ bye: string; }'.ts(2741)</span></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true"></a><span class="fu">eqArrays</span>([bye], [hello])</span></code></pre></div>
 <p>Here is another example:</p>
-<div class="sourceCode" id="cb33"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true"></a><span class="kw">interface</span> Payload<span class="op">&lt;</span>T<span class="op">&gt;</span> {<span class="dt">payload</span><span class="op">:</span> T}</span>
-<span id="cb33-2"><a href="#cb33-2" aria-hidden="true"></a></span>
-<span id="cb33-3"><a href="#cb33-3" aria-hidden="true"></a><span class="co">// ... we would see the same behavior for:</span></span>
-<span id="cb33-4"><a href="#cb33-4" aria-hidden="true"></a><span class="co">//type Payload1&lt;T&gt; = {payload: T} </span></span>
-<span id="cb33-5"><a href="#cb33-5" aria-hidden="true"></a></span>
-<span id="cb33-6"><a href="#cb33-6" aria-hidden="true"></a>declare <span class="kw">function</span> eqPayloads<span class="op">&lt;</span>T<span class="op">&gt;</span>(t1<span class="op">:</span> Payload<span class="op">&lt;</span>T<span class="op">&gt;,</span> t2<span class="op">:</span> Payload<span class="op">&lt;</span>T<span class="op">&gt;</span>)<span class="op">:</span> boolean</span>
-<span id="cb33-7"><a href="#cb33-7" aria-hidden="true"></a></span>
-<span id="cb33-8"><a href="#cb33-8" aria-hidden="true"></a><span class="fu">eqPayloads</span>({<span class="dt">payload</span><span class="op">:</span> {<span class="dt">bye</span><span class="op">:</span> <span class="st">&quot;world&quot;</span>}}<span class="op">,</span> {<span class="dt">payload</span><span class="op">:</span> {<span class="dt">hello</span><span class="op">:</span> <span class="st">&quot;world&quot;</span>}})  <span class="co">//compilies</span></span></code></pre></div>
-<div class="sourceCode" id="cb34"><pre class="sourceCode java"><code class="sourceCode java"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true"></a><span class="co">// Compilation error:</span></span>
-<span id="cb34-2"><a href="#cb34-2" aria-hidden="true"></a><span class="co">// Property 'bye' is missing in type '{ hello: string; }' but required in type '{ bye: string; }'.ts(2741)</span></span>
-<span id="cb34-3"><a href="#cb34-3" aria-hidden="true"></a><span class="fu">eqPayloads</span>({payload: bye}, {payload: hello})</span></code></pre></div>
+<div class="sourceCode" id="cb34"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true"></a><span class="kw">interface</span> Payload<span class="op">&lt;</span>T<span class="op">&gt;</span> {<span class="dt">payload</span><span class="op">:</span> T}</span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true"></a></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true"></a><span class="co">// ... we would see the same behavior for:</span></span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true"></a><span class="co">//type Payload1&lt;T&gt; = {payload: T} </span></span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true"></a></span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true"></a>declare <span class="kw">function</span> eqPayloads<span class="op">&lt;</span>T<span class="op">&gt;</span>(t1<span class="op">:</span> Payload<span class="op">&lt;</span>T<span class="op">&gt;,</span> t2<span class="op">:</span> Payload<span class="op">&lt;</span>T<span class="op">&gt;</span>)<span class="op">:</span> boolean</span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true"></a></span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true"></a><span class="fu">eqPayloads</span>({<span class="dt">payload</span><span class="op">:</span> {<span class="dt">bye</span><span class="op">:</span> <span class="st">&quot;world&quot;</span>}}<span class="op">,</span> {<span class="dt">payload</span><span class="op">:</span> {<span class="dt">hello</span><span class="op">:</span> <span class="st">&quot;world&quot;</span>}})  <span class="co">//compilies</span></span></code></pre></div>
+<div class="sourceCode" id="cb35"><pre class="sourceCode java"><code class="sourceCode java"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true"></a><span class="co">// Compilation error:</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true"></a><span class="co">// Property 'bye' is missing in type '{ hello: string; }' but required in type '{ bye: string; }'.ts(2741)</span></span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true"></a><span class="fu">eqPayloads</span>({payload: bye}, {payload: hello})</span></code></pre></div>
 <p>My first instinct was to assume that this weird behavior is caused by TS treating <code>T[]</code> and <code>Payload&lt;T&gt;</code> conservatively as invariant. Unfortunately, this is not the case. The above quirkiness looks to be just another type inference issue and there is a deeper safety problem.</p>
 <p>TS implements variance incorrectly and makes both <code>T[]</code> and <code>Payload&lt;T&gt;</code> covariant (e.g. TS assumes that <code>P extends T</code> implies <code>Payload&lt;P&gt; extends Payload&lt;T&gt;</code>). Here is a well known Java language bug reimplemented in TS:</p>
-<div class="sourceCode" id="cb35"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true"></a><span class="co">//how to put a string into a list of numbers</span></span>
-<span id="cb35-2"><a href="#cb35-2" aria-hidden="true"></a><span class="kw">const</span> intlist<span class="op">:</span> number[] <span class="op">=</span> [<span class="dv">1</span><span class="op">,</span><span class="dv">2</span><span class="op">,</span><span class="dv">3</span>]</span>
-<span id="cb35-3"><a href="#cb35-3" aria-hidden="true"></a><span class="kw">const</span> list<span class="op">:</span> unknown[] <span class="op">=</span> intlist</span>
-<span id="cb35-4"><a href="#cb35-4" aria-hidden="true"></a>list<span class="op">.</span><span class="fu">push</span>(<span class="st">&quot;not a number&quot;</span>) <span class="co">//compiles</span></span>
-<span id="cb35-5"><a href="#cb35-5" aria-hidden="true"></a></span>
-<span id="cb35-6"><a href="#cb35-6" aria-hidden="true"></a><span class="co">//array is incorrectly covariant</span></span>
-<span id="cb35-7"><a href="#cb35-7" aria-hidden="true"></a>verifyExtends<span class="op">&lt;</span><span class="kw">typeof</span> datedHello[]<span class="op">,</span> <span class="kw">typeof</span> helloDolly[]<span class="op">&gt;</span>() <span class="co">//datedHello extends helloDolly type</span></span></code></pre></div>
+<div class="sourceCode" id="cb36"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true"></a><span class="co">//how to put a string into a list of numbers</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true"></a><span class="kw">const</span> intlist<span class="op">:</span> number[] <span class="op">=</span> [<span class="dv">1</span><span class="op">,</span><span class="dv">2</span><span class="op">,</span><span class="dv">3</span>]</span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true"></a><span class="kw">const</span> list<span class="op">:</span> unknown[] <span class="op">=</span> intlist</span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true"></a>list<span class="op">.</span><span class="fu">push</span>(<span class="st">&quot;not a number&quot;</span>) <span class="co">//compiles</span></span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true"></a></span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true"></a><span class="co">//array is incorrectly covariant</span></span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true"></a>verifyExtends<span class="op">&lt;</span><span class="kw">typeof</span> datedHello[]<span class="op">,</span> <span class="kw">typeof</span> helloDolly[]<span class="op">&gt;</span>() <span class="co">//datedHello extends helloDolly type</span></span></code></pre></div>
 <p>I see the same incorrect subtyping on the <code>Payload</code> interface:</p>
-<div class="sourceCode" id="cb36"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true"></a><span class="co">//interface Payload is incorrectly covariant</span></span>
-<span id="cb36-2"><a href="#cb36-2" aria-hidden="true"></a>verifyExtends<span class="op">&lt;</span>Payload<span class="op">&lt;</span><span class="kw">typeof</span> datedHello<span class="op">&gt;,</span> Payload<span class="op">&lt;</span><span class="kw">typeof</span> helloDolly<span class="op">&gt;&gt;</span>()</span>
-<span id="cb36-3"><a href="#cb36-3" aria-hidden="true"></a>verifyExtends<span class="op">&lt;</span>Payload<span class="op">&lt;</span><span class="kw">typeof</span> datedHello<span class="op">&gt;,</span> Payload<span class="op">&lt;</span>object<span class="op">&gt;&gt;</span>()</span></code></pre></div>
+<div class="sourceCode" id="cb37"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true"></a><span class="co">//interface Payload is incorrectly covariant</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true"></a>verifyExtends<span class="op">&lt;</span>Payload<span class="op">&lt;</span><span class="kw">typeof</span> datedHello<span class="op">&gt;,</span> Payload<span class="op">&lt;</span><span class="kw">typeof</span> helloDolly<span class="op">&gt;&gt;</span>()</span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true"></a>verifyExtends<span class="op">&lt;</span>Payload<span class="op">&lt;</span><span class="kw">typeof</span> datedHello<span class="op">&gt;,</span> Payload<span class="op">&lt;</span>object<span class="op">&gt;&gt;</span>()</span></code></pre></div>
 <p>Implementations of <code>interface Payload&lt;T&gt;</code> do not need to behave in a covariant way.<br />
 An example in the linked github repo exploits <code>interface Payload&lt;T&gt;</code> covariance and ends up passing a <code>number</code> to a function that accepts <code>string</code> input.</p>
 <p>Invariance would have been a better (a more conservative) choice for both <code>interface Payload&lt;T&gt;</code> and the array.<br />
 A careful reader may notice that the structurally typed <code>type Payload1&lt;T&gt; = {payload: T}</code> should also be invariant since the <code>payload</code> property is mutable (getters are covariant, setters are contravariant). TS incorrectly makes it covariant.</p>
 <p>I will sound like a broken record now, subtyping is clearly very complex.</p>
-<p>I did more digging into it after writing this note. It appears that the intention was to keep TS conceptually easy (<a href="https://github.com/microsoft/TypeScript/issues/1394" target="_blank">issue 1394</a>).<br />
+<p>I did more digging into it after writing this note. It appears that the intention was to keep TS conceptually easy (<a href="https://github.com/microsoft/TypeScript/issues/1394" target="_blank">issue #1394</a>).<br />
 The result may be easy but is definitely not simple.</p>
 <p><em>Incorrect is never simple.</em></p>
-<p> <div class="side-note"><strong>Observation (Rant Alert)</strong>: There is a tendency to focus on the common case and ignore the corner case. This tendency has a broad scope, broader than TS. What has (typically) a lower cost: resolving a problem that every user observes when opening the app or resolving a problem that affects 1% of users once a month? Are less frequently observed defects assigned a lower priority? Not really.<br />
-The common approach to software and language design and the economics of software maintenance are an ill matched couple.  </div></p>
+<p> <div class="side-note"><strong>Observation (Rant Alert)</strong>: There is a tendency to focus on common cases and ignore corner cases. This tendency has a broad scope, broader than TS. What has (typically) a lower cost: resolving a problem that every user observes when opening the app or resolving a problem that affects 1% of users once a month? Are less frequently observed defects assigned a lower priority? Not really.<br />
+Common approach to software and language design and the economics of software maintenance are an ill matched couple.  </div></p>
 <h3 id="summary">Summary</h3>
 <p>This was a very hard note to write. I rewrote it several times. How do I write about complexity and make it simple to read?<br />
 Seems like a catch-22 problem.</p>
@@ -1356,10 +1360,11 @@ Seems like a catch-22 problem.</p>
 <li>incorrect handling of variance (<a href="#variance-problems">variance problems</a>)</li>
 <li><code>===</code> rejects the <code>&amp;</code> overlap of intersection types, while claiming the opposite in the error message (<a href="#semantics-rejected-overlap">rejected overlap</a>)</li>
 </ul>
+<p>I cannot identify TypeScript documentation or tickets relevant to these bullets. The subset I have checked against <a href="https://github.com/microsoft/TypeScript/issues" target="_blank">TS issue board</a> is either in the known issues and / or “Working as Intended” category. My question about known issues is: known by whom?</p>
 <p>Introduced tools</p>
-<div class="sourceCode" id="cb37"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true"></a>declare <span class="kw">function</span> unify<span class="op">&lt;</span>T<span class="op">&gt;</span>(t1<span class="op">:</span> T<span class="op">,</span> t2<span class="op">:</span> T) <span class="op">:</span> T</span>
-<span id="cb37-2"><a href="#cb37-2" aria-hidden="true"></a><span class="kw">function</span> verifyExtends<span class="op">&lt;</span>T2 <span class="kw">extends</span> T1<span class="op">,</span> T1<span class="op">&gt;</span>() {}</span></code></pre></div>
-<p>can ask TS subtyping questions.</p>
+<div class="sourceCode" id="cb38"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true"></a>declare <span class="kw">function</span> unify<span class="op">&lt;</span>T<span class="op">&gt;</span>(t1<span class="op">:</span> T<span class="op">,</span> t2<span class="op">:</span> T) <span class="op">:</span> T</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true"></a><span class="kw">function</span> verifyExtends<span class="op">&lt;</span>T2 <span class="kw">extends</span> T1<span class="op">,</span> T1<span class="op">&gt;</span>() {}</span></code></pre></div>
+<p>can be used to ask TS subtyping questions.</p>
 <h2 id="next-chapter">Next Chapter</h2>
 <p>This post has been about the “messy” in TS. The next installment will focus on programming with type variables and will present TS in a better light. I decided to split advanced topics into 2 smaller posts. I plan to discuss phantom types, type variable scoping, a pattern emulating existential types, and rank 2 types. I consider these to be quite useful typing approaches. I will also show a trick that prevents <code>unknown</code> and supertype widening.</p>
 <p>Here is the link: <a href="2022-01-09-ts-types-part4.html" target="_blank">Part 4</a>.</p>
@@ -1368,6 +1373,7 @@ Seems like a catch-22 problem.</p>
 <ul>
 <li>Added information about <code>as const</code> in <a href="#hidden-blooper-side-note">Hidden blooper note</a></li>
 <li>Added note about tickets relevant to the <a href="#semantics-rejected-overlap">overlap issue</a> (see footnote <a href="#fn4">4</a>)</li>
+<li>Added side note about arity in <a href="#subtyping">Subtyping</a>.</li>
 </ul>
 <section class="footnotes" role="doc-endnotes">
 <hr />
@@ -1930,7 +1936,7 @@ This ended up being a happy path.</p>
 <span id="cb15-8"><a href="#cb15-8" aria-hidden="true"></a><span class="fu">getAsync</span>(coercionType<span class="op">:</span> Office<span class="op">.</span><span class="at">CoercionType</span> <span class="op">|</span> string<span class="op">,</span> </span>
 <span id="cb15-9"><a href="#cb15-9" aria-hidden="true"></a>        options<span class="op">:</span> Office<span class="op">.</span><span class="at">AsyncContextOptions</span><span class="op">,</span> </span>
 <span id="cb15-10"><a href="#cb15-10" aria-hidden="true"></a>        callback<span class="op">?:</span> (asyncResult<span class="op">:</span> Office<span class="op">.</span><span class="at">AsyncResult</span><span class="op">&lt;</span>string<span class="op">&gt;</span>) <span class="kw">=&gt;</span> <span class="kw">void</span>)<span class="op">:</span> <span class="kw">void</span><span class="op">;</span></span></code></pre></div>
-<p>So there are sort of <em>overloads on top of overloads</em> and the type checker could get confused. In fact the case here is much simpler, TS inference tends to pick the last defined overload (see <a href="https://github.com/rpeszek/typescript-issues/blob/master/src/RejectingCorrectCode/RejectingOverloads.ts" target="_blank">this code example</a>). The compilation error also suggests that the compiler gets stuck on a wrong (the 2 parameter) version of <code>getAsync</code> despite the use of the 3 parameter <code>curry3</code>. I will also confirm this hypothesis using a <em>type hole</em> (we will learn what that is) in the next section.<br />
+<p>So there are sort of <em>overloads on top of overloads</em> and the type checker could get confused. In fact the case here is much simpler, TS inference tends to pick the last defined overload (see <a href="https://github.com/rpeszek/typescript-issues/blob/master/src/RejectingCorrectCode/RejectingOverloads.ts" target="_blank">this code example</a> and (<a href="https://github.com/microsoft/TypeScript/issues/43187" target="_blank">#43187</a>). The compilation error also suggests that the compiler gets stuck on a wrong (the 2 parameter) version of <code>getAsync</code> despite the use of the 3 parameter <code>curry3</code>. I will also confirm this hypothesis using a <em>type hole</em> (we will learn what that is) in the next section.<br />
 I expect the type checker to backtrack and try the next overload, but for some reason it does not want to do that on its own.<br />
 I do not blame TS, overloading gives me a headache too.<br />
 Overloading is known for being not type inference friendly (incidentally, that is the reason why Haskell does not overload names).</p>
@@ -2051,7 +2057,8 @@ Careful reader will notice that my <code>body4</code> example is a perfect storm
 <div class="sourceCode" id="cb34"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true"></a><span class="co">//this compiles by using a wrong input parameter type and returns 'body4: unknown'</span></span>
 <span id="cb34-2"><a href="#cb34-2" aria-hidden="true"></a><span class="kw">const</span> crazyConfig <span class="op">:</span> (_<span class="op">:</span> Office<span class="op">.</span><span class="at">AsyncResult</span><span class="op">&lt;</span>string<span class="op">&gt;</span>) <span class="kw">=&gt;</span> <span class="kw">void</span> <span class="op">=</span> x <span class="kw">=&gt;</span> <span class="st">&quot;&quot;</span></span>
 <span id="cb34-3"><a href="#cb34-3" aria-hidden="true"></a><span class="kw">const</span> body4 <span class="op">=</span> <span class="cf">await</span> <span class="fu">officePromise</span> (<span class="fu">curry3</span>(item<span class="op">.</span><span class="at">body</span><span class="op">.</span><span class="at">getAsync</span>)(Office<span class="op">.</span><span class="at">CoercionType</span><span class="op">.</span><span class="at">Html</span>)(crazyConfig)) </span></code></pre></div>
-<p>TS picks a (wrong) 2 parameter overload of <code>item.body.getAsync</code> because it was defined last by <em>office.js</em>. It assigns it to <code>curry3</code> because <code>curry3</code> expects a 3 parameter function and 2 &lt; 3 is OK. Sigh.</p>
+<p>TS picks a (wrong) 2 parameter overload of <code>item.body.getAsync</code> because it was defined last by <em>office.js</em>. It assigns it to <code>curry3</code> because <code>curry3</code> expects a 3 parameter function and 2 &lt; 3 is OK.<br />
+Sadly, accepting <code>body4</code> code is TypeScript “Working as Intended” (<a href="https://github.com/microsoft/TypeScript/issues/43187" target="_blank">#43187</a>, <a href="https://github.com/microsoft/TypeScript/issues/48624" target="_blank">#48624</a>).</p>
 <p>Compared to other programming languages I use, TS’s rate of compiler issues I encounter is much higher, the issues are more dangerous, and are likely to happen on more commonly used vanilla code (well… at least commonly used by me).<br />
 I can see two general reasons for this: gradual typing on top of JS is not easy, subtyping is not easy. I plan to write a note about the complexity of TS types in a future post.</p>
 <h3 id="its-all-worth-it">It’s all worth it</h3>
@@ -2065,9 +2072,9 @@ How does TS compare to statically type checked frontend languages that compile t
 Lots of projects need to stay close to JS, my project at work falls into this group. For such projects TS is the right choice IMO.</p>
 <h2 id="relevant-typescript-language-tickets">Relevant TypeScript Language tickets</h2>
 <ul>
-<li><a href="https://github.com/microsoft/TypeScript/issues/43187" target="_blank">43187</a> the overloading issue (type inference considers the last overload only) has been known and has been marked as “Docs”.</li>
-<li><a href="https://github.com/microsoft/TypeScript/issues/48624" target="_blank">48624</a> (I entered it) about my blooper examples has been marked as “Working as Intended”</li>
-<li><a href="https://github.com/microsoft/TypeScript/issues/48625" target="_blank">48625</a> <code>curry(_())</code> not compiling issue (I entered it) has been marked as “Working as Intended”</li>
+<li><a href="https://github.com/microsoft/TypeScript/issues/43187" target="_blank">#43187</a> the overloading issue (type inference considers the last overload only) has been known and has been marked as “Docs”.</li>
+<li><a href="https://github.com/microsoft/TypeScript/issues/48624" target="_blank">#48624</a> (I entered it) about my blooper examples has been marked as “Working as Intended”</li>
+<li><a href="https://github.com/microsoft/TypeScript/issues/48625" target="_blank">#48625</a> <code>curry(_())</code> not compiling issue (I entered it) has been marked as “Working as Intended”</li>
 </ul>
 <h2 id="next-chapter">Next Chapter</h2>
 <p>We are not done with <em>office.js</em>. I will use it in future notes.</p>
