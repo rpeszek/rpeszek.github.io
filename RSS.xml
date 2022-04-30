@@ -19,7 +19,7 @@
         
         
         
-        <div class="changelog"> <div>Revision History: <ul> <li> (2021.03.15) Edited <a href="#enums">Enums</a> section</li> </ul> </div></div>
+        <div class="changelog"> <div>Revision History: <ul> <li> (2021.03.15) Edited <a href="#enums">Enums</a> section</li> <li> (2022.04.30 - Present) Minor edits </li> </ul> </div></div>
         
         
         <div class="info">Tags: <a title="All pages tagged 'TypeScript-Notes'." href="../tags/TypeScript-Notes.html">TypeScript-Notes</a></div>
@@ -229,6 +229,7 @@ Safety can be very interesting, we have seen some examples e.g. <a href="2022-0
 <li>Approaches like smart pointers in newer versions of C++ are not good enough either</li>
 <li>Type safety: works  </div></li>
 </ul>
+<p>It should be noted that <code>subtyping</code> reduces safety. We have discussed it extensively in <a href="2022-01-03-ts-types-part3.html#subtyping" target="_blank">Part 3</a></p>
 <p>We are seeing a slow industry shift towards a more sophisticated use of types, IMO, TS could play a role in that shift.</p>
 <h3 id="monads">Monads</h3>
 <p>I have stayed away from the topic thinking that there are enough monad tutorials already, but it is hard to not mention this concept. Monad types provide interesting safety: monads can control the ability to leave monadic computation. A value can easily enter a monad but once there it is hard to leave. This is clearly interesting from the safety standpoint and can be used to achieve all kinds of interesting guarantees. Things get really very interesting in the jigsaw puzzle building department with the addition of dependent types<a href="#fn5" class="footnote-ref" id="fnref5" role="doc-noteref"><sup>5</sup></a>.</p>
@@ -1274,7 +1275,8 @@ Let’s look at <code>&amp;</code> semantics a little closer.</p>
 <p> <div class="side-note"><strong>Side Note about Arity</strong>: In TypeScript, functions are also subject to subtyping rules.</p>
 <div class="sourceCode" id="cb31"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true"></a>verifyExtends<span class="op">&lt;</span>() <span class="kw">=&gt;</span> number<span class="op">,</span> (_<span class="op">:</span>string) <span class="kw">=&gt;</span> number<span class="op">&gt;</span>()</span>
 <span id="cb31-2"><a href="#cb31-2" aria-hidden="true"></a>verifyExtends<span class="op">&lt;</span>(_<span class="op">:</span>string) <span class="kw">=&gt;</span> number<span class="op">,</span> (_1<span class="op">:</span>string<span class="op">,</span>_2<span class="op">:</span>boolean) <span class="kw">=&gt;</span> number<span class="op">&gt;</span>()<span class="op">&gt;</span></span></code></pre></div>
-<p>see also <a href="https://github.com/Microsoft/TypeScript/wiki/FAQ#why-are-functions-with-fewer-parameters-assignable-to-functions-that-take-more-parameters" target="_blank">functions with fewer parameters are assignable to functions that take more parameters</a>. We have seen this leading to surprising behavior in <a href="2021-12-12-ts-types-part1.html#compilation-bloopers" target="_blank">Part 1, Compilation bloopers</a> section.  </div></p>
+<p>see also <a href="https://github.com/Microsoft/TypeScript/wiki/FAQ#why-are-functions-with-fewer-parameters-assignable-to-functions-that-take-more-parameters" target="_blank">functions with fewer parameters are assignable to functions that take more parameters</a>. This is convenient, it can safe a few characters when writing programs.<br />
+It is also, IMO, dangerous and complex. We have seen this leading to surprising behavior in <a href="2021-12-12-ts-types-part1.html#compilation-bloopers" target="_blank">Part 1, Compilation bloopers</a> section.  </div></p>
 <h3 id="comparative-complexity-rant">Comparative complexity rant</h3>
 <p>A “type enthusiast” will associate types with correctness, even formal verification. To me, the words “messy” and “type” are self contradictory. TS “types” support some interesting features but are a mess.</p>
 <p>I want to contrast the above <code>===</code> and <code>eq</code> examples against a programming language that has been designed around types from the beginning. An example could be an FP language like Elm, PureScript, or Haskell (I am not that familiar with ReasonML or OCaml)<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a>.<br />
@@ -2058,7 +2060,7 @@ The underlying reason seems to be much simpler: TS does not exactly match the ty
 <span id="cb33-2"><a href="#cb33-2" aria-hidden="true"></a></span>
 <span id="cb33-3"><a href="#cb33-3" aria-hidden="true"></a><span class="co">//compiles, calculated type is: const num: number</span></span>
 <span id="cb33-4"><a href="#cb33-4" aria-hidden="true"></a><span class="kw">const</span> num <span class="op">=</span> <span class="fu">testfn</span>(() <span class="kw">=&gt;</span> <span class="dv">1</span>)</span></code></pre></div>
-<p>IMO this language design decision can lead to very confusing escaped bugs and it smells like subtyping. Higher order functions are not uncommon in JavaScript. The <code>nonsense1</code> example is a piece of code I accidentally wrote in my project.<br />
+<p>IMO this language design decision can lead to very confusing escaped bugs and it smells like subtyping<a href="#fn7" class="footnote-ref" id="fnref7" role="doc-noteref"><sup>7</sup></a>. Higher order functions are not uncommon in JavaScript. The <code>nonsense1</code> example is a piece of code I accidentally wrote in my project.<br />
 This is very concerning since errors like these are likely to remain uncaught and become escaped bugs.<br />
 Careful reader will notice that my <code>body4</code> example is a perfect storm. Here it is again:</p>
 <div class="sourceCode" id="cb34"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true"></a><span class="co">//this compiles by using a wrong input parameter type and returns 'body4: unknown'</span></span>
@@ -2100,6 +2102,7 @@ We will discuss these questions in the next installment. Here is the link: <a hr
 <li id="fn4" role="doc-endnote"><p>It should be noted that with this syntax type variables will be defined in the <em>lhs</em> of the definition and will be outside of the lexical scope in the <em>rhs</em>. You would have to re-declare them which makes this approach much less usable in the presence of type variables.<a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 <li id="fn5" role="doc-endnote"><p><code>nonsense1</code> will will show <code>unknown</code> if you remove the type annotation.<a href="#fnref5" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 <li id="fn6" role="doc-endnote"><p>This took me a long time to figure out and was added late.<a href="#fnref6" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn7" role="doc-endnote"><p>In fact it is subtyping. In TS <code>() =&gt; number</code> extends <code>(_:string) =&gt; number</code>.<a href="#fnref7" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section>
 

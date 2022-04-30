@@ -365,7 +365,7 @@ The underlying reason seems to be much simpler: TS does not exactly match the ty
 <span id="cb33-2"><a href="#cb33-2" aria-hidden="true"></a></span>
 <span id="cb33-3"><a href="#cb33-3" aria-hidden="true"></a><span class="co">//compiles, calculated type is: const num: number</span></span>
 <span id="cb33-4"><a href="#cb33-4" aria-hidden="true"></a><span class="kw">const</span> num <span class="op">=</span> <span class="fu">testfn</span>(() <span class="kw">=&gt;</span> <span class="dv">1</span>)</span></code></pre></div>
-<p>IMO this language design decision can lead to very confusing escaped bugs and it smells like subtyping. Higher order functions are not uncommon in JavaScript. The <code>nonsense1</code> example is a piece of code I accidentally wrote in my project.<br />
+<p>IMO this language design decision can lead to very confusing escaped bugs and it smells like subtyping<a href="#fn7" class="footnote-ref" id="fnref7" role="doc-noteref"><sup>7</sup></a>. Higher order functions are not uncommon in JavaScript. The <code>nonsense1</code> example is a piece of code I accidentally wrote in my project.<br />
 This is very concerning since errors like these are likely to remain uncaught and become escaped bugs.<br />
 Careful reader will notice that my <code>body4</code> example is a perfect storm. Here it is again:</p>
 <div class="sourceCode" id="cb34"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true"></a><span class="co">//this compiles by using a wrong input parameter type and returns 'body4: unknown'</span></span>
@@ -407,6 +407,7 @@ We will discuss these questions in the next installment. Here is the link: <a hr
 <li id="fn4" role="doc-endnote"><p>It should be noted that with this syntax type variables will be defined in the <em>lhs</em> of the definition and will be outside of the lexical scope in the <em>rhs</em>. You would have to re-declare them which makes this approach much less usable in the presence of type variables.<a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 <li id="fn5" role="doc-endnote"><p><code>nonsense1</code> will will show <code>unknown</code> if you remove the type annotation.<a href="#fnref5" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 <li id="fn6" role="doc-endnote"><p>This took me a long time to figure out and was added late.<a href="#fnref6" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn7" role="doc-endnote"><p>In fact it is subtyping. In TS <code>() =&gt; number</code> extends <code>(_:string) =&gt; number</code>.<a href="#fnref7" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section>
 
