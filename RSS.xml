@@ -1404,6 +1404,8 @@ Seems like a catch-22 problem.</p>
         
         
         
+        <div class="changelog"> <div>Revision History: <ul> <li> (2022.04.29 - Present) Minor edits </li> </ul> </div></div>
+        
         
         <div class="info">Tags: <a title="All pages tagged 'TypeScript-Notes'." href="../tags/TypeScript-Notes.html">TypeScript-Notes</a></div>
         
@@ -1460,13 +1462,13 @@ The following seem to be the prevalent reasons for why values do not match types
 <p>This will be a good conversation starter:</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="co">//Questionable JSON parsing example</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a><span class="kw">const</span> p<span class="op">:</span> Person <span class="op">=</span> <span class="bu">JSON</span><span class="op">.</span><span class="fu">parse</span>(<span class="st">'&quot;John Smith&quot;'</span>)</span></code></pre></div>
-<p>Your experience with consistency of JSON data may be different from mine. I rarely see JSON issues in front-end – back-end conversation. On the other hand, my experience with using 3rd party REST APIs is not exactly stellar. JSON data problems do happen.</p>
+<p>Your experience with consistency of JSON data may be different from mine. I rarely see JSON issues in a frontend - backend conversation. On the other hand, my experience with using 3rd party REST APIs is not exactly stellar. JSON data problems do happen.</p>
 <p>The above code illustrates what I used to call ‘fail late’ and now I call ‘a type I cannot trust’ case. It is a nasty situation where runtime errors are nowhere near the actual problem. Looking at the example, <code>JSON.parse</code> function is declared to return the TS’s notorious <code>any</code> type. Using <code>any</code> bypasses type checking and the code assigns the result to <code>Person</code>. The actual run-time value of <code>p</code> will be a <code>string</code>, while the type checker is now convinced it is <code>p:Person</code>.</p>
 <p>Now, look at the top rated answer in this stackoverflow: <a href="https://stackoverflow.com/questions/38688822/how-to-parse-json-string-in-typescript" target="_blank">how-to-parse-json-string-in-typescript</a>. It appears that the above code matches the top rated answer. Yes, safer approaches are available (look at less popular answers, we will discuss a much safer way as well).<br />
 I am not claiming this to be a prevalent problem in TS code, but it is an interesting issue caused by the coexistence of the typed and the untyped.</p>
 <p>Now, since I already may have angered a large part of the TS community (did I? I hope not.), let’s beat a little on <strong><em>office.js</em></strong>.</p>
-<p><em>office.js</em> is a source of code examples for my series. Looking into <em>office.js</em> release history suggests that the bond between <em>office.js</em> and TypeScript developed very early. It looks like these projects grew up together. <em>office.js</em> might have even been one of these Microsoft projects that spearheaded the development of TS.</p>
-<p><strong>Short Recap</strong> We are using <em>office.js</em> to interact with Outlook emails. <em>office.js</em> provides us with <code>item: Office.MessageRead</code> allowing us to retrieve data from an email opened in read-only mode. <strong>(Recap End)</strong></p>
+<p><em>office.js</em> is a source of code examples for my series. Looking into <em>office.js</em> release history suggests that a bond between <em>office.js</em> and TypeScript. That bond developed very early. It looks like these projects grew up together. <em>office.js</em> might have even been one of these Microsoft projects that spearheaded the development of TS.</p>
+<p><strong>Short Recap</strong> We are using <em>office.js</em> to interact with Outlook emails. <em>office.js</em> provides us with <code>item: Office.MessageRead</code> allowing us to retrieve data from an email opened for viewing in Outlook. <strong>(Recap End)</strong></p>
 <p>I imagine it is not that uncommon for a TS library to have a non-nullable property that is undefined at runtime.<br />
 The IntelliSense tells me that <code>item: Office.MessageRead</code> contains an overloaded <code>item.body.getTypeAsync</code> method. I was hoping to use it to retrieve the type (plain text vs html) of the email body.</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a>(method) Office<span class="op">.</span><span class="at">Body</span><span class="op">.</span><span class="fu">getTypeAsync</span>(options<span class="op">:</span> Office<span class="op">.</span><span class="at">AsyncContextOptions</span><span class="op">,</span> callback<span class="op">?:</span> ((asyncResult<span class="op">:</span> Office<span class="op">.</span><span class="at">AsyncResult</span><span class="op">&lt;</span>Office<span class="op">.</span><span class="at">CoercionType</span><span class="op">&gt;</span>) <span class="kw">=&gt;</span> <span class="kw">void</span>) <span class="op">|</span> <span class="kw">undefined</span>)<span class="op">:</span> <span class="kw">void</span> (<span class="op">+</span><span class="dv">1</span> overload)</span></code></pre></div>
@@ -1477,9 +1479,9 @@ The IntelliSense tells me that <code>item: Office.MessageRead</code> contains an
 This property is overloaded to be one of the following types (let me call them <em>facets</em>):</p>
 <blockquote>
 <p><code>Office.AppointmentCompose</code> (composing calendar entry)<br />
-<code>Office.AppointmentRead</code> (read-only calendar entry)<br />
+<code>Office.AppointmentRead</code> (reading calendar entry)<br />
 <code>Office.MessageCompose</code> (composing email)<br />
-<code>Office.MessageRead</code> (read-only email)</p>
+<code>Office.MessageRead</code> (reading email)</p>
 </blockquote>
 <p>These <em>facet</em> types are all different. For example, to get email subject you use <code>item.subject:string</code> if you are working with <code>Office.MessageRead</code> or <code>item.subject:Office.Subject</code> if you are working with <code>Office.MessageCompose</code>.<br />
 <code>Office.Subject</code> contains <code>getAsync</code>, <code>setAsync</code> methods and is absolutely not a <code>string</code>.</p>
@@ -1534,9 +1536,9 @@ Some languages offer the ability to write a program to persuade the type checker
 This can be useful for interacting with the type checker when writing code. We have seen a TS version of this already, function <a href="2021-12-12-ts-types-part1.html#type-holes" target="_blank"><code>_&lt;T&gt;(): T</code></a>, defined in my previous post and stolen from <a href="https://dev.to/gcanti/type-holes-in-typescript-2lck" target="_blank">Type holes in TS</a>. Such programming practice is foreign to most languages but becomes very convenient when working with more involved types. We are using it in this series.  </div></p>
 <p>Let’s beat on <em>office.js</em> some more. <a href="https://docs.microsoft.com/en-us/javascript/api/outlook/office.item" target="_blank">Here</a> is a piece <em>office.js</em> documentation about (you guessed it, this post is so very predictable) the <a href="https://docs.microsoft.com/en-us/javascript/api/outlook/office.item" target="_blank"><code>Office.context.mailbox.item</code></a>:</p>
 <blockquote>
-<p>If you want to see IntelliSense for only a specific type or mode, <strong>cast</strong> this item to one of the following:<br />
-<code>AppointmentCompose</code><br />
-<code>AppointmentRead</code> …</p>
+<p><em>If you want to see IntelliSense for only a specific type or mode, <strong>cast</strong> this item to one of the following:</em><br />
+<em><code>AppointmentCompose</code></em><br />
+<em><code>AppointmentRead</code> …</em></p>
 </blockquote>
 <p>TS offers a neat alternative to casting. I will explain it by <em>not</em> following the <em>office.js</em> documentation ;)</p>
 <p>As I indicated already, I can interact with outlook email using <code>Office.context.mailbox.item</code>. However, <code>item</code> property is overloaded into several types discussed in the previous section (I called them <em>facets</em>):</p>
@@ -1571,7 +1573,7 @@ Such an approach is typical, almost idiomatic to JS. It is also hard to maintain
 <span id="cb9-11"><a href="#cb9-11" aria-hidden="true"></a>  <span class="fu">calendarEntriesAreNotSupported</span>()</span>
 <span id="cb9-12"><a href="#cb9-12" aria-hidden="true"></a>}</span></code></pre></div>
 <p>This is a really nice, bravo TypeScript! Simple to use, yet very useful.</p>
-<p>It is also IMO a very interesting case of TS making a bigger impact on how we actually code. <em>“Check before you use”</em> game becomes type assisted and happens on a larger scale of <code>item</code> types instead of single (e.g. the email <em>subject</em>, <em>from</em>, <em>cc</em>, etc.) properties.<br />
+<p>It is also IMO a very interesting case of TS making a bigger impact on how we actually code. <em>“Check before you use”</em> game becomes type assisted and happens on a coarser scale of <code>item</code> types instead of single (e.g. the email <em>subject</em>, <em>from</em>, <em>cc</em>, etc.) properties.<br />
 This adds a lot of clarity to the code. TS types not just check my code, types change how I code!</p>
 <p><code>t is T</code> type is one of the TypeScript <a href="https://www.typescriptlang.org/docs/handbook/2/narrowing.html" target="_blank">narrowing</a> tools. The documentation refers to it as a <em>type predicate</em> or a <em>type guard</em> (a more general term).<br />
 IMO, the idea of a middle ground between type checked safety and unsafe type coercion is brilliant.<br />
@@ -1579,13 +1581,13 @@ It is something that sits a half way between a cast and a type equality proof.<b
 This will probably influence other languages (e.g. here is <a href="https://www.python.org/dev/peps/pep-0647/" target="_blank">enhancement proposal for Python</a>).</p>
 <p>The syntax <code>t is T</code> is interesting, it clearly borrows from dependently typed languages. The value <code>t</code> appears next to the type <code>T</code> and comes from the earlier part of the declaration. This also somewhat justifies the existence of otherwise cumbersome parameter names in type definitions (something I complained about in my <a href="2021-12-12-ts-types-part1.html#office.js.-using-ts-in-anger" target="_blank">previous post</a>).</p>
 <p>I hope the TS community develops a healthy aversion to casting. Why would you use a type checker if you keep subverting it? I also hope that exporting functions returning type predicates will become a standard practice for APIs.</p>
-<p><strong>Use of <code>any</code> in type predicates</strong><br />
+<p> <div class="side-note"><strong>Use of <code>any</code> in type predicates</strong><br />
 Arguably, a safer approach was to define <code>isMessageRead</code> and <code>isMessageCompose</code> using a parameter type that is more restrictive than <code>any</code>.<br />
 My goal was to keep this example very simple and avoid introducing a <code>CorrectedOfficeItem</code> type to fix <em>office.js</em> typing. In real code, I would opt in for introducing the corrected type. Linked github repo defines and uses <code>CorrectedOfficeItem</code>.<br />
 However, using <code>any</code> in type predicate implementations appears to be a common practice. Implementing a type predicate typically requires checking for existence of object properties and <code>any</code> provides access to these.<br />
-My suggestion is to avoid type guards in certain places, e.g. in generics. We want generics to be generic.</p>
+My suggestion is to avoid type guards in certain places, e.g. in generics. We want generics to be generic.  </div></p>
 <h2 id="note-about-the-unknown-type">Note about the <code>unknown</code> type</h2>
-<p>This post started with unsafe use of <code>JSON.parse</code>. I am quite sure that if TypeScript could travel back in time <code>JSON.parse</code> would return <code>unknown</code> instead of <code>any</code>.</p>
+<p>This post started with a use of the unsafe <code>JSON.parse</code>. I am quite sure that if TypeScript could travel back in time <code>JSON.parse</code> would return <code>unknown</code> instead of <code>any</code>.</p>
 <div class="sourceCode" id="cb10"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true"></a><span class="im">export</span> <span class="kw">const</span> safeParseJSON <span class="op">:</span> (_<span class="op">:</span> string) <span class="kw">=&gt;</span> unknown <span class="op">=</span> <span class="bu">JSON</span><span class="op">.</span><span class="fu">parse</span></span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true"></a></span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true"></a><span class="kw">const</span> isPerson <span class="op">=</span> (p<span class="op">:</span> any)<span class="op">:</span> p is Person <span class="kw">=&gt;</span> </span>
@@ -1600,8 +1602,8 @@ My suggestion is to avoid type guards in certain places, e.g. in generics. We w
 <span id="cb10-12"><a href="#cb10-12" aria-hidden="true"></a>}</span></code></pre></div>
 <p><code>unknown</code> is a newer and a safer alternative to <code>any</code>.</p>
 <p><code>unknown</code> type is (only) the top type (you can assign anything to it but you cannot assign it to anything else, maybe except for <code>any</code>). This is a much better safety than being both the <em>top</em> and the <em>bottom</em>. Compared to <code>any</code> it is more cumbersome to use but significantly safer.</p>
-<p>A rough view (IMO) of what type safety is: an ability to <em>separate apples from oranges</em>. If you can assign both an apple to <code>unknown</code> and an orange to <code>unknown</code> then they are no longer separated.<br />
-What makes this worse in TS, is its occasional tendency to widen return types to <code>unknown</code>. TS tends to do that if it cannot find a more precise return type or when it gets confused. We saw two examples of this in the last post:</p>
+<p>Let’s criticize the <code>unknown</code> a bit. A rough view (IMO) of what type safety is: an ability to <em>separate apples from oranges</em>. If you can assign both an apple to <code>unknown</code> and an orange to <code>unknown</code> then they are no longer separated.<br />
+What makes this worse in TS, is its occasional tendency to widen return types to <code>unknown</code>. TS tends to do that if it cannot find a more precise return type, when it tries to apply subtying rules to things like functions, or when it gets confused. We saw two examples of this in the last post:</p>
 <div class="sourceCode" id="cb11"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true"></a><span class="co">//compilation bug allows this incorrect code to compile with</span></span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true"></a><span class="co">// emailBody4: unknown</span></span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true"></a><span class="co">//this code will accutally work at runtime because 'crazyConfig' ends up not being used </span></span>
@@ -1610,7 +1612,7 @@ What makes this worse in TS, is its occasional tendency to widen return types to
 <span id="cb11-6"><a href="#cb11-6" aria-hidden="true"></a></span>
 <span id="cb11-7"><a href="#cb11-7" aria-hidden="true"></a><span class="co">//test: (a: unknown) =&gt; (b: unknown) =&gt; unknown</span></span>
 <span id="cb11-8"><a href="#cb11-8" aria-hidden="true"></a><span class="kw">const</span> test <span class="op">=</span> <span class="fu">curry</span>({} <span class="im">as</span> any)</span></code></pre></div>
-<p>Also, notice <code>unknown</code> in some <a href="2021-12-12-ts-types-part1.html#compilation-bloopers" target="_blank">blooper</a> examples from the previous post:</p>
+<p>Also, notice <code>unknown</code> in some of the <a href="2021-12-12-ts-types-part1.html#compilation-bloopers" target="_blank">blooper</a> examples from the previous post:</p>
 <div class="sourceCode" id="cb12"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true"></a><span class="co">//these should not compile but they do. Names are consitent with previous post and the linked github repo</span></span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true"></a></span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true"></a><span class="co">//const nonsense2: &lt;T1, T2, R&gt;(a: (ax: T1, bx: T2) =&gt; R) =&gt; (b: unknown) =&gt; (a: T1) =&gt; (b: T2) =&gt; R</span></span>
@@ -1619,8 +1621,8 @@ What makes this worse in TS, is its occasional tendency to widen return types to
 <span id="cb12-6"><a href="#cb12-6" aria-hidden="true"></a><span class="kw">const</span> nonsense3 <span class="op">=</span> <span class="fu">curry</span>(curry3)</span>
 <span id="cb12-7"><a href="#cb12-7" aria-hidden="true"></a><span class="co">//const nonsense4: &lt;T1, T2, R&gt;(a: (ax: T1, bx: T2) =&gt; R) =&gt; (b: unknown) =&gt; (b: unknown) =&gt; (a: T1) =&gt; (b: T2) =&gt; R</span></span>
 <span id="cb12-8"><a href="#cb12-8" aria-hidden="true"></a><span class="kw">const</span> nonsense4 <span class="op">=</span> <span class="fu">curry</span>(<span class="fu">curry</span>(curry))</span></code></pre></div>
-<p>and we will encounter more examples of <em>unsafe widening</em> in future notes. It seems like TS tends to widen types to <code>unknown</code> instead of reporting a compilation error. This, in turn, makes things less safe.</p>
-<p>I really love the fact that this code (a contrived example but generalizes easily to real situations) does not compile:</p>
+<p>and we will encounter more examples of <em>unknown widening</em> in future notes. I would be happier if many of these examples resulted in a compilation error. Current status quo reduces safety of TS code.</p>
+<p>Let’s look at how <code>unknown</code> makes things like <code>===</code> more complex. I really love the fact that this code (a contrived example but generalizes easily to real situations) does not compile:</p>
 <div class="sourceCode" id="cb13"><pre class="sourceCode java"><code class="sourceCode java"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true"></a><span class="co">//Compilation error:</span></span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true"></a><span class="co">//This condition will always return 'false' since the types 'string' and 'number' have no overlap.</span></span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true"></a><span class="st">&quot;some email body&quot;</span> === <span class="dv">1</span> </span></code></pre></div>
@@ -1633,17 +1635,17 @@ What makes this worse in TS, is its occasional tendency to widen return types to
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true"></a><span class="kw">const</span> res <span class="op">=</span> <span class="fu">_</span>() <span class="op">===</span> <span class="fu">_</span>()</span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true"></a>(<span class="dv">1</span> <span class="im">as</span> <span class="dv">1</span>) <span class="op">===</span> <span class="fu">_</span>()</span>
 <span id="cb16-4"><a href="#cb16-4" aria-hidden="true"></a><span class="fu">_</span>() <span class="op">===</span> (<span class="dv">1</span> <span class="im">as</span> <span class="dv">1</span>)</span></code></pre></div>
-<p>So the type signature of <code>===</code> is:</p>
+<p>So the “imaginary” type signature of <code>===</code> is:</p>
 <div class="sourceCode" id="cb17"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true"></a>declare <span class="kw">function</span> <span class="fu">eqeqeq</span>(a<span class="op">:</span> unknown<span class="op">,</span> b<span class="op">:</span> unknown)<span class="op">:</span> boolean</span></code></pre></div>
 <p>Except</p>
 <div class="sourceCode" id="cb18"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true"></a><span class="fu">eqeqeq</span>(<span class="st">&quot;some text&quot;</span><span class="op">,</span> <span class="dv">1</span>) <span class="co">//compiles</span></span></code></pre></div>
 <div class="sourceCode" id="cb19"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true"></a><span class="st">&quot;some text&quot;</span> <span class="op">===</span> <span class="dv">1</span> <span class="co">//does not compile</span></span></code></pre></div>
 <p>In fact, <code>===</code> <em>does not have a type</em>. It is a built-in JS operator. TS applies semantic narrowing rules to the code that uses it.<br />
 This complex approach is needed to provide type safety while maintaining compatibility with JS.<br />
-TS’s semantic rules prevent certain types like <code>someText === someNumber</code> from compiling, except, this safety is somewhat fragile and breaks when <code>someText</code> or <code>someNumber</code> are accidentally widened to <code>unknown</code> by the type inference. TS uses a similar approach for other built-in JS operators. (We will discuss <code>===</code> semantics in a deeper detail in the next post.)</p>
-<p><strong>General safety concerns about the top:</strong> Developers, like me, who had spent decades working in languages like Java and then switched to a typed FP language see immediate safety benefits just because there isn’t any top type. The concern about <code>unknown</code> is that it can be used with many JS functions and operators. Such use is not type safe, similarly to how Java’s <code>Object</code> methods are not type safe.<br />
+TS’s semantic rules prevent certain types like <code>someText === someNumber</code> from compiling, except, this safety is somewhat fragile and breaks when <code>someText</code> or <code>someNumber</code> are accidentally widened to <code>unknown</code> by the type inference. TS uses a similar approach for other built-in JS operators. (We will discuss the crazy <code>===</code> semantics in a deeper detail in the next post.)</p>
+<p><strong>General safety concerns about the top:</strong> Developers, like me, who had spent decades working in languages like Java and then switched to a typed FP language see immediate safety benefits just because there isn’t any top type. The concern about <code>unknown</code> is that it is used with many JS functions and operators. Such use is not type safe, similarly to how Java’s <code>Object</code> methods are not type safe.<br />
 From the type safety point of view, these JS functions and operators are not implemented well either. Consider for example <code>JSON.stringify</code> which accepts <code>any</code>. Does this expression (it returns <code>undefined</code>) make much sense to you: <code>JSON.stringify(() =&gt; {})</code>?<br />
-Generic functions lose safety too, generics are not <em>generic</em> if a generically typed function parameter can use a <em>specific</em> JS function.</p>
+Generic functions lose safety too, generics are not <em>generic</em> if a generically typed function parameter can use a <em>specific</em> JS function (like the <code>JSON.stringify</code> function).</p>
 <p>Something like <code>unknown</code> is probably the only way for TS to achieve JS compatibility, nonetheless <code>unknown</code> is not ideal.</p>
 <p>I will come back to this discussion again, I plan to discuss the complexity of TS types. I will also return to the <code>unknown</code> type itself in the future in a more theoretical setting.</p>
 <h2 id="honest-typing-conventions">Honest typing conventions</h2>
@@ -1651,7 +1653,7 @@ Generic functions lose safety too, generics are not <em>generic</em> if a generi
 <p>One of my former colleagues liked to use the phrase “gentlemen’s agreement”. It means an agreement between developers to self impose certain limitations on the code they write. These limitations are not enforced by the compiler, only by developers who agree to abide by the set rules. Coding guidelines, design patterns, you know what I am talking about.</p>
 <p>There is a term in Programming Language Theory called <em>parametricity</em>. Roughly speaking, a language that supports <em>parametricity</em> can assure that a generic function cannot discover what is the type behind a type variable. Remove the top and the bottom from the language too. You are left with very precise types. As an example,</p>
 <div class="sourceCode" id="cb20"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true"></a>declare <span class="kw">function</span> someName<span class="op">&lt;</span>T<span class="op">&gt;</span>(t<span class="op">:</span>T)<span class="op">:</span> T</span></code></pre></div>
-<p>could be only implemented as an identity. Incidentally, there are a few languages that support strict parametricity and a few that come very close.</p>
+<p>could be only implemented as an identity. Incidentally, there are a few languages that support strict parametricity and a few that come very close, for mainstream languages, <em>parametricity</em> is an gentlemen’s agreement.</p>
 <p>Can you write a whole single page app in TS and give it that signature? I bet you can.<br />
 We would probably not call it a type-lie. Calling it not descriptive would probably be more accurate. Or, maybe just not the best design?<br />
 If some type definitions are better than others, which of them are better? Apps are written so the decisions are being made, but based on what?</p>
@@ -1670,25 +1672,24 @@ In TS, almost any program can have almost any type. I can implement</p>
 <div class="sourceCode" id="cb21"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true"></a><span class="kw">function</span> <span class="fu">program</span>()<span class="op">:</span> <span class="kw">void</span> {<span class="op">...</span>}</span></code></pre></div>
 <p>and do almost anything I want in that code.<br />
 It would not be very clear if most of my types looked like this. There needs to be some coding convention that discourages such code.<br />
-Enforcing some level of parametricity when implementing generics would be another example of a coding convention.</p>
+Enforcing some level of parametricity when implementing generics is another example of a coding convention.</p>
 <p><em>The goal is to move from designing programs to designing types.</em><br />
 <em>This post suggests that types are used to define coding conventions.</em></p>
-<p>Here are some bootstrapping ideas.</p>
+<p>So, besides guarding parametricity, what else can we do? Here are some bootstrapping ideas:</p>
 <h3 id="referential-transparency">Referential Transparency</h3>
 <p>Referential Transparency is an FP topic but is also very relevant to types and crucially important to the discussion of “type honesty”.</p>
 <p>A function is referentially transparent if it does the same thing every time it is called. Referential transparency comes with clear type signatures. The output needs to be a function of the inputs and of nothing else. You can do things like curry or partially apply, but you cannot say, retrieve the current time and act on it (that time parameter would need to be provided as input).<br />
-The above <code>program:() =&gt; void</code> would be referentially transparent only if it did not do anything, just returned.<br />
+For <code>program:() =&gt; void</code> to be referentially transparent would mean that the implementation does not do anything, just returns.<br />
 IMO well written programs identify and separate the referentially transparent parts.</p>
 <p>In TS, referential transparency is a coding convention. I will use <em>React.js</em> example to demonstrate this. Readers not familiar with React should think about creating a function from some model (<code>Person</code> in this example) to an actual part of the HTML DOM. Here is my example of a vanilla React component type (I like React to be vanilla as much as possible)</p>
 <div class="sourceCode" id="cb22"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true"></a><span class="kw">const</span> PersonCard<span class="op">:</span> ({ model<span class="op">,</span> onChange }<span class="op">:</span> {</span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true"></a>    <span class="dt">model</span><span class="op">:</span> Person<span class="op">;</span></span>
 <span id="cb22-3"><a href="#cb22-3" aria-hidden="true"></a>    <span class="dt">onChange</span><span class="op">:</span> (<span class="dt">_</span><span class="op">:</span> Person) <span class="kw">=&gt;</span> <span class="kw">void</span><span class="op">;</span></span>
 <span id="cb22-4"><a href="#cb22-4" aria-hidden="true"></a>}) <span class="kw">=&gt;</span> JSX<span class="op">.</span><span class="at">Element</span></span></code></pre></div>
-<p>Hopefully, the implementation does not use any hooks, it only uses the parameters (I call them setters[^1] and getters) to create bits of HTML with event handlers. This would be an example of a referentially transparent React type. It also would be an example of a very explicit type that is very “honest”.</p>
-<p>[^1] What I am achieving here is not the full referential transparency. Setters are not referentially transparent, referentially transparent function that returns <code>void</code> cannot do anything. However, This construction is still very explicit.</p>
+<p>Hopefully, the implementation does not use any hooks, it only uses the parameters (I call them setters<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> and getters) to create bits of HTML with event handlers. This would be an example of a referentially transparent React type. It also would be an example of a very explicit type that is very “honest”.</p>
 <p> <div class="side-note"><strong>FP side notes:</strong> Such approach is not novel at all (e.g. Elm uses a similar approach, only not as a coding style but as its architecture).<br />
-Lenses can be used as just a coding convention too.  </div></p>
-<p>Many developers will very much disagree with me on this. E.g. many will prefer to encapsulate state handling inside components. I do not intend to argue which approach is better. I will just point out that encapsulation is secretive in the type definition and I am looking for transparency. Many parts of React will require some use of hooks, my approach is to do that only when I have to, not when I want to. The goal is to make things very type-explicit. It is an IMO.</p>
+ </div></p>
+<p>Many developers will very much disagree with me on this. E.g. many will prefer to encapsulate state handling inside components. I do not intend to argue which approach is better. I will just point out that encapsulation is secretive in the type definition and I am looking for transparency here. Many parts of React code will require some use of hooks, my approach is to do that only when I have to and to keep the hooks outside of my main components. It is not about not using hooks, it is about not having them all over the code base. The goal is to make things very type-explicit. It is an IMO.</p>
 <p>Such type is also self documenting.</p>
 <p><strong>Expanding on my point 4:</strong> IMO, the best communication tools for developers and the best documenting tools for the code, in that order, are: <em>types and tests</em>. I will only focus on the first.</p>
 <h3 id="types-as-documentation">Types as documentation</h3>
@@ -1705,12 +1706,18 @@ And, I am not suggesting the names for the setters and getters here. I would be 
 <span id="cb25-2"><a href="#cb25-2" aria-hidden="true"></a>    <span class="dt">get</span><span class="op">:</span> Person<span class="op">;</span></span>
 <span id="cb25-3"><a href="#cb25-3" aria-hidden="true"></a>    <span class="dt">set</span><span class="op">:</span> (<span class="dt">_</span><span class="op">:</span> Person) <span class="kw">=&gt;</span> <span class="kw">void</span><span class="op">;</span></span>
 <span id="cb25-4"><a href="#cb25-4" aria-hidden="true"></a>}<span class="op">&gt;</span></span></code></pre></div>
-<p>My focus is on types, not values. There is no safety benefit in doing this. Communication, documentation and accessibility are the only goals.<br />
-In a modernized interpretation of the KISS principle I think of “Simple” as a lot of very transparent types.</p>
+<p>There is no safety benefit in doing this. Communication, documentation and accessibility are the only goals.<br />
+I like to think about a modernized definition of the KISS principle: “Simple” is a lot of very transparent types.</p>
 <h2 id="next-chapter">Next Chapter</h2>
-<p>There are parts of TS that I absolutely adore and I will talk about them. The complexity of TS types is another big topic to discuss. Complexity causes compilation issues (we will encounter some new bloopers) and makes the language hard to use. <del>This will take me a few weeks to finish.</del><br />
-Here is the link: <a href="2022-01-03-ts-types-part3.html" target="_blank">Part 3</a>.</p>
+<p>There are parts of TS that I absolutely adore and I will talk about them. The complexity of TS types is another big topic to discuss. Complexity causes compilation issues (we will encounter some new bloopers) and makes the language hard to use.</p>
+<p>Here is the link: <a href="2022-01-03-ts-types-part3.html" target="_blank">Part 3</a>.</p>
 <p>I am working on these notes during the 2021 holiday season. <em>Merry Christmas, Happy New Year!</em> Stay happy and healthy!</p>
+<section class="footnotes" role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1" role="doc-endnote"><p>What I am achieving here is not the full referential transparency. Setters are not referentially transparent, referentially transparent function that returns <code>void</code> cannot do anything. However, This construction is still very explicit.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
 
     </section>
 </article>
