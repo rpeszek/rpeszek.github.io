@@ -44,6 +44,8 @@
         
         
         
+        <div class="changelog"> <div>Revision History: <ul> <li> (2022.05.10 - Present) Minor edits </li> </ul> </div></div>
+        
         
         <div class="info">Tags: <a title="All pages tagged 'TypeScript-Notes'." href="../tags/TypeScript-Notes.html">TypeScript-Notes</a></div>
         
@@ -84,12 +86,12 @@ Most of the code examples are published in <a href="https://github.com/rpeszek/t
 <h2 id="nutshell">Nutshell</h2>
 <p>This is the fourth post in the series devoted to types in TypeScript. In this series, I explore type-centric approaches to writing code and push TS to its limits in doing so. I am writing these posts for like minded developers who are interested in types and either use or consider using TypeScript.</p>
 <p>This post will be a little more advanced and will focus on programming with type variables.</p>
-<p><a href="https://www.goodreads.com/book/show/112252.Types_and_Programming_Languages" target="_blank">Types and Programming Languages</a> is the book about types I recommend to everyone, … so far unsuccessfully. Reading TAPL will be a big eye opener for many developers. The good news is that types dramatically increase programming efficiency so learning them is a good investment.<br />
+<p><a href="https://www.goodreads.com/book/show/112252.Types_and_Programming_Languages" target="_blank">Types and Programming Languages</a> is the book about types I recommend to everyone (… even if not very successfully). Reading TAPL will be a big eye opener for many developers. The good news is that types dramatically increase programming efficiency so learning them is a good investment.<br />
 This section of the post will be a little more TAPL-ish with some more advanced CS. The topics I am about to present are IMO very useful and I will try my best to present them in a digestible way.</p>
 <p>I will discuss type variable scoping, rank-2 types, and existential types. Some examples show a level of safety that I did not expect to be able to pull off! As it turns out, we can even prevent subtyping in TS.</p>
 <p>Before we start I need to build up some tooling. I will start with a tiny bit of type level programming.</p>
 <h2 id="safety-preventing-unknown">Safety preventing <code>unknown</code></h2>
-<p>In previous posts, we have seen examples where TS, instead of reporting a compilation error, decided to widen types to <code>unknown</code>.<br />
+<p>In previous posts, we have seen examples where TS decided to widen types to <code>unknown</code> rather than report a compilation error.<br />
 Interestingly, TS allows enough type level programming so we can try to fix such issues ourselves.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a>type IsUnknown<span class="op">&lt;</span>T<span class="op">&gt;</span> <span class="op">=</span> unknown <span class="kw">extends</span> T<span class="op">?</span> <span class="kw">true</span><span class="op">:</span> <span class="kw">false</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a></span>
@@ -103,7 +105,7 @@ Interestingly, TS allows enough type level programming so we can try to fix such
 <div class="sourceCode" id="cb2"><pre class="sourceCode java"><code class="sourceCode java"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="co">//Compilation Error</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a><span class="co">//Argument of type 'false' is not assignable to parameter of type 'true'.ts(2345)</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a><span class="fu">verifyUnknown</span>(<span class="kw">false</span>, unk)</span></code></pre></div>
-<p>In my first post, I had an example of an email body (<a href="2021-12-12-ts-types-part1.html#bumps-on-the-path" target="_blank"><code>body4</code></a>) inferred as <code>unknown</code> instead of a <code>string</code>. Wrapping such code in <code>verifyUnknown(false, body4)</code> would have alerted me with a compilation error.<br />
+<p>In my first post, I had an example of incorrect code <a href="2021-12-12-ts-types-part1.html#bumps-on-the-path" target="_blank"><code>body4</code></a> inferred as <code>unknown</code> instead of a <code>string</code>. Wrapping such code in <code>verifyUnknown(false, body4)</code> would have alerted me with a compilation error.<br />
 You may point out that a much simpler solution is to just type annotate: <code>const body4: string</code>.<br />
 I agree. However, having a more generic solution at our disposal is also useful. We will see shortly why.</p>
 <p>Here is a short TAPL-ish explanation of what just happened. TS allows me to use type level ternaries. <code>IsUnknown&lt;T&gt;</code> is a type level function (TAPL’sh term for this is <em>Type Family</em>) that maps types <code>T</code> to literal boolean types <code>true</code> or <code>false</code>. These types have only a single (a <em>singleton</em>) value: <code>true: true</code> and <code>false: false</code>. If I write <code>verifyUnknown(false, someExpression)</code>, TS will figure out that it has to use <code>false</code> as the type. <code>false</code> matches the second part of the type level ternary and, thus, implies that the ternary predicate <code>unknown extends T</code> is not true. Hence <code>T</code> is not <code>unknown</code>.</p>
@@ -144,7 +146,7 @@ So what is the difference? Let’s try to use both:</p>
 <p>Here is how I think about it:</p>
 <p><em>Higher rank means generics are first class</em></p>
 <h2 id="existential-types">Existential types</h2>
-<p>In TAPL-ish it is called <em>existential quantification</em> and it has to do with the ownership of definitions. In OO you would say “code to interfaces, not implementation”, it is also related to the OO concepts of <em>inversion of control</em> and <em>dependency injection</em>. Here is how the story goes:</p>
+<p>In TAPL-ish this is called <em>existential quantification</em> and it has to do with the ownership of definitions. In OO you would say “code to interfaces, not implementation”, it is also related to the OO concepts of <em>inversion of control</em> and <em>dependency injection</em>. Here is how the story goes:</p>
 <h3 id="replacing-factory-pattern">Replacing factory pattern</h3>
 <div class="sourceCode" id="cb9"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true"></a><span class="kw">interface</span> Foo {</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true"></a>    <span class="dt">foo</span><span class="op">:</span> string</span>
@@ -156,7 +158,7 @@ So what is the difference? Let’s try to use both:</p>
 <span id="cb9-8"><a href="#cb9-8" aria-hidden="true"></a>        <span class="kw">this</span><span class="op">.</span><span class="at">foo</span> <span class="op">=</span> <span class="st">&quot;bar&quot;</span></span>
 <span id="cb9-9"><a href="#cb9-9" aria-hidden="true"></a>    }</span>
 <span id="cb9-10"><a href="#cb9-10" aria-hidden="true"></a>}</span></code></pre></div>
-<p>We want to be able to hide which implementation of <code>Foo</code> we are passing to the callback.<br />
+<p>We want to be able to hide which implementation of <code>Foo</code> we are passing to a callback.<br />
 Our first approach tries to use a vanilla TS generic function with a callback argument.<br />
 The input function parameter uses some <code>&lt;T extends Foo&gt;</code> of an unknown exact implementation type:</p>
 <div class="sourceCode" id="cb10"><pre class="sourceCode java"><code class="sourceCode java"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true"></a>function factoryWithCallback&lt;T <span class="kw">extends</span> Foo&gt; (f:(_:T) =&gt; <span class="dt">void</span>): <span class="dt">void</span> {</span>
@@ -180,7 +182,7 @@ Note the scoping of <code>T</code> inside the type defining the function paramet
 In other words, there exists some type <code>T</code> that will be used but <code>f</code> has no way of knowing which. The name for it is <em>existential quantification</em>. Some languages even use the <code>exists</code> keyword to describe it.</p>
 <p>The general concept of existentials is broader than what I am describing here and what TS supports. However, this by itself is plenty powerful.  </div></p>
 <h3 id="preventing-information-escape">Preventing information escape</h3>
-<p>I am drawing a blank trying to think about an OO analogy for this. It is somewhat related to friend classes in C++, package private scope in Java but not exactly.<br />
+<p>I am drawing a blank trying to think about an OO analogy for this. It is somewhat related to friend classes in C++, package-private scope in Java … only not exactly.<br />
 This example will accomplish more than the above ‘factory’ pattern and will not use any interfaces or classes:</p>
 <div class="sourceCode" id="cb14"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true"></a><span class="co">// Using higher rank to protect data</span></span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true"></a><span class="co">// Imaginary world without debuggers, JSON.stringify, etc</span></span>
@@ -207,7 +209,7 @@ Note, <code>Password</code> is a type variable and we have used the existential 
 <span id="cb15-7"><a href="#cb15-7" aria-hidden="true"></a></span>
 <span id="cb15-8"><a href="#cb15-8" aria-hidden="true"></a><span class="fu">secretive</span>(goodProgram)</span>
 <span id="cb15-9"><a href="#cb15-9" aria-hidden="true"></a><span class="fu">secretive</span>(stealPassword)</span></code></pre></div>
-<p>Unfortunately, <code>secretive(stealPassword)</code> compiles. Somewhat typical of TS, if things make no sense, the compiler infers <code>unknown</code>. Hovering over <code>secretive</code> shows me this:</p>
+<p>Unfortunately, <code>secretive(stealPassword)</code> compiles. Somewhat typical of TS, instead of providing robust type safety, the compiler infers <code>unknown</code> and accepts my questionable code. Hovering over <code>secretive</code> shows me this:</p>
 <div class="sourceCode" id="cb16"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true"></a><span class="co">//const secretive: &lt;string[]&gt;(fn: &lt;Password&gt;(p: Password) =&gt; string[]) =&gt; string[]</span></span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true"></a><span class="fu">secretive</span>(goodProgram)</span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true"></a></span>
@@ -230,10 +232,10 @@ Note, <code>Password</code> is a type variable and we have used the existential 
 I do not know how robust this type of coding is. I have not played enough with this approach in TS to give you a list of gotchas. In my very limited experience, this seems similar to the rest of TS, TS stops working if I start pushing harder.</p>
 <p> <div class="side-note"><strong>Existentials and higher rank at large:</strong> These concepts have lead to some amazing programming.<br />
 For example, existentials are related to dependent pairs (dependent sums) in depenently typed programming languages. Dependent typing provides some very strong types. One example could be lists with a type checked length. You want to be able to use such lists when processing runtime data that can have arbitrary size. That size ‘exists’ but cannot be known statically at the compile time. This is in essence an existential construction.</p>
-<p>Another amazing example is an old (1993) code called <em>state threads</em> (currently part of std base library in Haskell). It allows to use a local mutable state to define computations that have to be <em>referentially transparent</em> (I have discussed referential transparency in <a href="2021-12-24-ts-types-part2.html#referential-transparency" target="_blank">Part 2</a>). This is possible because the access to mutate the state cannot escape outside of these computations. The state threads API remains unchanged since it was created 30 year ago, you can’t improve on perfection!</p>
-<p>I see higher rank types, mostly rank-2 being used a lot. Having ability to pass generic (polymorphic) functions around is very useful. In my non-TS projects, the problem of ‘separating interface from implementation’ is typically solved by defining an EDSL and an interpreter. Interpreters are polymorphic (generic in TS lingo). Rank-2 types have to be used to make them first class and pass them around.  </div></p>
+<p>Another amazing example is an old (1993) code called <em>State Threads (ST)</em> (currently part of std base library in Haskell). It allows to use a local mutable state to define computations that have to be <em>referentially transparent</em> (I have discussed referential transparency in <a href="2021-12-24-ts-types-part2.html#referential-transparency" target="_blank">Part 2</a>). This is possible because the access to mutate the state cannot escape outside of these computations. ST API remains unchanged since it was created 30 year ago, you can’t improve on perfection!</p>
+<p>I see higher rank types, mostly rank-2 being used a lot. Having ability to pass generic (polymorphic) functions around is very useful. In my non-TS projects, the problem of ‘separating interface from implementation’ is typically solved by defining an EDSL (Embedded Domain Specific Language) and an interpreter. Interpreters are polymorphic (generic in TS lingo). Rank-2 types have to be used to make them first class and pass them around.  </div></p>
 <h2 id="safety-preventing-subtyping">Safety preventing subtyping</h2>
-<p>Many TS users have observed the need for this. The term <em>exact type</em> is floating around, I believe <em>flow</em> introduced this name. I have seen solutions like this one being used:</p>
+<p>Many TS users have observed the need for this. The term <em>exact type</em> is floating around, I believe <em>flow</em> introduced this name. I have seen solutions like this one being proposed:</p>
 <div class="sourceCode" id="cb21"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true"></a><span class="kw">function</span> exact<span class="op">&lt;</span>T<span class="op">&gt;</span>(item<span class="op">:</span>T)<span class="op">:</span> T {</span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true"></a>    <span class="cf">return</span> item</span>
 <span id="cb21-3"><a href="#cb21-3" aria-hidden="true"></a>}</span>
@@ -246,7 +248,7 @@ For example, existentials are related to dependent pairs (dependent sums) in dep
 <div class="sourceCode" id="cb23"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true"></a><span class="kw">const</span> helloSince <span class="op">=</span> {<span class="dt">hello</span><span class="op">:</span> <span class="st">&quot;world&quot;</span><span class="op">,</span> <span class="dt">since</span><span class="op">:</span><span class="dv">2002</span>}</span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true"></a></span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true"></a>exact<span class="op">&lt;</span>Hello<span class="op">&gt;</span>(helloSince) <span class="co">//complies</span></span></code></pre></div>
-<p>To make something more robust, here is a code that combines the above <code>unknown</code> verification idea with existentials:</p>
+<p>To create something more robust, here is a code that combines the above <code>unknown</code> verification idea with existentials:</p>
 <div class="sourceCode" id="cb24"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true"></a>type Same<span class="op">&lt;</span>P<span class="op">,</span>T<span class="op">&gt;</span> <span class="op">=</span> P <span class="kw">extends</span> T<span class="op">?</span> (T <span class="kw">extends</span> P<span class="op">?</span> <span class="kw">true</span><span class="op">:</span> <span class="kw">false</span>)<span class="op">:</span> <span class="kw">false</span></span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true"></a></span>
 <span id="cb24-3"><a href="#cb24-3" aria-hidden="true"></a><span class="kw">const</span> verifySame <span class="op">=</span> <span class="op">&lt;</span>P<span class="op">&gt;</span> () <span class="kw">=&gt;</span> <span class="op">&lt;</span>T<span class="op">&gt;</span> (_<span class="op">:</span> Same<span class="op">&lt;</span>P<span class="op">,</span>T<span class="op">&gt;,</span> t<span class="op">:</span>T)<span class="op">:</span> T <span class="kw">=&gt;</span> t</span>
@@ -282,7 +284,7 @@ For example, existentials are related to dependent pairs (dependent sums) in dep
 <span id="cb28-9"><a href="#cb28-9" aria-hidden="true"></a><span class="fu">verySafePush</span>(<span class="kw">true</span><span class="op">,</span> intlist<span class="op">,</span> <span class="dv">1</span>)  <span class="co">//this is safe</span></span></code></pre></div>
 <div class="sourceCode" id="cb29"><pre class="sourceCode java"><code class="sourceCode java"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true"></a><span class="fu">verySafePush</span>(<span class="kw">true</span>, unklist, unkstr) <span class="co">//this is risky and will not compile!</span></span></code></pre></div>
 <p>We have discussed problems with the TS approach to variance in the <a href="2022-01-03-ts-types-part3.html#variance-problems" target="_blank">previous installment</a>. We have a DIY approach to fight back!</p>
-<p>The linked github repo has an existentially typed version of <code>safePush</code> that has just one top level type variable. That version is more cumbersome to use. TS ends up not working well with it.</p>
+<p>Side Note: The linked github repo has an existentially typed version of <code>safePush</code> (<code>safePush2</code>) that has just one top level type variable. That version is more cumbersome to use. TS ends up not working well with it.</p>
 <p>Another fun exercise:</p>
 <div class="sourceCode" id="cb30"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true"></a><span class="kw">const</span> safeEq <span class="op">=</span> <span class="op">&lt;</span>P<span class="op">,</span> T<span class="op">&gt;</span> (_<span class="op">:</span> Same<span class="op">&lt;</span>P<span class="op">,</span>T<span class="op">&gt;,</span> a<span class="op">:</span> P<span class="op">,</span> b<span class="op">:</span> T)<span class="op">:</span> boolean <span class="kw">=&gt;</span> a <span class="op">===</span> (b <span class="im">as</span> unknown)</span>
 <span id="cb30-2"><a href="#cb30-2" aria-hidden="true"></a></span>
@@ -290,11 +292,11 @@ For example, existentials are related to dependent pairs (dependent sums) in dep
 <div class="sourceCode" id="cb31"><pre class="sourceCode java"><code class="sourceCode java"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true"></a><span class="fu">safeEq</span>(<span class="kw">true</span>, {hello: <span class="st">&quot;word&quot;</span>}, {hello:<span class="st">&quot;word&quot;</span>, since:<span class="dv">2022</span>}))</span>
 <span id="cb31-2"><a href="#cb31-2" aria-hidden="true"></a><span class="fu">safeEq</span>(<span class="kw">true</span>, <span class="dv">1</span>, <span class="st">&quot;str&quot;</span>)</span></code></pre></div>
 <p>We have discussed problems with TS approach to <code>===</code> narrowing in the <a href="2022-01-03-ts-types-part3.html#complexity-of-ts-types" target="_blank">previous installment</a>. Again, we have a DIY approach to fight back.</p>
-<p>This section is related to a number of feature requests: <a href="https://github.com/microsoft/TypeScript/issues/12936" target="_blank">TypeScript issue 12936</a> and <a href="https://github.com/microsoft/TypeScript/issues/7481" target="_blank">TypeScript issue 7481</a>. Hopefully a future version of TS will provide a simpler way to achive invariance and disable subtyping.</p>
+<p>This section is related to a number of feature requests: <a href="https://github.com/microsoft/TypeScript/issues/12936" target="_blank">TypeScript issue 12936</a> and <a href="https://github.com/microsoft/TypeScript/issues/7481" target="_blank">TypeScript issue 7481</a>. Hopefully a future version of TS will provide a simpler way to achieve invariance and disable subtyping.</p>
 <h2 id="phantom-types">Phantom types</h2>
 <p>TypeScript is somewhat unique in supporting <em>Structural Types</em>. Types like <code>type Person = {firstNm: string, lastNm: string}</code> are structural. That means the name <code>Person</code> is only an alias, what defines the type is the RHS of the definition, not the LHS. Contrast this with an OO class definition in a language like Java. Two structurally identical classes are still considered different types (this is called <em>nominal typing</em>).</p>
 <p>It is sometimes convenient to be able to define different types that share the same structure. <em>Phantom types</em> are a way to do that. We say <em>phantom</em> because these types have no impact on runtime values.</p>
-<p>Somewhere around 2006, haskell wiki published a write-up about <a href="https://wiki.haskell.org/Phantom_type" target="_blank">phantom types</a>. The write-up was expanded in 2010 to include a form validation example. Since then all blogs (in any programming language) about phantoms show a validation example. I decided to be as unoriginal as everyone else. This will allow me to focus on how this is done in TS.</p>
+<p>Somewhere around 2006, haskell wiki published a write-up about <a href="https://wiki.haskell.org/Phantom_type" target="_blank">phantom types</a>. The write-up was expanded in 2010 to include a form validation example. Since then all blogs (in any programming language) about phantoms show a validation example. I decided to be as unoriginal as everyone else. This will allow me to better focus on how it is done in TS.</p>
 <p>My first attempt at phantom types in TS will fail. But this code should make the idea behind phantoms clear:</p>
 <div class="sourceCode" id="cb32"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true"></a><span class="co">//Marker type</span></span>
 <span id="cb32-2"><a href="#cb32-2" aria-hidden="true"></a>type Validated <span class="op">=</span> {<span class="dt">type</span><span class="op">:</span> <span class="st">&quot;validated&quot;</span>}</span>
@@ -311,8 +313,8 @@ For example, existentials are related to dependent pairs (dependent sums) in dep
 <span id="cb32-13"><a href="#cb32-13" aria-hidden="true"></a></span>
 <span id="cb32-14"><a href="#cb32-14" aria-hidden="true"></a><span class="co">//Function to be used only if phantom 'T' is the 'Validated' type </span></span>
 <span id="cb32-15"><a href="#cb32-15" aria-hidden="true"></a>declare <span class="kw">function</span> <span class="fu">doSomethingValidated</span>(p<span class="op">:</span> Person<span class="op">&lt;</span>Validated<span class="op">&gt;</span>)<span class="op">:</span> <span class="kw">void</span></span></code></pre></div>
-<p>Again, these types are trying to create a puzzle. One I can assemble in a specific way only.<br />
-If the puzzle machinery works, I will have to call <code>validate</code> to use <code>Person&lt;Validated&gt;</code> in <code>doSomethingValidated</code>.</p>
+<p>Again, these types are trying to create a jigsaw puzzle. One I can assemble in a specific way only.<br />
+If the puzzle machinery works, I will have to call <code>validate</code> first to be able to use <code>doSomethingValidated</code>.</p>
 <p>Only, this machinery does not work. The following code compiles:</p>
 <div class="sourceCode" id="cb33"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true"></a><span class="kw">function</span> validatedOrNot<span class="op">&lt;</span>T<span class="op">&gt;</span>(p<span class="op">:</span> Person<span class="op">&lt;</span>T<span class="op">&gt;</span>)<span class="op">:</span> <span class="kw">void</span> {</span>
 <span id="cb33-2"><a href="#cb33-2" aria-hidden="true"></a>    <span class="fu">doSomethingValidated</span>(p)</span>
@@ -367,12 +369,12 @@ Here is a simplified and easy to understand example in TS. Think about a non-mut
 <span id="cb37-10"><a href="#cb37-10" aria-hidden="true"></a>declare <span class="kw">function</span> doSomethingWithSortedList <span class="op">&lt;</span>T <span class="kw">extends</span> Comparator<span class="op">&lt;</span>T<span class="op">&gt;&gt;</span> (list<span class="op">:</span> List<span class="op">&lt;</span>T<span class="op">,</span> <span class="st">&quot;ascending&quot;</span><span class="op">&gt;</span>)<span class="op">:</span> <span class="kw">void</span></span></code></pre></div>
 <p>Again, notice the types form pieces of a puzzle and can be fitted only in a specific way.<br />
 You can think about a <code>sort</code> as something that not only does what it says, but also provides a <em>token</em> to use later to prove that the sort was done. This <em>token</em> is a phantom type. You can think about creating a library that helps orchestrate a similar approach to programming and this is what the linked article talks about.<br />
-Many FP programming languages support GADTs, these are very powerful types and limit the popularity of phantom typing.<br />
+Many FP programming languages support GADTs, these are very powerful types and limit the popularity of (subsume) phantom typing.<br />
  </div></p>
 <p>Phantom types could be a very powerful API building tool.<br />
-I am sure you can think about many other interesting use cases, like state machines.</p>
+I am sure you can think about many other interesting use cases, … like state machines.</p>
 <h2 id="next-chapter">Next Chapter</h2>
-<p>I want to talk about recursive types and type level programming. It will be more of a review of TS capabilities in these areas. <del>I am having second thoughts about including a subtyping note (we talked about subtyping in the previous installment already).</del></p>
+<p>I want to talk about recursive types and type level programming. It will be more of a review of TS capabilities in these areas.</p>
 <p>I need to take a break from writing posts. The next installment will take me longer, maybe a month or a little more, to finish.<br />
 Thank you for reading. Happy New Year!</p>
 <p>Here is the link: <a href="2022-02-13-ts-types-part5.html" target="_blank">Part 5</a>.</p>
