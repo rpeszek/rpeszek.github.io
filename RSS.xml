@@ -19,7 +19,7 @@
         
         
         
-        <div class="changelog"> <div>Revision History: <ul> <li> (2021.03.15) Edited <a href="#enums">Enums</a> section</li> <li> (2022.04.30 - Present) Minor edits </li> </ul> </div></div>
+        <div class="changelog"> <div>Revision History: <ul> <li> (2021.03.15) Edited <a href="#enums">Enums</a> section</li> <li> (2022.04.30 - 2022.05.29) Added Types vs TDD side-note in <a href="#about-maintainability">About Maintainability</a> + Minor edits </li> <li> (2022.05.29) Draft warning removed </li> </ul> </div></div>
         
         
         <div class="info">Tags: <a title="All pages tagged 'TypeScript-Notes'." href="../tags/TypeScript-Notes.html">TypeScript-Notes</a></div>
@@ -69,7 +69,6 @@
 <p><em>Please Leave Feedback in: <a href="https://github.com/rpeszek/rpeszek.github.io/discussions/1" target="_blank">git discussions</a></em></p>
 <p>Previous post: <a href="2022-02-13-ts-types-part5.html" target="_blank">Part 5. Advanced Types</a>.<br />
 Back to the beginning post: <a href="2021-12-12-ts-types-part1.html" target="_blank">Part 1. Typing in Anger</a></p>
-<p><strong>DRAFT version</strong> <em>(I am sorry about any misprints. It seems I have goblins in my laptop that toy with me, remove or change words. When this note disappears, you will know that I gave up.)</em></p>
 <h2 id="nutshell">Nutshell</h2>
 <p>This post wraps up my series about types in TS. In this series, we explored type-centric approaches to writing code and pushed TS to its limits, sometimes a little beyond its limits.</p>
 <p>In any mainstream programming language there is a group of users interested in using types. Similarly to the rest of the industry, this group is a very small subset of the TS community. Developers interested in types tend to be unappreciated and underutilized.</p>
@@ -186,7 +185,7 @@ Ideally, the future will bring tooling where the developer defines the types and
 <p> <div class="side-note">A lot of this unicornish utopia is available today in some FP languages like Haskell. Certain code is considered boilerplate and the tooling can derive it automatically. Examples are: equality, ordering, JSON parsing/formatting, <code>map</code> functions for non-list types, folding/unfolding for non-list types, traversing non-list types, recursion scheme folds and unfolds, optics… All of this boilerplate would be available for free for something like the <code>Json</code> grammar example from Part 1 and Part 5. Programming in Haskell often involves creating some involved custom type and automatically deriving a lot of boilerplate for it.<br />
 The are also many experimental (typically short lived) projects for auto generating code. I have curated a short list <a href="https://github.com/rpeszek/IdrisTddNotes/wiki/Part2_Sec3_2_3_gen#program-synthesis-some-relevant-links" target="_blank">here</a> (I expect it to be mostly outdated now).<br />
 The stronger the types, the more code generation is possible (I have already mentioned interactive code development in the dependently typed Idris).  </div></p>
-<p>TS will not automatically implement code for us, however, starting with types and following with (a manually written for now) programs is often quite productive. This is the TDD approach to programming, only T means <em>Type</em>. The simplest way to go about it is to start on a small unit level (define types for small building blocks first). It helps to know some solid building blocks (e.g. FP types) and to use a lot of type variables.</p>
+<p>TS will not automatically implement code for us, however, starting with types and following with (a manually written for now) programs is often quite productive. This is the TDD approach to programming, only T means <em>Type</em>. The simplest way to go about it is to start on a small unit level (define types for small building blocks first). It helps to know some solid building blocks (e.g. FP types) and to use a lot of type variables. <a href="#about-maintainability">About Maintainability</a> section will say a bit more about TDD and Types.</p>
 <h2 id="about-simplicity">About Simplicity</h2>
 <p>I consider the terms <em>simple</em> and <em>easy</em> to have different meaning. Easy: The low barrier to entry (e.g. language). Simple: Low effort to reason about (e.g. code written in that language). There is no free lunch, to get simplicity you need to accept that things will not be easy.<br />
 Simplicity is about ability to reason about things and as such is closely related to all other bullet points in this post.<br />
@@ -249,6 +248,8 @@ Here is a coding challenge: There is a common belief that compilation flags like
 <p>Developers often go to great lengths to avoid compilation errors. Sure, committing code that does not compile is not very professional but this attitude sometimes goes beyond that. IMO, designing types to be resilient to changes in functionality is not what you want to do. Compilation errors are why we use types, compilation errors are a good thing. What you want are errors that are easy to fix.</p>
 <p>It is well known that types can prevent trivial errors (like using a <code>string</code> instead of <code>object</code>). It is hard to catch all such cases in tests and they do show up in production. This is the reason, I believe, TS is used in most of its projects.<br />
 Let me point out a less trivial high level bit. Types can simplify adding new functionality! If you think about the app as a big union type of various requirements (this is an oversimplification but let me keep going), then adding a new piece of functionality to that union could give you compilation errors unless you fix all the relevant places. Think about TS-s <a href="2022-01-03-ts-types-part3.html#switch-exhaustive-check" target="_blank"><code>switch</code></a> or <a href="https://dev.to/gvergnaud/bringing-pattern-matching-to-typescript-introducing-ts-pattern-v3-0-o1k" target="_blank"><em>ts-pattern</em></a> library exhaustive checks<a href="#fn6" class="footnote-ref" id="fnref6" role="doc-noteref"><sup>6</sup></a>.</p>
+<p> <div class="side-note"><strong>Types and T(est)DD:</strong> If you can just follow the types to add a new functionality, how does this relate to the TDD approach of writing the tests first? To implement new functionality we modify / expand some union types. Hmm, you need to implement the new functionality for the app to compile. You could implement it (at least in TS) by throwing some “Not Implemented” error or maybe changing compilation flags, but that means not taking advantage of the type safety.<br />
+IMO types go before TDD. I prefer to write tests after the implementation when types guide my implementation process.  </div></p>
 <h2 id="universal">Universal</h2>
 <p>Types are more fundamental than a programming language. For example, most FP languages are effectively a syntax sugar over some version of lambda calculus. Lambda calculi come with very well understood formal type semantics.<br />
 I am reminded about the <a href="https://www.youtube.com/watch?v=IOiZatlZtGU&amp;t=1816s" target="_blank">Propositions as Types</a> presentation by Phil Wadler himself. It makes a compelling and funny argument that the movie <em>Independence Day</em> got it all wrong. Aliens would not have used C. C is being created by an engineering effort, types and LC are being discovered<a href="#fn7" class="footnote-ref" id="fnref7" role="doc-noteref"><sup>7</sup></a>. Aliens would have discovered typed lambda calculi or have engineered something much different than C or Java.<br />
@@ -340,7 +341,7 @@ This ranking is possibly exaggerated too, lots of jobs list Haskell and good to 
         
         
         
-        <div class="changelog"> <div>Revision History: <ul> <li> (2022.02.14) Fixed list example <a href="#fn2">footnote [2]</a> </li> <li> (2022.02.15) Clarifying comments in <a href="#type-level-programming" < a>type level programming</a> code examples</li> </ul> </div></div>
+        <div class="changelog"> <div>Revision History: <ul> <li> (2022.02.14) Fixed list example <a href="#fn2">footnote [2]</a> </li> <li> (2022.02.15) Clarifying comments in <a href="#type-level-programming" < a>type level programming</a> code examples</li> <li> (2022.05.29) Draft warning removed </li> </ul> </div></div>
         
         
         <div class="info">Tags: <a title="All pages tagged 'TypeScript-Notes'." href="../tags/TypeScript-Notes.html">TypeScript-Notes</a></div>
@@ -362,7 +363,6 @@ This ranking is possibly exaggerated too, lots of jobs list Haskell and good to 
 </div>
 <p><em>Please Leave Feedback in: <a href="https://github.com/rpeszek/rpeszek.github.io/discussions/1" target="_blank">git discussions</a></em></p>
 <p>Previous post: <a href="2022-01-09-ts-types-part4.html" target="_blank">Part 4. Programming with Type Variables</a>.</p>
-<p><strong>DRAFT version</strong> <em>(I am sorry about any misprints. It seems I have goblins in my laptop that toy with me, remove or change words. When this note disappears, you will know that I gave up.)</em></p>
 <p><strong>Disclaimers:</strong> (imagine this is a very small font, read it very fast in a half whisper)<br />
 <em>I assume strict compiler flags are on, something you get by default with scaffolding, e.g. using <code>create-react-app my-project --template typescript</code> is close enough.<br />
 The code examples have been tested with TypeScript v4.5.2.<br />
@@ -446,7 +446,7 @@ TS cannot and should not do either. We do not want JavaScript (or very similar) 
 <p>I think TS type level programming will keep improving and we may see some very interesting use cases in the future.</p>
 <h2 id="subtyping">Subtyping</h2>
 <p>This series has discussed subtyping already. I will keep this section comparatively short.</p>
-<p>Personally, I try to avoid using subtyping features. Subtyping is related to Object Orientation. OO programming has an appeal of simplicity and I was seduced by it for many years. It took me a long time to realize that OO is not that simple. Today, I think about OO as very complex. Even language designers often get it wrong (this series has provided a lot of evidence for this statement in the context of TypeScript). This comment should be filed under IMO as many developers disagree.</p>
+<p>Personally, I try to avoid using subtyping features. Subtyping is related to Object Orientation. OO programming has an appeal of simplicity and I was seduced by it for many years. It took me a long time to realize that OO is not that simple. Today, I think about OO as very complex. Even language designers often get it wrong (this series has provided a lot of evidence for this statement in the context of TypeScript). The first 3 parts of this series could have been alternatively titles “Dangers of OO with examples in TS”<a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a>. This negative view of OO should be filed under IMO as many developers disagree.</p>
 <p>Before continuing reading pass this code, please try to implement (at least in your head) the <code>amIFooOrBar</code> function:</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a><span class="kw">function</span> verifyExtends<span class="op">&lt;</span>T2 <span class="kw">extends</span> T1<span class="op">,</span> T1<span class="op">&gt;</span>() {}</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true"></a></span>
@@ -498,7 +498,7 @@ TS cannot and should not do either. We do not want JavaScript (or very similar) 
 <p>To finish this post I want to pick 4 concepts fundamental to TypeScript: variables, callbacks, <code>never</code> and <code>unknown</code> types and discuss how they relate in a somewhat more theoretical setting. I believe the relationship between these concepts is not commonly understood.</p>
 <p>We have seen <code>&lt;T&gt; () =&gt; T</code> before, we called it a <a href="2021-12-12-ts-types-part1.html#type-holes" target="_blank">type hole <code>_: &lt;T&gt;() =&gt; T</code></a>. Now I am changing my mind and want to call it a generic thunk.<br />
 We can think about it as a ‘lazy’ value.<br />
-Instead of defining <code>const t: T</code> (which, incidentally, TS does not allow on the top level<a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a>) I can define a function that, when called, will return me that <code>t</code>. Basically thunks are variables you put the <code>()</code> after. A referentially transparent (no side-effects) <code>&lt;T&gt; () =&gt; T</code> thunk is morally equivalent to a variable of type <code>T</code>.</p>
+Instead of defining <code>const t: T</code> (which, incidentally, TS does not allow on the top level<a href="#fn5" class="footnote-ref" id="fnref5" role="doc-noteref"><sup>5</sup></a>) I can define a function that, when called, will return me that <code>t</code>. Basically thunks are variables you put the <code>()</code> after. A referentially transparent (no side-effects) <code>&lt;T&gt; () =&gt; T</code> thunk is morally equivalent to a variable of type <code>T</code>.</p>
 <p>A thunk produces a value of type <code>T</code>. A generic callback <code>&lt;T&gt; (_: T) =&gt; void</code> consumes a value of type <code>T</code>. There is, clearly, some type of duality between thunks and callbacks.<br />
 Incidentally, many programming languages define a <em>unit</em> type often denoted as <code>()</code> instead of the <em>C</em>-style <code>void</code>. If this was the case for TS, we would have written: <code>&lt;T&gt; T =&gt; ()</code> for the callback and <code>&lt;T&gt; () =&gt; T</code> for the thunk. You can get from one type to the other by reversing the arrow <code>=&gt;</code>. These concepts become dual in the categorical sense. This post is not about Category Theory but this section has just a tiny bit of it.</p>
 <p>In TS, the generic thunk <code>&lt;T&gt; () =&gt; T</code> type is equivalent to <code>never</code>.<br />
@@ -525,8 +525,8 @@ JS / TS programs often use higher order functions that accept callbacks as param
 <p>As it turns out, this type is equivalent (isomorphic) to the thunk <code>() =&gt; Person</code> (or, ignoring side-effects, to just <code>Person</code>)!<br />
 They are not equivalent based on assignments, they are equivalent because one can be easily converted to the other.</p>
 <p>It kinda makes sense for a dual of a dual to end up back where we started.<br />
-However, this equivalence is a bit stronger, in a sense that it holds for every fixed type <code>T</code>. It is also weaker, since what we get is only isomorphism<a href="#fn5" class="footnote-ref" id="fnref5" role="doc-noteref"><sup>5</sup></a>.</p>
-<p>This equivalence is a special case of <a href="https://bartoszmilewski.com/2015/09/01/the-yoneda-lemma/" target="_blank"><em>Yoneda Lemma</em></a> in Category Theory<a href="#fn6" class="footnote-ref" id="fnref6" role="doc-noteref"><sup>6</sup></a>.</p>
+However, this equivalence is a bit stronger, in a sense that it holds for every fixed type <code>T</code>. It is also weaker, since what we get is only isomorphism<a href="#fn6" class="footnote-ref" id="fnref6" role="doc-noteref"><sup>6</sup></a>.</p>
+<p>This equivalence is a special case of <a href="https://bartoszmilewski.com/2015/09/01/the-yoneda-lemma/" target="_blank"><em>Yoneda Lemma</em></a> in Category Theory<a href="#fn7" class="footnote-ref" id="fnref7" role="doc-noteref"><sup>7</sup></a>.</p>
 <p>I can express this succinctly in TS (note a <a href="2022-01-09-ts-types-part4.html#higher-rank-types" target="_blank">higher rank type</a> is used) as:</p>
 <div class="sourceCode" id="cb13"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true"></a><span class="co">//all of these compile</span></span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true"></a>type Yoneda<span class="op">&lt;</span>T<span class="op">&gt;</span> <span class="op">=</span> () <span class="kw">=&gt;</span> <span class="op">&lt;</span>R<span class="op">&gt;</span>(f<span class="op">:</span> (_<span class="op">:</span> T) <span class="kw">=&gt;</span> R) <span class="kw">=&gt;</span> R</span>
@@ -545,7 +545,7 @@ However, this equivalence is a bit stronger, in a sense that it holds for every 
 <span id="cb13-15"><a href="#cb13-15" aria-hidden="true"></a> }</span></code></pre></div>
 <p>Programmers are divided into 2 camps when exploring this type of information: some consider it fascinating and important, some consider it a lot of useless nonsense. If you are still reading this series, chances are you are in the first camp.</p>
 <p> <div class="side-note"><strong>Callback in JS:</strong> I believe, JavaScripters intuitively know that equivalence and callbacks are viewed almost as a coding style. JS uses callbacks to accomplish all kinds of things. Except, for some reason, JS decided to endure <em>callback hell</em> for about 2 decades. Today’s <code>async</code> / <code>await</code> code finally brings an end to that mystery.<br />
-Understanding that programming with callbacks (often called <em>Continuation Passing Style</em><a href="#fn7" class="footnote-ref" id="fnref7" role="doc-noteref"><sup>7</sup></a>) and vanilla synchronous programming can offer very similar interface dates back to very early 1990-ties. This has to do with the programming abstraction that also comes from Category Theory called <em>Monad</em>.  </div></p>
+Understanding that programming with callbacks (often called <em>Continuation Passing Style</em><a href="#fn8" class="footnote-ref" id="fnref8" role="doc-noteref"><sup>8</sup></a>) and vanilla synchronous programming can offer very similar interface dates back to very early 1990-ties. This has to do with the programming abstraction that also comes from Category Theory called <em>Monad</em>.  </div></p>
 <p>Category Theory is very related to types and to programming in general, I found it only fitting to finish this installment with a note that discussed a little bit of it.<br />
 Bartosz Milewski’s CTFP book linked above starts with code examples in C++ and in Haskell. Bartosz gives up on C++ very fast. I think it would be possible to stay on a little longer by selecting TS instead of C++. Kudos to TS!</p>
 <h2 id="next-and-the-final-chapter">Next and the final Chapter</h2>
@@ -558,10 +558,11 @@ The last 2 installments got a little on an advanced side of things. One question
 <li id="fn1" role="doc-endnote"><p>As we have discussed in <a href="2022-01-09-ts-types-part4.html#phantom-types" target="_blank">Part 3</a>, TS types are structural. That means the name <code>Person</code> in <code>type Person = {firstNm: String, lastNm: String}</code> is only an alias, what defines the type is the RHS of the definition, not the LHS. Contrast this with an OO class definition in a language like Java. Two structurally identical classes are still considered different types (this is called <em>nominal</em> typing).<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 <li id="fn2" role="doc-endnote"><p>I originally posted an issue related to the list and I misinterpreted the problem behind it. Thanks to <a href="https://www.reddit.com/user/joelahoover" target="_blank">u/joelahoover</a> for pointing it out. TS tends to widen literal strings to <code>string</code>. So a value defined as <code>const v = {type: "cons", 1, tail: {type: 'nil'}}</code> or even <code>const empty = {type: 'nil'}</code> are not valid lists unless you use something like <code>as const</code>, e.g. <code>const empty = {type: "nil"} as const</code>. TS does not try to infer the best possible type (it does not care about what is called principal typing).<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 <li id="fn3" role="doc-endnote"><p>The code examples in the linked CTFP chapter require a <code>Fix</code> type that allows for rolling (applying <code>Fix</code>) and unrolling (deconstructing <code>Fix</code>), this complexity is due to nominal typing and iso-recursion, TS makes things actually simpler.<a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn4" role="doc-endnote"><p>You can use <code>const t: T</code> only inside functions that declare <code>T</code> in its type.<a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn5" role="doc-endnote"><p>Think about isomorphism as being able to convert one type to the other without any information loss or gain<a href="#fnref5" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn6" role="doc-endnote"><p>It is Yoneda applied to the <em>Identity functor</em><a href="#fnref6" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn7" role="doc-endnote"><p>I believe the term Continuation Passing Style goes back as far as 1950ties.<a href="#fnref7" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn4" role="doc-endnote"><p>This was not intentional. In fact, I have not realized until finishing the series that many compilation gotchas I have presented in Part 1 are rooted in OO.<a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn5" role="doc-endnote"><p>You can use <code>const t: T</code> only inside functions that declare <code>T</code> in its type.<a href="#fnref5" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn6" role="doc-endnote"><p>Think about isomorphism as being able to convert one type to the other without any information loss or gain<a href="#fnref6" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn7" role="doc-endnote"><p>It is Yoneda applied to the <em>Identity functor</em><a href="#fnref7" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn8" role="doc-endnote"><p>I believe the term Continuation Passing Style goes back as far as 1950ties.<a href="#fnref8" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section>
 
@@ -583,7 +584,7 @@ The last 2 installments got a little on an advanced side of things. One question
         
         
         
-        <div class="changelog"> <div>Revision History: <ul> <li> (2022.05.10 - Present) Minor edits </li> </ul> </div></div>
+        <div class="changelog"> <div>Revision History: <ul> <li> (2022.05.10 - 2022.05.29) Minor edits </li> <li> (2022.05.29) Draft warning removed </li> </ul> </div></div>
         
         
         <div class="info">Tags: <a title="All pages tagged 'TypeScript-Notes'." href="../tags/TypeScript-Notes.html">TypeScript-Notes</a></div>
@@ -611,7 +612,6 @@ The last 2 installments got a little on an advanced side of things. One question
 </div>
 <p><em>Please Leave Feedback in: <a href="https://github.com/rpeszek/rpeszek.github.io/discussions/1" target="_blank">git discussions</a></em></p>
 <p>Previous post: <a href="2022-01-03-ts-types-part3.html" target="_blank">Part 3. TS Complexity</a>.</p>
-<p><strong>DRAFT version</strong> <em>(I am sorry about any misprints. It seems I have goblins in my laptop that toy with me, remove or change words. When this note disappears, you will know that I gave up.)</em></p>
 <p><strong>Disclaimers:</strong> (imagine this is a very small font, read it very fast in a half whisper)<br />
 <em>I assume strict compiler flags are on, something you get by default with scaffolding, e.g. using <code>create-react-app my-project --template typescript</code> is close enough.<br />
 The code examples have been tested with TypeScript v4.5.2.<br />
@@ -911,12 +911,18 @@ You can think about a <code>sort</code> as something that not only does what it 
 Many FP programming languages support GADTs, these are very powerful types and limit the popularity of (subsume) phantom typing.<br />
  </div></p>
 <p>Phantom types could be a very powerful API building tool.<br />
-I am sure you can think about many other interesting use cases, … like state machines.</p>
+I am sure you can think about many other interesting use cases, … like state machines<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>.</p>
 <h2 id="next-chapter">Next Chapter</h2>
 <p>I want to talk about recursive types and type level programming. It will be more of a review of TS capabilities in these areas.</p>
 <p>I need to take a break from writing posts. The next installment will take me longer, maybe a month or a little more, to finish.<br />
 Thank you for reading. Happy New Year!</p>
 <p>Here is the link: <a href="2022-02-13-ts-types-part5.html" target="_blank">Part 5</a>.</p>
+<section class="footnotes" role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1" role="doc-endnote"><p>As an example, office.js is very stateful. It has <em>uninitialized</em> state known to cause problems, there is the application state (e.g. user is writing new email), and much more. My experience with office.js is that the code I write is very sensitive to where is placed and can be very brittle. API like this could be made both safe and self-documenting by using phantom types.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
 
     </section>
 </article>
@@ -966,7 +972,7 @@ Some of the readers have experienced very weird font size irregularities, making
         
         
         
-        <div class="changelog"> <div>Revision History: <ul> <li> (2022.01.03 - Present) Changes are documented in <a href="#summary-of-final-edits">Summary of final edits</a>. </ul> </div></div>
+        <div class="changelog"> <div>Revision History: <ul> <li> (2022.01.03 - Present) Changes are documented in <a href="#summary-of-final-edits">Summary of final edits</a>. </li> <li> (2022.05.29) Draft warning removed </li> </ul> </div></div>
         
         
         <div class="info">Tags: <a title="All pages tagged 'TypeScript-Notes'." href="../tags/TypeScript-Notes.html">TypeScript-Notes</a></div>
@@ -1002,7 +1008,6 @@ Some of the readers have experienced very weird font size irregularities, making
 </div>
 <p><em>Please Leave Feedback in: <a href="https://github.com/rpeszek/rpeszek.github.io/discussions/1" target="_blank">git discussions</a></em></p>
 <p>Previous post: <a href="2021-12-24-ts-types-part2.html" target="_blank">Part 2. Typing Honestly</a>.</p>
-<p><strong>DRAFT version</strong> <em>(I am sorry about any misprints. It seems I have goblins in my laptop that toy with me, remove or change words. When this note disappears, you will know that I gave up.)</em></p>
 <p><strong>Disclaimers:</strong> (imagine this is a very small font, read it very fast in a half whisper)<br />
 <em>I assume strict compiler flags are on, something you get by default with scaffolding, e.g. using <code>create-react-app my-project --template typescript</code> is close enough.<br />
 The code examples have been tested with TypeScript v4.5.2.<br />
@@ -1402,7 +1407,7 @@ Seems like a catch-22 problem.</p>
         
         
         
-        <div class="changelog"> <div>Revision History: <ul> <li> (2022.04.29 - Present) Minor edits </li> </ul> </div></div>
+        <div class="changelog"> <div>Revision History: <ul> <li> (2022.04.29 - 2022.05.29) Minor edits </li> <li> (2022.05.29) Draft warning removed </li> </ul> </div></div>
         
         
         <div class="info">Tags: <a title="All pages tagged 'TypeScript-Notes'." href="../tags/TypeScript-Notes.html">TypeScript-Notes</a></div>
@@ -1432,7 +1437,6 @@ Seems like a catch-22 problem.</p>
 </div>
 <p><em>Please Leave Feedback in: <a href="https://github.com/rpeszek/rpeszek.github.io/discussions/1" target="_blank">git discussions</a></em></p>
 <p>Previous post: <a href="2021-12-12-ts-types-part1.html" target="_blank">Part 1. Typing in Anger</a>.</p>
-<p><strong>DRAFT version</strong> <em>(I am sorry about any misprints. It seems I have goblins in my laptop that toy with me, remove or change words. When this note disappears, you will know that I gave up.)</em></p>
 <p><strong>Disclaimers:</strong> (imagine this is a very small font, read it very fast in a half whisper)<br />
 <em>I assume strict compiler flags are on, something you get by default with scaffolding, e.g. using <code>create-react-app my-project --template typescript</code> is close enough.<br />
 The code examples have been tested with TypeScript v4.4.4 and v4.5.2.<br />
@@ -1735,7 +1739,7 @@ I like to think about a modernized definition of the KISS principle: “Simple�
         
         
         
-        <div class="changelog"> <div>Revision History: <ul> <li> (2021.12.24) modified historical note about office.js. Linked Part 2. Planned future content adjustment.</li> <li> (2021.12.26) <a href="#fn1">footnote [1]</a> <li> (2022.01.03 - Present) Changes are documented in <a href="#summary-of-final-edits">Summary of final edits</a>. </ul> </div></div>
+        <div class="changelog"> <div>Revision History: <ul> <li> (2021.12.24) modified historical note about office.js. Linked Part 2. Planned future content adjustment.</li> <li> (2021.12.26) <a href="#fn1">footnote [1]</a> <li> (2022.01.03 - 2022.05.29) Changes are documented in <a href="#summary-of-final-edits">Summary of final edits</a>. <li> (2022.05.29) Draft warning removed </li> </ul> </div></div>
         
         
         <div class="info">Tags: <a title="All pages tagged 'TypeScript-Notes'." href="../tags/TypeScript-Notes.html">TypeScript-Notes</a></div>
@@ -1763,7 +1767,6 @@ I like to think about a modernized definition of the KISS principle: “Simple�
 </ul>
 </div>
 <p><em>Please Leave Feedback in: <a href="https://github.com/rpeszek/rpeszek.github.io/discussions/1" target="_blank">git discussions</a></em></p>
-<p><strong>DRAFT version</strong> <em>(I am sorry about any misprints. It seems I have goblins in my laptop that toy with me, remove or change words. When this note disappears, you will know that I gave up.)</em></p>
 <p><strong>Disclaimers:</strong> (imagine this is a very small font, read it very fast in a half-whisper)<br />
 <em>I assume strict compiler flags are on, something you get by default with scaffolding, e.g. using <code>create-react-app my-project --template typescript</code> is close enough.<br />
 The code examples have been tested with TypeScript v4.4.4, v4.5.2, and v4.6.3.<br />
@@ -2098,7 +2101,7 @@ We will discuss these questions in the next installment. Here is the link: <a hr
 <li id="fn4" role="doc-endnote"><p>It should be noted that with this syntax type variables will be defined in the <em>lhs</em> of the definition and will be outside of the lexical scope in the <em>rhs</em>. You would have to re-declare them which makes this approach much less usable in the presence of type variables.<a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 <li id="fn5" role="doc-endnote"><p><code>nonsense1</code> will will show <code>unknown</code> if you remove the type annotation.<a href="#fnref5" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 <li id="fn6" role="doc-endnote"><p>This took me a long time to figure out and was added late.<a href="#fnref6" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn7" role="doc-endnote"><p>In fact it is subtyping. In TS <code>() =&gt; number</code> extends <code>(_:string) =&gt; number</code>.<a href="#fnref7" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn7" role="doc-endnote"><p>In fact it is subtyping. In TS <code>() =&gt; number</code> extends <code>(_:string) =&gt; number</code>. One can argue that this TS design decision follows from how JS works and is often used.<a href="#fnref7" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section>
 

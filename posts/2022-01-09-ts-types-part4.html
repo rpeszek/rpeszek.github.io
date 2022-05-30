@@ -44,7 +44,7 @@
         
         
         
-        <div class="changelog"> <div>Revision History: <ul> <li> (2022.05.10 - Present) Minor edits </li> </ul> </div></div>
+        <div class="changelog"> <div>Revision History: <ul> <li> (2022.05.10 - 2022.05.29) Minor edits </li> <li> (2022.05.29) Draft warning removed </li> </ul> </div></div>
         
         
         <div class="info">Tags: <a title="All pages tagged 'TypeScript-Notes'." href="../tags/TypeScript-Notes.html">TypeScript-Notes</a></div>
@@ -72,7 +72,6 @@
 </div>
 <p><em>Please Leave Feedback in: <a href="https://github.com/rpeszek/rpeszek.github.io/discussions/1" target="_blank">git discussions</a></em></p>
 <p>Previous post: <a href="2022-01-03-ts-types-part3.html" target="_blank">Part 3. TS Complexity</a>.</p>
-<p><strong>DRAFT version</strong> <em>(I am sorry about any misprints. It seems I have goblins in my laptop that toy with me, remove or change words. When this note disappears, you will know that I gave up.)</em></p>
 <p><strong>Disclaimers:</strong> (imagine this is a very small font, read it very fast in a half whisper)<br />
 <em>I assume strict compiler flags are on, something you get by default with scaffolding, e.g. using <code>create-react-app my-project --template typescript</code> is close enough.<br />
 The code examples have been tested with TypeScript v4.5.2.<br />
@@ -372,12 +371,18 @@ You can think about a <code>sort</code> as something that not only does what it 
 Many FP programming languages support GADTs, these are very powerful types and limit the popularity of (subsume) phantom typing.<br />
  </div></p>
 <p>Phantom types could be a very powerful API building tool.<br />
-I am sure you can think about many other interesting use cases, … like state machines.</p>
+I am sure you can think about many other interesting use cases, … like state machines<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>.</p>
 <h2 id="next-chapter">Next Chapter</h2>
 <p>I want to talk about recursive types and type level programming. It will be more of a review of TS capabilities in these areas.</p>
 <p>I need to take a break from writing posts. The next installment will take me longer, maybe a month or a little more, to finish.<br />
 Thank you for reading. Happy New Year!</p>
 <p>Here is the link: <a href="2022-02-13-ts-types-part5.html" target="_blank">Part 5</a>.</p>
+<section class="footnotes" role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1" role="doc-endnote"><p>As an example, office.js is very stateful. It has <em>uninitialized</em> state known to cause problems, there is the application state (e.g. user is writing new email), and much more. My experience with office.js is that the code I write is very sensitive to where is placed and can be very brittle. API like this could be made both safe and self-documenting by using phantom types.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
 
     </section>
 </article>
