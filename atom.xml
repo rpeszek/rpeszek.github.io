@@ -52,7 +52,7 @@ I had quite a few eye opening moments when thinking about these topics. This is 
 <p>My pet peeve is identifying specific <a href="../tags/patterns-of-erroneous-code.html" target="_blank">patterns of erroneous code</a> and what could be causing them, there is a human factor and a technical part to these patterns.<br />
 Mental processes involved in writing code are such a fascinating and broad subject. I am taking only a very narrow path through it.<br />
 I am planning another high level post to discuss programming from a different but relevant angle, it will be about empirical and deductive aspects of working with code. I believe these 2 aspects impact our cognitive loads in interesting ways.<br />
-So, this post will focus on cognitive challenges caused by code. The next post will focus more on a human aspect.</p>
+So, this post will focus on cognitive challenges caused by code. The next post will focus more on the human aspect.</p>
 <p>This post reflects on my personal observations accumulated over 27 years of professional programming work, augmented by a few years of academic teaching.<br />
 I am not a psychologist, these are observations of a coder.</p>
 <h2 id="that-dreaded-yaml">That dreaded YAML</h2>
