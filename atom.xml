@@ -8,8 +8,318 @@
         <name>Robert Peszek</name>
         <email>rpeszek.io@gmail.com</email>
     </author>
-    <updated>2022-03-13T00:00:00Z</updated>
+    <updated>2022-08-30T00:00:00Z</updated>
     <entry>
+    <title>Cognitive Loads in Programming</title>
+    <link href="https://rpeszek.github.io//posts/2022-08-30-code-cognitiveload.html" />
+    <id>https://rpeszek.github.io//posts/2022-08-30-code-cognitiveload.html</id>
+    <published>2022-08-30T00:00:00Z</published>
+    <updated>2022-08-30T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<article>
+    <section class="header">
+        Posted on August 30, 2022
+        
+        
+          <br /> Last Modified on Aug 30, 2022
+        
+        
+        
+        <div class="info">Tags: <a title="All pages tagged 'patterns-of-erroneous-code'." href="../tags/patterns-of-erroneous-code.html">patterns-of-erroneous-code</a></div>
+        
+    </section>
+    <section>
+
+    </section>
+    <section>
+        <div class="toc"><div class="header">Table of Contents</div>
+<ul>
+<li><a href="#that-dreaded-yaml">That dreaded YAML</a></li>
+<li><a href="#cognitive-psychology">Cognitive psychology</a></li>
+<li><a href="#easy-vs-simple">Easy vs Simple</a></li>
+<li><a href="#extraneous-loads-that-grow">Extraneous loads that grow</a></li>
+<li><a href="#bugs-and-metacognition">Bugs and metacognition</a></li>
+<li><a href="#extraneous-nature-of-abstraction">Extraneous nature of abstraction</a></li>
+<li><a href="#germane-and-intrinsic-load-of-fp">Germane and intrinsic load of FP</a></li>
+<li><a href="#post-summary">Post Summary</a></li>
+<li><a href="#there-is-much-more-to-it">There is much more to it</a></li>
+</ul>
+</div>
+<p><strong>DRAFT version:</strong> <em>This post is a work-in-progress. I am publishing it to solicit early feedback.</em></p>
+<p>This long post presents programming in a different light than what is commonly considered. We will look at cognitive aspects of interacting with code.</p>
+<p>We will examine cognitive effort that goes into the implementation and cognitive loads on these poor souls who need to work on that code later. We will consider the programming language, its libraries, and implemented programs as <em>instructional materials</em>. We will view the developer as both an <em>instructional designer</em> and a <em>learner</em>. We will think about bugs as cognitive overload and a missed learning opportunity. We will discuss the cognitive impact of abstractions, types, and programming principles.</p>
+<p>Cognitive load of working with code is rarely considered. We ask “How long will it take?” (in fibonacci numbers, of course), we do not ask “How will it impact the overall complexity?”. IMO, thinking about cognitive load can expose project issues that typically go unnoticed.<br />
+I had quite a few eye opening moments when thinking about these topics. This is the main reason I decided to write and share my thoughts. This post will be a high level rant discussing programming across the industry spectrum from JavaScript to Haskell. I will try to explain psychological terminology but this post assumes readers’ (high level) familiarity with concepts of FP and OOP.</p>
+<p>My pet peeve is identifying specific <a href="../tags/patterns-of-erroneous-code.html" target="_blank">patterns of erroneous code</a> and what could be causing them, there is a human factor and a technical part to these patterns.<br />
+Mental processes involved in writing code are such a fascinating and broad subject. I am taking only a very narrow path through it.<br />
+I am planning another high level post to discuss programming from a different but relevant angle, it will be about empirical and deductive aspects of working with code. I believe these 2 aspects impact our cognitive loads in interesting ways.<br />
+So, this post will focus on cognitive challenges caused by code. The next post will focus more on a human aspect.</p>
+<p>This post reflects on my personal observations accumulated over 27 years of professional programming work, augmented by a few years of academic teaching.<br />
+I am not a psychologist, these are observations of a coder.</p>
+<h2 id="that-dreaded-yaml">That dreaded YAML</h2>
+<p>I am perusing thousands of lines in Infrastructure as Code (IAC) yaml files. I am looking at an already refactored and improved version. It is a lot of templated <em>YAML</em> of k8s configuration at my work. The underlying reason for the complexity is the PL itself<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>. Did the refactor break things? Of course it did. Complexity has consequences. With some effort, the issues were fixed. This is how things are, there is nothing we can do about it. There isn’t?</p>
+<p>I want to contrast <em>YAML</em> with a configuration language called <a href="https://dhall-lang.org/" target="_blank">Dhall</a> (one of my favorites). To use <em>Dhall</em> you may need to adjust to a Haskell-like syntax, maybe learn a few new concepts (like ADTs), think about configuration that uses lambda expressions. The return on the investment are Dhall safety features. Dhall even makes the process of refactoring safe, you can compare the previous configuration against the new and Dhall will tell you if both are equivalent or why not.</p>
+<p><em>Dhall</em> and <em>YAML</em> come with very different cognitive challenges.</p>
+<h2 id="cognitive-psychology">Cognitive psychology</h2>
+<p>Cognitive load theory defines cognitive load as the amount of information that working memory holds at one time. The idea is that the human brain is limited in that capacity. Psychologists have identified the load to be about 7 “units of information” (also called “chunks”). If you are into certain technical sports like skiing, swimming, golf…, you may know first hand how hard it is to control just 2 aspects of your body movement at the same time. This space appears to be quite limited.<br />
+I imagine the magic number is &lt;&lt; 7 in programming. However, I expect it to vary between individuals.<br />
+If we can load only a limited number of “chunks” into working memory, how big can these chunks be? The answer is interesting: it seems that it does not matter!<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a><br />
+In some situations, the magic number appears to be 3 (the concept + 2 constituent chunks)<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a>.<br />
+Notice, it would be hard to enumerate chunks involved in a classic imperative program, but that number will be &gt;&gt; 7.</p>
+<p>The idea of decomposing the program into fewer (but bigger) “chunks” that interact in a clear way has been around for as long as I can remember. We will examine this idea in terms of <em>Cognitive Load Theory</em>.</p>
+<p>Cognitive Load Theory is concerned with <em>instructional design</em> and improving how <em>information is presented</em> to a <em>learner</em>. Controlling the learner’s cognitive loads is an essential part of this work.</p>
+<p>Continuous learning is a part of what programmers do, but implementing and modifying project code is by far the biggest cognitive effort that programmers face.<br />
+I look at this as: the code itself is a very important <em>instructional material</em>, programmers are <em>learners</em> and <em>instructional designers</em> at the same time.<br />
+Programs are where the <em>presentation of information</em> happens. The concepts and findings of cognitive load theory seem still relevant after this adjustment.</p>
+<p>Cognitive psychology considers 3 types of cognitive load: <em>Intrinsic, Extraneous, Germane</em>. All are related to <em>information presentation</em> and we will think about them in the context of code.</p>
+<ul>
+<li><p><em>Intrinsic cognitive load</em> is the inherent level of difficulty associated with a specific (instructional) topic. Thinking about code, requirements are a good choice for a topic. A rough moral equivalent known to software developers is <em>essential complexity</em> (things are complex because they are, to reduce this load requirements would need to change).</p></li>
+<li><p><em>Extraneous cognitive load</em> is generated by the manner in which information is presented to learners and is under the control of instructional designers. This term is often used to describe unnecessary (artificially induced) cognitive load. Thinking about code, a rough moral equivalent of high extraneous load is <em>accidental complexity</em><a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a> (things are complex because the program made it so).</p></li>
+<li><p>Germane cognitive load refers to the work that is put into constructing a long-lasting store of knowledge or schema. Schema is a pattern of thought or behavior that organizes categories of information and the relationships among them. Psychologists also use the term <em>“chunk”</em> and schema construction is the process of creating these chunks in memory.<br />
+Thinking about code, this roughly translates to using <em>abstractions</em>, higher level concepts, types, programming principles. An <em>OO</em> programmer may try to define intuitive object hierarchies, employ design patterns to model the business domain. An FP-er may use denotational<a href="#fn5" class="footnote-ref" id="fnref5" role="doc-noteref"><sup>5</sup></a> approach, look at how things compose (think about categories), design DSLs, blue-print the design using types…</p></li>
+</ul>
+<blockquote>
+<p>  <em>Cognitive load theory thesis is about reducing extraneous cognitive load redirecting it towards germane load.</em></p>
+</blockquote>
+<p>Cognitive theory considers intrinsic load to be not movable, obviously requirements can be changed.</p>
+<p>I need to emphasize that the <em>information presentation</em> under consideration facilitates understanding of the code itself and not so much the concepts (e.g. abstractions) used to create it. Knowledge of these concepts is a prerequisite. Prerequisites are an important caveat and one that ends up being contentious.</p>
+<p> <div class="side-note"><strong>Prerequisites:</strong> Working on a project code will reinforce knowledge of programming concepts (psychologists call something similar a <a href="https://en.wikipedia.org/wiki/Worked-example_effect" target="_blank">worked-example effect</a>) but, for a working programmer, learning new concepts ideally needs to happen outside of project work. In reality, there is no time for this. Also, available programming concepts are limited not only by what the developer and the team know, but also by what is supported by the PL (programming language). Developer backgrounds and what is supported in a PL vary a great deal. Thus, the list of prerequisites that can go into a programming project is limited.  </div></p>
+<p>This sets the stage for what I want to discuss, but before continuing let me briefly review a <strong><em>few more relevant concepts.</em></strong></p>
+<p><em>Cognitive overload</em> happens when working memory is overwhelmed by the 3 cognitive loads we have described, IMO, bugs are evidence of a cognitive overload.<br />
+However, psychology is not a simple arithmetic, some programmers learn how to process large cognitive loads sequentially, a few chunks of information at the time and get good at it. However, high cognitive loads will overwhelm even the most diligent among us, There is even a trivial combinatorial complexity to this (does working memory go through a binomial number reloads?).</p>
+<p>I wanted to use <em>cognitive debt</em> in the title, intending it as a pun on “technical debt” because I am interested in discussing negative impacts on the team’s ability to understand and reason about the code. However, this term turns out to have a clinical meaning and I decided against using it.<br />
+<em>Cognitive debt</em> is a psychological term associated with <em>repetitive negative thinking (RNT)</em>. <em>Cognitive debt</em> and RNT are hypothesized to have some very negative health consequences that can lead to depression or even dementia. RNT is described as</p>
+<blockquote>
+<p>  <em>“excessive and repetitive thinking about current concerns, problems, past experiences or worries about the future”</em></p>
+</blockquote>
+<p>I do not claim to know a lot about clinical psychology but the definition clearly is very relevant to programmers and could partially explain why programmers are often unhappy<a href="#fn6" class="footnote-ref" id="fnref6" role="doc-noteref"><sup>6</sup></a>, or why programming discussion groups are often very negative.<br />
+Sadly, RNT seems to be a condition that really good programmers are likely to experience. Good programmers think about rainy day scenarios, notice design flaws, can anticipate program issues… My pet peeve, <a href="../tags/patterns-of-erroneous-code.html" target="_blank">patterns of erroneous code</a>, is an RNT. It seems important that we talk about RNT.</p>
+<p>You may want to think about <em>working memory</em> and <em>cognitive loads</em> as something akin to <em>RAM</em> in a computer.<br />
+What is the equivalent of a CPU cost? In this post I use <em>cognitive effort</em>, the usage of this term is not very consistent<a href="#fn7" class="footnote-ref" id="fnref7" role="doc-noteref"><sup>7</sup></a> in the literature.</p>
+<p>These were cliff notes written by a non expert. There are many tricky and relevant bits like <em>information retrieval from long term memory</em>. Things I am progressively less and less component to describe in psychological context.</p>
+<h2 id="easy-vs-simple">Easy vs Simple</h2>
+<p>If you have looked at my <a href="../tags/TypeScript-Notes.html" target="_blank">TypeScript types</a> series, you have seen me <a href="2022-03-13-ts-types-part6.html#about-simplicity" target="_blank">write about it already</a>. I do not claim that my definitions are the only correct way that these terms should be interpreted. However, I have seen other programmers use a similar disambiguation so I am including it here.</p>
+<p>I consider the terms simple and easy to have a different meaning.<br />
+Easy: A low barrier to entry (e.g. easy programming concepts). Hard is the opposite of easy and implies a high learning curve.<br />
+Simple: Low effort to <em>correctly</em> reason about (e.g. code written using learned concepts). Complex is the opposite of simple (e.g. code that is hard to understand). The term “arbitrary complexity” fits this definition very well.</p>
+<p>Easy means fewer prerequisites and implies low germane load, hard means many prerequisites.<br />
+Simple means low extraneous load, complex means high extraneous load.</p>
+<p>This differentiation could also be expressed as:</p>
+<blockquote>
+<p>  <em>Easy means low cost of creation, simple means low cost of consumption</em></p>
+</blockquote>
+<p>except, in this post my interest is the cognitive effort only not the total cost.</p>
+<p>Achieving <em>simplicity</em> on a larger project is not <em>easy</em>. Easy does not scale well. There appears to be no free lunch, cognitive load needs to be somewhere. My big preference is trying to achieve <em>hard and simple</em> rather than <em>easy and complex</em>. In other words, I prefer to spend my cognitive bandwidth on germane load over extraneous load. This, I am pleased to note, is aligned with cognitive psychology.</p>
+<p>Recall the advice from cognitive psychologists is to reduce extraneous load redirecting it towards germane load. This translates to:</p>
+<blockquote>
+<p>  <em>Move from complex to hard</em></p>
+</blockquote>
+<p>An interesting way to look at easy vs simple is to think about a creative process like writing a book. Easy to write is clearly very different from simple to read. In programming these two are bundled together, a program created by one developer needs to be consumed by another dev who needs to modify it or interact with it. The term “readable code” comes to mind. I consider it different from simple. E.g. readable code does not mean no subtle bugs. Message is readable if you know what it conveys, but what it conveys could be complex or even misleading.</p>
+<p>IMO, the popularity of easy and the unpopularity of simple are a systemic problem in today’s programming and elsewhere.</p>
+<p>Next section discusses examples of code which was intended to be easy and ended up complex.</p>
+<h2 id="extraneous-loads-that-grow">Extraneous loads that grow</h2>
+<p>What was the most complex code you’ve worked on?<br />
+I can think about a number of contenders, but my answer will be very unimpressive: I had to maintain a web page (just one page), it was implemented using Java Struts 1. This code used no advanced concepts, all ingredients were easy: control statements, instance variables, lots of protected methods with typically no arguments and void returns that read and set the instance variables.<br />
+The Java class behind it had about 200 mutating instance variables. Changing the order of 2 lines in this code was almost guaranteed to create an (often intermittent) bug, it was hard to even make sure that variables were set before they were read.<br />
+This code became infamous for its complexity very fast. Interestingly, Struts were blamed, not the needless overuse of mutable state.<br />
+<em>I want you to channel your inner psychologist and answer this question: what is going to happen when a new functionality is added to a Java class with 200 instance variables? Right, I agree, we will have 201 instance variables.</em><br />
+This piece of code was eventually refactored. If I remember correctly, about 12 instance variables were kept, they were actually needed by Struts.</p>
+<p>This experience seems to me a good example of a big extraneous load, I had to deal with a load of 200 coupled “chunks”.<br />
+Let’s think about such code as an instructional material. I can attest, it was virtually impossible to even know what this code is supposed to do from looking at it.<br />
+Ability to program using clear inputs and outputs (rather than void methods with no input parameters) requires a learning effort, I submit to you that this prerequisite is easier than the cognitive effort of maintaining such code.<br />
+Thinking about this as instructional material, clear inputs and outputs are great learning objectives. You know the app if you understand its inputs and outputs.</p>
+<p> <div class="side-note">Maintaining messy code can be stressful. Fortunately, projects like these become “infamous” very fast and you get moral support from other team members. That really helps. Be a source of such support for your teammates as well. Few words of encouragement and acknowledgment of the hardship go a long way. Also, the information will slowly percolate up and the management may become more receptive to accept the cost of a big refactor or even a complete rewrite. This is what happened in my Java Struts example.  </div></p>
+<p>My second example is something that happened more recently. I worked on reimplementing a JS application. It was one of these apps that can be described as: <em>was easy to write, is hard to maintain or understand</em>. I am sure very few readers will be surprised by the existence of a hard to maintain JS application, but let’s put talking about this aspect aside. Is writing “easy” code the same as generating excessive cognitive load for the maintainers? I think it typically is, it is not that hard to incrementally develop a non penetrable maze. Maintaining some code structure to manage the cognitive load is not “easy”.<br />
+The new version is still close to JS (it uses TypeScript and vanilla React) but tries to enforce these 3 principles: <a href="2022-03-13-ts-types-part6.html#referential-transparency-purity-and-explicit-types" target="_blank">referential transparency</a>, <a href="2022-03-13-ts-types-part6.html#about-clarity" target="_blank">clear, explicit</a> types that also <a href="2021-12-24-ts-types-part2.html#types-as-documentation" target="_blank">work as documentation</a>, and <em>async/await</em> abstraction to avoid callback hell.<br />
+Referential transparency is an interesting dichotomy. Experiencing different results every time the code is executed typically causes surprise, in my experience developers rarely think about this during implementation. Thus, the code may feel weird and opinionated (e.g. React components avoid using hooks) but it remains accessible.</p>
+<blockquote>
+<p>  <em>IMO, high quality code shifts cognitive load from maintainer to implementer</em></p>
+</blockquote>
+<p>This works great even if both are the same person.<br />
+Let’s consider the new JS app as an instructional material. Referential transparency creates learning objectives (inputs and outputs can be learned if outputs are predictable) while explicit types are an instructional material in itself (a blueprint). The biggest prerequisite for the implementers was knowledge about what to avoid.</p>
+<p>Besides some common sense principles (feel free to add more), what else can we do to control extraneous load? Things are about to get more tricky.<br />
+Human cognitive load is limited but we can do abstract reasoning. It is simpler for us to deal with a few generalized abstractions than with a multiplicity of concretes<a href="#fn8" class="footnote-ref" id="fnref8" role="doc-noteref"><sup>8</sup></a>. And, as we know, abstractions are a better use of our working memory <em>chunk</em> space.<br />
+This suggests exploring the space of programming abstractions. Unfortunately, programming abstractions are nontrivial. That makes them hard to learn, but what is worse is that developers and language designers sometimes (if not often) mess them up. Instead of decreasing, this increases (or even explodes) the cognitive load. We will explore this topic in <a href="#extraneous-nature-of-abstraction">Extraneous nature of abstraction</a>.</p>
+<p>Types are, obviously, an important tool in controlling cognitive load. Types <em>offload</em> many code verification tasks from the developer. This is significant, developers can ignore a potentially high extraneous load of a program by trusting its type. As I already mentioned, types can be an <em>instructional material</em>, a blueprint. Using a type checker can, in itself, be an interactive learning process (e.g. using REPL to ask type questions about the code).<br />
+However, types are subject to similar limitations as abstractions: a learning curve, PL limitations, correctness issues (only, we call it <em>soundness</em> if types are involved).</p>
+<p>Reducing cognitive load using abstractions and types is doable but requires navigating some tricky waters.</p>
+<p> <div class="side-note"><strong>In a unicorn universe,</strong> projects are not allowed to exceed certain thresholds of cognitive load. When the threshold is reached abstractions that lower the load are identified, learned, and respectfully applied. If that is not possible, requirements are reexamined. Unicorn managers are automatically beatified. 🦄  </div></p>
+<h2 id="bugs-and-metacognition">Bugs and metacognition</h2>
+<p>Let’s define a bug as an unintended program defect. That removes all the temporary hacks from consideration. But it is the programmer’s job to figure these things out. A bug implies some issue in the mental process.</p>
+<p>I consider cognitive overload to be the main cause of bugs. <em>Metacognition</em> is an important concept in cognitive psychology. It is about knowing strengths and weaknesses in our own cognitive process.<br />
+I started analyzing and recording all defects I encounter at my work. My goal is to understand better what has caused and what could have prevented each issue. My records suggest that bugs <em>uncover</em> extraneous complexity. In other words, it is a good idea to ask this question: What is the underlying complexity that caused the developer to create this bug? The idea is to learn from bugs.<br />
+Types, obviously, can be very helpful in bug prevention. Programmers who start using a PL with powerful types (e.g. Idris, Haskell) experience this first hand: a lot of compilation errors, many uncovering an issue in the program. Notice, this is a very interactive process and an interactive learning experience in which developers can observe how and why they failed. Developers also observe what PL features prevent the bug from escaping.</p>
+<blockquote>
+<p>  <em>Programming is an interactive process of finding and fixing bugs.<br />
+  IMO, programming should be an interactive process of identifying and resolving the underlying causes of bugs.</em></p>
+</blockquote>
+<p>“Insanity is doing the same thing over and over and expecting different results”. I promise you 2 things: When you start analyzing bugs, you will start seeing patterns (similar to <a href="../tags/patterns-of-erroneous-code.html" target="_blank">patterns of erroneous code</a>). Unfortunately, you will likely have problems in communicating these patterns to developers who do not go through a similar process. I found that a code review session showing the same issue in a few places works better than trying to explain this without a concrete context (oops).</p>
+<p>How about typos, trivial overlooks that are sometimes so hard to spot? That mysterious brain of ours is good at creating these. A great reading on this, in the context of (non-programming) typos, is <a href="https://www.wired.com/2014/08/wuwt-typos/" target="_blank">WUWT, Why It’s So Hard to Catch Your Own Typos</a>.<br />
+Human brain has an ability to fill in gaps, self-correct things. Human brain is better at focusing on high level ideas and is perfectly happy skipping over minute details. This characteristic seems even stronger if we are on board with the big idea, and it seems fair to assume that programmers are on board with the features they are implementing. The main point is that our brain is not well designed to work at the level of statements and lexical tokens, it wants to work on big picture items.</p>
+<p> <div class="side-note">Side note: This line of thought could also partially explain why programmers seem to be at home in the code they wrote even if other programmers consider it a complete mess. Sometimes just changing font or background color allows us to spot issues we have overlooked before. Our perception changes if what we interact with feels foreign (interestingly this should increase the cognitive load). It appears that some mental reset is sometimes needed.  </div></p>
+<p>Error proneness of programming at the level of PL statements is also consistent with the cognitive load theory. At this level a programmer needs to consider a multitude of details, most likely overwhelming the working memory limits.<br />
+An interesting piece of trivia is that Turing’s original paper (the one about universal machines and halting problem) had several bugs in it. <em>If Turing could not get it right, what chance do we have?</em><a href="#fn9" class="footnote-ref" id="fnref9" role="doc-noteref"><sup>9</sup></a></p>
+<p>Static compilation can prevent a lot of trivial errors and hopefully the prevented list will grow, but that list is not exhaustive.</p>
+<p><strong>Section Summary</strong></p>
+<p>My first point is that programmers should start considering cognitive aspects when thinking about bugs.</p>
+<p>What is that we do when we discover a bug? We write a test, right? Does this reduce the cognitive load? Of course it does not. IMO, it is more important to spend time on some intro- and retrospection and look for ways to lower the extraneous load or build some type safety. If that is not possible, improving test coverage becomes important. I want to learn from bugs. <em>Fixing bugs is the least important part of the process.</em> I should also mention that this is, unfortunately, a <em>repetitive negative thinking</em> territory.</p>
+<p>Here is an example that keeps popping into my mind when thinking about trivial errors. I have seen many stack overflow errors in my life, I have seen only 2 or 3 since I moved to Haskell but they were not easy to find. They all were caused by Haskell allowing this lambda expression:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">let</span> blah <span class="ot">=</span> blah </span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a><span class="kw">in</span> blah</span></code></pre></div>
+<p>This to me is a good example of extraneous complexity that could be prevented by the compiler. Many PLs (e.g. anything in ML groups like OCaml, Reason will not allow such code). Here is a relevant discussion on reddit: <a href="https://www.reddit.com/r/haskell/comments/lxnbrl/ghc_proposal_norecursivelet_prevent_accidental/" target="_blank">NoRecursiveLet</a>. Thinking about reducing extraneous load could impact such discussion (in this case, by supporting the proposal).</p>
+<p>My second point is the recurring one, types and abstractions can play a big role in reducing bugs. Hopefully types and abstractions themselves are bug free!</p>
+<p> <div class="side-note"><strong>There is an alien civilization</strong> of programmers who analyze their bugs, Alien PL designers consider these analyses to decide which features are in and which are out. Their PLs do not even have strings. You can do a lot of harm with just strings.  </div></p>
+<h2 id="extraneous-nature-of-abstraction">Extraneous nature of abstraction</h2>
+<p>Summary of previous sections: Our cognitive load is limited but we are capable of abstract reasoning and can work with big <em>chunks</em> of knowledge. Abstractions seem like our best hope in reducing the overall code complexity. But …there are a few caveats.<br />
+Programming abstractions are known for their germane load (for being <em>hard</em> to learn and for being less straightforward than imperative) but not so much for their extraneous nature (for being needlessly <em>complex</em>), the second aspect is much more interesting so let’s discuss it.</p>
+<p><strong>Poorly implemented abstractions</strong></p>
+<p>You spotted an intermittent malfunction in a code you maintain. Luckily, you see only one commit in recent history and you have a strong hunch something is wrong with that commit. Only some 50 code changes. The one that caused the issue is: <code>var1 == var2</code> changed to <code>var2 == var1</code>. Would you be able to spot it? I call this type of issue a “gotcha”.<br />
+How about: your <em>finder</em> function seems to be not finding stuff, only that sounds too far fetched, the function looks correct, so you just ignore this as a possible explanation. The underlying issue is that sometimes <code>x =! x</code> and you have used an equality check to find things.</p>
+<p>I like to think about this paraphrasing Gimli:</p>
+<blockquote>
+<p>  <em>“Computation Laws are upon you, whether you would risk them or not.”</em></p>
+</blockquote>
+<p>Equality is an example of an abstraction developers implement and use, but not think much about. However, the list of surprising behaviors like these is quite long affecting all kinds of abstractions. Gochas create chaos in the cognitive process. Gotchas often become mystery bugs and are resolved using workarounds.<br />
+For abstractions to work as a cognitive load reducer, they need to be treated seriously by the implementer.</p>
+<p>Developers I talked to often responded to such examples by saying something like: “This is just bad code, whoever implemented it should have been more careful”. Except, I can point to examples in standard libraries of popular mainstream PLs or popular frameworks<a href="#fn10" class="footnote-ref" id="fnref10" role="doc-noteref"><sup>10</sup></a>. The issues come with no deprecation warning and, if documented, are considered a ‘feature’.<br />
+Are questions like “does a developer have a fighting chance of troubleshooting this feature?” even being asked?</p>
+<p><strong>Abstractions themselves causing cognitive issues</strong></p>
+<p>OOP creates a very high cognitive load, to a point that even compiler writers mess it up all the time<a href="#fn11" class="footnote-ref" id="fnref11" role="doc-noteref"><sup>11</sup></a>. I started my programming career as an OOP enthusiast and evangelist. OO programming has an appeal of simplicity and I was seduced by it for many years. It took me a long time to realize that OOP is not simple at all. Let’s talk OOP a little. Pick random training. You will probably learn that <em>Cat</em> <em>is a</em>n <em>Animal</em> and that everything is intuitive.<br />
+You will not learn if any of these less obvious are (or should be) true:<br />
+  function accepting a <em>Cat</em> <em>is a</em> function accepting an <em>Animal</em><br />
+  array of <em>Cats</em> <em>is a</em>n array of <em>Animals</em><a href="#fn12" class="footnote-ref" id="fnref12" role="doc-noteref"><sup>12</sup></a><br />
+  function with no parameters <em>is a</em> function with one parameter<a href="#fn13" class="footnote-ref" id="fnref13" role="doc-noteref"><sup>13</sup></a>.<br />
+You will not learn about reduced type safety that comes with widening to a superclass<a href="#fn14" class="footnote-ref" id="fnref14" role="doc-noteref"><sup>14</sup></a>. I don’t even want to start on subtyping gotchas of variant (union and sum) types. OOP is approachable only because we hide the complex bits from the learners<a href="#fn15" class="footnote-ref" id="fnref15" role="doc-noteref"><sup>15</sup></a>. A relevant psychological concept is a cognitive bias called <em>framing effect</em>.</p>
+<p>The concept of exception (i.e. <code>throw</code> and <code>catch</code> game) is another example of a risky complexity that impacts even Haskell<a href="#fn16" class="footnote-ref" id="fnref16" role="doc-noteref"><sup>16</sup></a>.<br />
+Types can reduce cognitive load of understanding the code, except exceptions provide a very accessible and virally used way to bypass the types. Other “bottom” types like <code>null</code> are in the same boat. In my experience, many developers turn a blind eye on error handling in general. This seems akin to <em>omission neglect</em> (psychological concept loosely described by this popular phrase: out of sight out of mind) and some <em>optimism bias</em> (focus on sunny day scenarios only).<br />
+I really like what Rust has done in this regard, you can <em>panic</em> but it is hard to recover if you do, otherwise errors are handled in an <code>Either</code>-like sum type called <code>Result</code>.<br />
+Hopefully we will see more of this pragmatic approach in future PLs.</p>
+<p>You may notice that the examples of <em>gotchas</em> I am coming up with have something in common. These issues can be classified under: <em>not trustworthy types</em>. Misleading types will confuse any developer, that includes developers who work in dynamically typed languages and may not think about types explicitly.<br />
+<em>We think in types more than we realize.</em></p>
+<p>Are there any “gotcha” free environments? Haskell comes close but is not perfect<a href="#fn17" class="footnote-ref" id="fnref17" role="doc-noteref"><sup>17</sup></a>. Proof assistants like Idris come to mind, you get very sound abstractions, and these can even verify totality. That is kinda interesting, let’s pause for a bit here… Consider the levels of abstraction used in proof assistants. It appears that our brain needs something at the level of a dependently typed lambda calculus to work correctly<a href="#fn18" class="footnote-ref" id="fnref18" role="doc-noteref"><sup>18</sup></a>. That could make sense, for things to be logical you need, well you need the logic itself. Proof assistants are not “gotcha” free though, they have different types of gotchas<a href="#fn19" class="footnote-ref" id="fnref19" role="doc-noteref"><sup>19</sup></a>.</p>
+<p><strong>Wrong abstraction for the job</strong></p>
+<p>Let’s talk about data structures a bit. The choice you make can impact extraneous complexity a great deal. An example which emphasizes this is <a href="https://en.wikipedia.org/wiki/Conflict-free_replicated_data_type" target="_blank">CRDT</a>.<br />
+Imagine that you are working on an app where 2 or more agents (human or not) can concurrently work on some list and your program needs to merge their work. Using a standard <em>list type</em> will be a cognitive nightmare, right? Think about one agent (R) removing items, another agent (A) adding items. How do you know if an item was removed by (R) or (A) just added it? So what do you do? You introduce some distributed locking mechanism? …Things are becoming complex very fast.<br />
+The choice of which data structure is used can have a big impact on extraneous complexity. This extends to other abstractions as well.</p>
+<p><strong>High levels of abstraction, an extraneous aspect</strong></p>
+<p>I have seen very abstract code where the abstraction was like trees preventing developers from noticing a forest. One source of such examples is error handling. Mathematics rarely concerns itself with error messages, falsehood is falsehood. I have blogged about it in my posts about <a href="2021-01-17-maybe-overuse.html" target="_blank">Maybe Overuse</a> and <a href="2021-02-13-alternative.html" target="_blank">Alternative and errors</a>.</p>
+<p> <div class="side-note">Side note: Probably not surprisingly, these were rather negatively received, heavily downvoted posts. The topic itself is very much a <em>repetitive negative thinking</em>. Incidentally, the negative comments mostly belonged in the general “what you are describing is just bad code, whoever wrote it should have been more careful” category. I want to understand how code abstractions could promote erroneous code, my interest is in what makes people not careful.<br />
+ </div></p>
+<p>Let’s focus on Haskell. One simple to explain and not very abstract example that still fits into this section is the <code>guard</code><a href="#fn20" class="footnote-ref" id="fnref20" role="doc-noteref"><sup>20</sup></a> combinator. I see it used and I also scratch my head when, say, a JSON parser error says only <code>"mempty"</code>. Possibly, some programmers think about the abstraction called <code>Alternative</code> when they should be thinking about something like <code>MonadFail</code>, an abstraction that allows to specify error messages.<br />
+Abstractions seem to come with what psychologists call a <em>commitment bias</em> (hey, I am doing <code>MonadPlus</code> damn it!).<br />
+It is us, not the tooling, Haskell ecosystem offers a very expressive variety of abstractions. E.g. consider the error handling blind spot we talked about earlier. You can think about <code>Either</code> as a <code>Bifunctor</code> or an <code>ArrowChoice</code> argument, what typically gets our attention is its throw and forget <code>Monad</code> semantics.<br />
+Some of us really dig abstractions and are arguably very good at them. But we are kidding ourselves if we do not acknowledge that abstractions can also blind us.<br />
+IMO the one thing we can do about it is to be aware. More diligence + awareness is typically all it takes.</p>
+<p><strong>Section Summary</strong><br />
+Some developers react to gotchas with something akin to <em>omission neglect</em>, while other developers appear to create a mental store of gotchas and their potential impacts. I am in the second group. Maintaining this store is not necessarily easy. I will also note a possible relationship to <em>repetitive negative thinking</em>.</p>
+<p>Gotchas presented to us (thank you very much) by language designers or library implementers should technically be classified as <em>intrinsic</em> since a common bloke like me can’t do much about them other than look for a job that has a better tooling. If you look at programming as a whole, these are extraneous loads.</p>
+<p>I have left the subject of abstraction vs imperative (abstractions being less straightforward and harder to map to actual execution) untouched. I plan to return to this and to the topic of gotchas in my next post.</p>
+<p> <div class="side-note"><strong>There is a planet</strong> where PL designers treat all programming abstractions and types with respect. Only sound, correctly implemented abstractions are used.<br />
+As a result, this planet has only unpopular languages, their TIOBE index starts at number 100. 🌠  </div></p>
+<h2 id="germane-and-intrinsic-load-of-fp">Germane and intrinsic load of FP</h2>
+<p>I expect that nothing in this section will be surprising to a functional programmer, but FP has such a unique cognitive impact that it is hard for me to not talk about.</p>
+<p>Functional Programming allows us to understand computations in ways that are not possible without FP. Understanding is a big cognitive simplifier<a href="#fn21" class="footnote-ref" id="fnref21" role="doc-noteref"><sup>21</sup></a>. We are more at home with things we understand than with things we just know. Realizing that computations is something I can actually study to understand has been a game changer for me as a programmer.</p>
+<p>Consider the following (middle-school?) formulas and how they relate to programming:</p>
+<blockquote>
+<p><span class="math inline"><em>a</em><sup>(<em>b</em> + <em>c</em>)</sup> = <em>a</em><sup><em>b</em></sup> * <em>a</em><sup><em>c</em></sup></span><br />
+<span class="math inline"><em>a</em><sup>(<em>b</em> * <em>c</em>)</sup> = (<em>a</em><sup><em>b</em></sup>)<sup><em>c</em></sup></span></p>
+</blockquote>
+<p>These, pattern match and currying formulas, suggest that computations relate to other things we already know in ways that are almost surprising<a href="#fn22" class="footnote-ref" id="fnref22" role="doc-noteref"><sup>22</sup></a>.<br />
+From the cognitive load theory point of view, an ability to map to existing knowledge needs to be viewed as a big plus (and a missed opportunity in how we learn programming).</p>
+<p>FP is hard and there are 2 reasons why. One: it is simply hard (has a decent surface area but is also deep), two: it is different.</p>
+<p>I was learning FP while working as a Java / Groovy developer. It took me 8 years, I estimated about 7000 hours. This effort included Category Theory, Types (my main interest), PLT, and programming in a bunch of FP languages. This has been, obviously, a big personal investment. And, I still had to internalize a lot of this when I started my actual Haskell job. Please do not interpret these stats as an argument that FP cannot be learned incrementally, or that learning FP does not provide immediate benefits. I am including these personal stats as evidence of an overall effort but also as evidence of the multitude of learning opportunities. We should resist thinking about knowledge as a binary checkbox.</p>
+<p>FP requires a shift in how developers think. This shift is especially hard if the developer can only practice imperative skills at work. The tools we use impact our cognitive function.</p>
+<blockquote>
+<p>  “It is not only the violin that shapes the violinist, we are all shaped by the tools we train ourselves to use, and in this respect programming languages have a devious influence: they shape our thinking habits.”</p>
+</blockquote>
+<p>The quote is from <a href="https://chrisdone.com/posts/dijkstra-haskell-java/" target="_blank">Dijkstra letter to The University of Texas</a> protesting their Haskell -&gt; Java curriculum change. If you are into technical sports, you may have heard the term “muscle memory”. It is often harder to unlearn or adjust a body movement than learn a new one from scratch. It is even harder to “own” the old movement and the new movement at the same time. Psychologists also believe that unlearning is hard<a href="#fn23" class="footnote-ref" id="fnref23" role="doc-noteref"><sup>23</sup></a>.<br />
+The required mental shift for FP is the source of all kinds of additional problems. It can form a communication barrier, it can divide the community and teams.<br />
+At the same time, this cognitive shift is an opportunity to understand programs in a different way.</p>
+<p>I will dig my hole a little deeper. This one line of code made a huge impact on me (it is called the <em>Free Monad</em> and is in Haskell<a href="#fn24" class="footnote-ref" id="fnref24" role="doc-noteref"><sup>24</sup></a>):</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Free</span> f a <span class="ot">=</span> <span class="dt">MkFree</span> (f (<span class="dt">Free</span> f a)) <span class="op">|</span> <span class="dt">Pure</span> a </span></code></pre></div>
+<p>I decided to dedicate a full summer to learning this line and it ended up taking longer than that. There is actually quite a bit to learn and <em>understand</em> here!<br />
+For example, how does it relate to this line (looks very similar, just replace <code>Free</code> with <code>Fix</code> and drop one constructor):</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="kw">newtype</span> <span class="dt">Fix</span> f a <span class="ot">=</span> <span class="dt">MkFix</span> (f (<span class="dt">Fix</span> f a))</span></code></pre></div>
+<p>Or, how is this a monad? Does it satisfy monad laws? What does <em>free</em> mean? Can other things than monads be <em>free</em>? Can <code>Free</code>-s with different <code>f</code>-s be combined? If so, are there easier and harder ways of combining them? What is <em>freer</em>? How do I program with it? How does it (and should it) relate to <code>try-catch</code> games? And finally, what libraries implement and use <code>Free</code>? The point I am trying to make is that FP computations are a different breed. They actually have properties and the learner can build an understanding of these properties.<br />
+Effect systems (the main application of <code>Free</code>) are a very powerful programming tool, they can add a lot of structure and cognitive simplicity<a href="#fn25" class="footnote-ref" id="fnref25" role="doc-noteref"><sup>25</sup></a>. I use 2 of them at work, one of them we maintain. Effect systems allow us to organize code into DSLs and interpreters. This approach creates a very high level of code reuse, testability, and defines very explicit, self-documenting types.<br />
+Now, is it realistic to learn these concepts in a day or a week when starting a new project? Imagine a programmer who uses Java at work exploring this knowledge.</p>
+<p>There has been some discussion about making Haskell itself more accessible (e.g. <a href="https://www.michaelpj.com/blog/2021/01/02/elementary-programming.html" target="_blank">Elementary Programming</a>) and some library effort in this direction as well (e.g. <a href="https://github.com/digitallyinduced/ihp" target="_blank">IHP</a>).<br />
+Some teams separate <em>hard</em> micro services with high levels of abstraction from the rest.<br />
+Some places separate a possibly very advanced implementation from a simple to use API (I believe Facebook’s Haxl does it). Creating a progression from easy to hard is less trivial.</p>
+<p>FP is a niche, I think FP has a stable niche in programming. Correctness and understanding of computations are problems almost nobody in the industry cares about but they are sometimes needed. This reminds me of a Terry Pratchett Diskworld character: Esmerelda (Granny) Weatherwax</p>
+<blockquote>
+<p>  <em>“Esme Weatherwax hadn’t done nice. She’d done what was needed.”</em></p>
+</blockquote>
+<p>Wanted means popular, needed means stable. However, basic principles of FP will probably find a wider use (as discussed in <a href="#extraneous-loads-that-grow">Extraneous loads that grow</a>).<br />
+I plan to return to discussion of cognitive aspects of FP in my next post.</p>
+<p> <div class="side-note"><strong>In a parallel dimension</strong> Alonso Church did not take a temporary break from lambda calculus and showed it to his student, Alan Turning. The first computer hardware was based on SKI calculus. In that dimension kids learn mathematics with proofs, imperative programming is considered a great addition after programmers learn the principles. In that dimension software has very few bugs, however, this universe has fewer programs, even fewer programmers, and the error messages suck. 🌌  </div></p>
+<h2 id="post-summary">Post Summary</h2>
+<p>My readers may get the impression that this post is a criticism of imperative programming. Applying cognitive load theory to programming does not translate to “imperative is complex”, rather it translates to “too much of imperative in one place (logically coupled) is complex”. IMO, some amount of imperative is often helpful.<br />
+I plan to return to this topic in my next blog.</p>
+<p>I am sure you have noticed that I think a lot about code complexity. And, yes, I do not feel comfortable working in messy code. Assessing and controlling the level of code complexity is crucial to me.</p>
+<p>It has dawned on me that my dislike of code complexity may not be shared by others. <em>False consensus effect</em> is assuming that everyone else thinks like me.<br />
+I remain convinced that some programmers react negatively to code complexity, but now I think that many programmers feel at home in code with a high cognitive load. This motivated me to work on this and the next post. IMO it is important that we try to understand each other a little better.</p>
+<p>Are we doing a good job in making sure that programs are not overly complex? I think this a fair question to ask even if you think that simplicity is not crucially important. This post has argued that we are mostly failing on that front.<br />
+In this post, we looked at how project complexity grows unnoticed, how bugs are a missed opportunity to learn about how we fail, and how FP changes the cognitive process but can be hard to learn. As a whole this post has been a bit of <em>repetitive negative thinking</em>, but I hope you found some positives and useful ideas in it as well. Taking a different point of view often exposes things that can be improved and I hope this has been the case here.</p>
+<h2 id="there-is-much-more-to-it">There is much more to it</h2>
+<p>This post took a very narrow path through the very broad subject of cognitive aspects of programming.</p>
+<p>My focus was coding rather than process. I did not discuss things like cognitive loads in pool requests, cognitive considerations during sprint planning, git hygiene, etc.</p>
+<p>Size of program files is an obvious, related topic I did not discuss.</p>
+<p>Monorepo vs single projects has interesting relevance. Dependency graphs of or sorts (version, library deps) are a similar interesting topic.</p>
+<p>Coding efficiency and the 10X programmer in the context of cognitive loads is an interesting (but contentious) topic.</p>
+<p>Low Code: The idea of distributing cognitive load across different components is not new. The terms “decoupling” or “isolation of concerns” are in this space. Low code is an idea of a very lopsided distribution in which most of the complexity falls onto the infrastructure. I started writing about it but decided to remove my notes as this post feels already too long.</p>
+<p>Some PLs (Haskell is a good example of this) suffer from what some people call the <em>Lisp curse</em>. Instead of using established libraries, proprietary or one-off tools are often created. It is interesting why this happens and what to do about it. Could love of abstractions be causing it (reuse abstractions, not a code)? Is writing it from scratch a lower cognitive effort than learning and applying an existing solution? The end result, obviously, increases the cognitive load.</p>
+<p>Cognitive load should be viewed as a resource problem, one that does not scale very well, and one that is not well understood. Cognitive load is greatly impacted by turn over rates, switching of code ownership, and by installed processes. Context switching is very expensive, the programmer’s inability to find contiguous blocks of time to focus could be viewed as an indication of an under-resourced project.</p>
+<p>Linting, formatting, aesthetics are all very interesting cognitive load topics. Most programmers seem to be very sensitive to how the code is presented, (e.g. would you ever use a light background in your code editor?). Similarly, syntax vs semantics, it seems syntax has a huge cognitive role even if we think about it as bikeshed.</p>
+<p>Habit formation and unlearning are a big and very interesting topic.</p>
+<p>Cognitive biases in the context of coding seem like very interesting topics too. In particular <em>bandwagon effect</em> (TypeScript is popular and hence must be very good), <em>framing effect</em> (new cool technology), <em>commitment bias</em> (we done it like this before, it has been tried and tested), <em>functional fixedness</em> (we do not need another PL), <em>omission neglect</em> (things we do not know are not important), <em>groupthink</em> (we want to work with people who think like us), <em>bikeshedding</em> (possibly most of this post 🙂).</p>
+<p>Point-free code, I stayed away from discussing it.</p>
+<p>Cognitive aspects of troubleshooting are something I only touched on.</p>
+<p>One topic I do plan to discuss (in the next post) is a distinction between empirical and formal processes in programming and how it impacts cognitive loads and acts as a divider.</p>
+<p>Cognitive loads are related to stress, I intend to return to this topic in the future as well.</p>
+<p>This post did not run out of topics, rather I have run out of steam. I hope I gave you things to think about. Thank you for reading!</p>
+<section class="footnotes" role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1" role="doc-endnote"><p>E.g. see <a href="https://solutionspace.blog/2021/12/04/every-simple-language-will-eventually-end-up-turing-complete/" target="_blank">Every Simple Language Will Eventually End Up Turing Complete</a><a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2" role="doc-endnote"><p>See this wiki page: <a href="https://psychology.fandom.com/wiki/Chunking" target="_blank">Chunking</a>. For me, thinking about a big chunk without a context, e.g. <em>OOP</em> or <em>Geometry</em> triggers some high level information plus a seemingly random example, thinking more causes my brain to wander down some path. “Tell me everything you know about …” is not something I am capable of. So I do not think we load a whole huge chunk into working memory, but we can operate using chunks of seemingly unlimited size.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn3" role="doc-endnote"><p>Examples of concepts in programming that come with 2 chunks: assignment statement, function (input and output), function application (function and input), function composition. This pattern allows for very big chunks, here are examples with 2 big chunks I have worked a lot with in the past: algebraic topology, compensated compactness (using measure theory to study PDEs). Moving closer to programming, good big chunk examples are: computation laws, computation properties, operational semantics rules, Curry-Howard correspondence. Mathematical theorems mostly follow this pattern (e.g. in the context of programming “Simply typed lambda calculus is strongly normalizing”). A candy: “Dhall is strongly normalizing”.<br />
+It appears that we can, indeed, do great things focusing on 2 chunks, However, I have not found much psychological research on 3 being the magic number.<a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn4" role="doc-endnote"><p>Terms <em>accidental</em> and <em>essential complexity</em> come from <a href="https://en.wikipedia.org/wiki/No_Silver_Bullet" target="_blank">No Silver Bullet</a> paper.<a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn5" role="doc-endnote"><p>Denotational approach means mapping requirements to mathematical concepts such as monoids, identifying categorical structures (things that compose), etc.<a href="#fnref5" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn6" role="doc-endnote"><p>Interesting youtube: <a href="youtube.com/watch?v=NdA6aQR-s4U" target="_blank">Why Do So Many Programmers Lose Hope?</a><a href="#fnref6" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn7" role="doc-endnote"><p>See the discussion in <a href="https://www.researchgate.net/publication/220963754_A_Computational_Analysis_of_Cognitive_Effort" target="_blank">A Computational Analysis of Cognitive Eﬀort</a>. The term <em>cognitive cost</em> is typically used to mean a negative impact on a cognitive function induced by stress and the usage is also not very consistent, I am avoiding its use.<a href="#fnref7" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn8" role="doc-endnote"><p>As a side note, concrete thinking is not always bad. An interesting article on this in a broader context: <a href="https://www.healthline.com/health/concrete-thinking" target="_blank">Concrete Thinking: Building Block, Stumbling Block, or Both?</a>.<a href="#fnref8" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn9" role="doc-endnote"><p>“If Turing could not get it right, what chance do we have?”- is a phrase I remember from a Dana Scott lecture.<br />
+The bugs were only discovered during the actual implementation work (see <a href="https://blog.wolframalpha.com/2010/06/23/happy-birthday-alan-turing/" target="_blank">Alan Turing</a>). Church’s <a href="https://plato.stanford.edu/entries/church/supplementA.html" target="_blank">take on undecidability</a> followed shortly after Turing’s. As far as I know nobody found any issues with it (even if untyped lambda calculus is rather unruly and the topic itself was hotly debated).<a href="#fnref9" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn10" role="doc-endnote"><p>Example of non-symmetric equals is <code>java.sql.Timestamp</code> used with <code>java.sql.Date</code> or <code>java.util.Date</code>, these remain used as standard JDBC mappings for DB columns, the usage will show no deprecation warning. <code>[] !== []</code> and <code>[] != []</code> in JS (incidentally <code>[] == ""</code>), working in JS often feels like explosives engineering.<br />
+I wrote a blog series about <a href="../tags/TypeScript-Notes.html" target="_blank">TypeScript Types</a> and ended up presenting a lot of complexities and gotchas that probably surprise any TS developer.<br />
+How do Hibernate users prevent this <a href="http://rpeszek.blogspot.com/2014/08/i-dont-like-hibernategrails-part-2.html" target="_blank">concurrency issue</a>?<br />
+I remember Grails as a land mine of issues, I wrote an 11 part <a href="http://rpeszek.blogspot.com/2014/10/i-dont-like-hibernategrails-part-11_31.html" target="_blank">blog series</a> about it back in 2014.<br />
+Java Streams have a very interesting take on referential transparency: if you execute a stream twice the second attempt will fail. This is probably the first and only attempt at dynamically typed linear types 🙂 and is bound to create interesting intermittent issues.<a href="#fnref10" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn11" role="doc-endnote"><p>“even compiler writers mess it up all the time” is a quote from (<a href="https://doc.rust-lang.org/nomicon/subtyping.html" target="_blank">Rust Subtyping Documentation</a>)<a href="#fnref11" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn12" role="doc-endnote"><p>Keeping things easy, arrays are mutable. Sadly, you can explore the answer on your own by asking a mainstream compiler like Java or TS and the answer will, unfortunately, be the incorrect <em>yes</em>.<a href="#fnref12" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn13" role="doc-endnote"><p>In TS and JS the answer is yes. In TS this is a subtyping rule.<a href="#fnref13" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn14" role="doc-endnote"><p>This is a gotcha generator especially in OOP languages that have some level of type inference. E.g. here are some gotchas in <a href="2021-12-12-ts-types-part1.html#compilation-bloopers" target="_blank">TS</a> that involve widening to <code>unknown</code> which is a top type in TS, here is a discussion about these in <a href="http://rpeszek.blogspot.com/2017/07/scala-whats-wrong-with-you_29.html" target="_blank">Scala</a>.<a href="#fnref14" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn15" role="doc-endnote"><p>For example, it is hard to imagine that the unsound implementation of variance in a PL like TS was accidental. It must have been a decision to keep things easy.<a href="#fnref15" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn16" role="doc-endnote"><p>I sometimes see this argument “It is impossible to statically reason about termination in a Turing complete PL, thus, all hope is lost”. Firstly, this is inaccurate: it is possible to statically verify totality on a subset of programs. Secondly: if non-termination is like accidentally hurting your foot, then exception is like shooting yourself in the foot. A missing DB record should, IMO, rarely be treated as non-termination. (I use the terms <em>total</em>, <em>terminating</em> and <em>partial</em>, <em>non_terminating</em> interchangeably.)<a href="#fnref16" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn17" role="doc-endnote"><p>Haskell dedicates a significant effort to soundness. E.g. see <a href="https://www.youtube.com/watch?v=hIZxTQP1ifo">Type Classes vs. the World</a>. Not everything is perfect however. Haskell allows for easy to abuse error non-termination (e.g. <code>error</code>, <code>undefined</code> functions), however ability to <code>catch</code> is more limited than in most PLs. Non-termination in itself throws a wrench, one Haskell should not be blamed for, see <a href="http://math.andrej.com/2016/08/06/hask-is-not-a-category/">Hask is not a category</a> and <a href="http://blog.sigfpe.com/2009/10/what-category-do-haskell-types-and.html">What Category do Haskell Types and Functions Live In</a>. Overall Haskell language comes with much fewer surprises if compared to the mainstream.<br />
+The Haskell ecosystem (including its standard library) are more lax than the language itself. Michael Snoyman’s <a href="https://www.snoyman.com/blog/2020/10/haskell-bad-parts-1/" target="_blank">Haskell Bad Parts</a> is a great series on this topic. The most recent surprise for me is how <em>Aeson</em> (the most popular Haskell library for dealing with JSON) <a href="https://github.com/haskell/aeson/issues/961" target="_blank">generic instances work</a>.<a href="#fnref17" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn18" role="doc-endnote"><p><em>Standard ML</em> is known for its soundness, I do not know <em>ML</em> family that well, but I do know it has exceptions and <code>throw/catch</code> (in this case <code>raise/handle</code>) games. Possibly a more accurate point here is that we need strict formal semantics, it does not need to be dependently typed.<a href="#fnref18" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn19" role="doc-endnote"><p>Languages like Idris push the limits of what a compiler can do. I have experienced compiler hanging, compilation error messages overflowing my terminal buffer… (the second happened to me in Haskell too but the scenario warranted it more). These issues happen if you start doing certain type level things (I was just trying to implement a block chain on the type level 🙂).<a href="#fnref19" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn20" role="doc-endnote"><p>For readers not familiar with Haskell, <code>guard</code> allows to reject a computation based on a boolean expression. It is defined using a very general concept of <code>Alternative</code> and at this level of generality specifying an error message is not possible. In real life I see it used with parsers and other computations that could really use an error message.<a href="#fnref20" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn21" role="doc-endnote"><p>The terms understanding and knowledge are often conflated. The difference, however, is significant, here it is described in the context of learning math: <a href="https://japan-math.com/blogs/news/understanding-versus-knowledge" target="_blank">“Understanding” Versus “Knowledge” – What’s The Difference?</a>. This has been very much my experience as a mathematics learner and educator. Things become both easy and simple once you understand them.<a href="#fnref21" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn22" role="doc-endnote"><p>Category Theory will never cease to surprise<a href="#fnref22" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn23" role="doc-endnote"><p>see 2.1 section in <a href="https://core.ac.uk/download/pdf/77240027.pdf" target="_blank">Unlearning before creating new knowledge: A cognitive process.</a><a href="#fnref23" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn24" role="doc-endnote"><p>For readers not familiar with this concept and curious about what this does, <code>Free f a</code> allows to construct monadic (whatever that means) syntax trees with instructions provided by <code>f</code>. In the context of this article, the only important point is that this one line of code has a lot of properties that can be learned (and that many computations come with a similar learning potential).<a href="#fnref24" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn25" role="doc-endnote"><p>Any extraneous cognitive loads associated with effects? Yes, there are a few, especially on the implementation side. Also like most other tools, effects can be abused. I sometimes see a single DSL instruction interpreted directly to IO (more Haskell terminology here, IO is what we call a sin-bin) and used in a brute-force IO code. This just adds cognitive overhead of effects without taking advantage of what they have to offer.<a href="#fnref25" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
+
+    </section>
+</article>
+]]></summary>
+</entry>
+<entry>
     <title>Type Enthusiast's Notes about TypeScript. Part 6. Reasoning using Types</title>
     <link href="https://rpeszek.github.io//posts/2022-03-13-ts-types-part6.html" />
     <id>https://rpeszek.github.io//posts/2022-03-13-ts-types-part6.html</id>
@@ -191,7 +501,7 @@ The are also many experimental (typically short lived) projects for auto generat
 The stronger the types, the more code generation is possible (I have already mentioned interactive code development in the dependently typed Idris).  </div></p>
 <p>TS will not automatically implement code for us, however, starting with types and following with (a manually written for now) programs is often quite productive. This is the TDD approach to programming, only T means <em>Type</em>. The simplest way to go about it is to start on a small unit level (define types for small building blocks first). It helps to know some solid building blocks (e.g. FP types) and to use a lot of type variables. <a href="#about-maintainability">About Maintainability</a> section will say a bit more about TDD and Types.</p>
 <h2 id="about-simplicity">About Simplicity</h2>
-<p>I consider the terms <em>simple</em> and <em>easy</em> to have different meaning. Easy: The low barrier to entry (e.g. language). Simple: Low effort to reason about (e.g. code written in that language). There is no free lunch, to get simplicity you need to accept that things will not be easy.<br />
+<p>I consider the terms <em>simple</em> and <em>easy</em> to have different meaning. Easy: A low barrier to entry (e.g. language). Simple: Low effort to reason about (e.g. code written in that language). There is no free lunch, to get simplicity you need to accept that things will not be easy.<br />
 Simplicity is about ability to reason about things and as such is closely related to all other bullet points in this post.<br />
 IMO, the popularity of easy and the unpopularity of simple are a systemic problem in today’s programming and elsewhere.</p>
 <p>I consider TS to be complex (the opposite of simple). I devoted <a href="2022-01-03-ts-types-part3.html" target="_blank">Part 3</a> to explaining why.</p>
@@ -320,7 +630,7 @@ This equivalence has a name: Curry-Howard correspondence. “Propositions are ty
 <li id="fn5" role="doc-endnote"><p><a href="https://www.manning.com/books/type-driven-development-with-idris" target="_blank">TDD in Idris</a> book contains some very interesting and accessible examples of monadic computations in dependently typed setting.<a href="#fnref5" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 <li id="fn6" role="doc-endnote"><p>It is good to note that this safety is unique to union types, you will not get the same safety when adding a property to an object. It is interesting and telling that the industry is adding co-product types to programming languages just now.<a href="#fnref6" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 <li id="fn7" role="doc-endnote"><p>A similar and relevant philosophical discussion has been happening in mathematics for centuries (see <a href="https://en.wikipedia.org/wiki/Philosophy_of_mathematics#Mathematical_realism" target="_blank">wikipedia</a>). My opinion on this is that a creative process tends to be iterative leaving a historical evidence of iterations. Mathematics, for most part, has been additive. There was rarely a need to rewire an old theory. As far as I know not in last 100 years.<a href="#fnref7" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn8" role="doc-endnote"><p>I remember Haskell firmly in the first position for the stackoverflow weekend use statistics for several years. I found this link: <a href="https://stackoverflow.blog/2017/02/07/what-programming-languages-weekends/" target="_blank">2017</a>. These stats are hard to find but I also found this one: <a href="https://stackoverflow.blog/2019/10/28/research-update-coding-on-the-weekends/" target="_blank">2019</a>. In 2019 Rust moved ahead of Haskell.<br />
+<li id="fn8" role="doc-endnote"><p>I remember Haskell being firmly in the first position for the stackoverflow weekend use statistics for several years. I found this link: <a href="https://stackoverflow.blog/2017/02/07/what-programming-languages-weekends/" target="_blank">2017</a>. These stats are hard to find but I also found this one: <a href="https://stackoverflow.blog/2019/10/28/research-update-coding-on-the-weekends/" target="_blank">2019</a>. In 2019 Rust moved ahead of Haskell.<br />
 At the same time, the job ranking (based on the UK’s <a href="https://www.itjobswatch.co.uk/jobs/uk/haskell.do" target="_blank">IT Jobs Watch</a>, I have not found a similar ranking for the US.) puts Haskell at 932 as of 2022/02/06. Haskell moved ahead of COBOL in that ranking in 2017.<br />
 This ranking is possibly exaggerated too, lots of jobs list Haskell and good to have but will have you code in PHP. This bias exist in any language but is stronger for something like Haskell than say COBOL.<a href="#fnref8" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 <li id="fn9" role="doc-endnote"><p>As an example, Java has resisted type variables for a long time. “Although our generics extensions were put on hold for six years, Sun developed a much keener interest in the compiler I had written for GJ. It proved to be more stable and maintainable than their first Java compiler. So they decided to make the GJ compiler the standard javac compiler from their 1.3 release on, which came out in 2000.” (<a href="https://www.artima.com/articles/the-origins-of-scala" target="_blank">quote from Martin Odersky</a>). Generics remained disabled until Java version 1.5 (2004). Oderky is always very diplomatic in his statements.<a href="#fnref9" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
@@ -976,10 +1286,10 @@ Some of the readers have experienced very weird font size irregularities, making
         
         
         
-        <div class="changelog"> <div>Revision History: <ul> <li> (2022.01.03 - Present) Changes are documented in <a href="#summary-of-final-edits">Summary of final edits</a>. </li> <li> (2022.05.29) Draft warning removed </li> </ul> </div></div>
+        <div class="changelog"> <div>Revision History: <ul> <li> (2022.01.03 - Present) Changes are documented in <a href="#summary-of-final-edits">Summary of final edits</a>. </li> <li> (2022.05.29) Draft warning removed </li> <li> (2022.08.30) added <a href="../tags/patterns-of-erroneous-code.html">patterns-of-erroneous-code</a> tag </li> </ul> </div></div>
         
         
-        <div class="info">Tags: <a title="All pages tagged 'TypeScript-Notes'." href="../tags/TypeScript-Notes.html">TypeScript-Notes</a></div>
+        <div class="info">Tags: <a title="All pages tagged 'TypeScript-Notes'." href="../tags/TypeScript-Notes.html">TypeScript-Notes</a>, <a title="All pages tagged 'patterns-of-erroneous-code'." href="../tags/patterns-of-erroneous-code.html">patterns-of-erroneous-code</a></div>
         
     </section>
     <section>
@@ -1411,10 +1721,10 @@ Seems like a catch-22 problem.</p>
         
         
         
-        <div class="changelog"> <div>Revision History: <ul> <li> (2022.04.29 - 2022.05.29) Minor edits </li> <li> (2022.05.29) Draft warning removed </li> </ul> </div></div>
+        <div class="changelog"> <div>Revision History: <ul> <li> (2022.04.29 - 2022.05.29) Minor edits </li> <li> (2022.05.29) Draft warning removed </li> <li> (2022.08.30) added <a href="../tags/patterns-of-erroneous-code.html">patterns-of-erroneous-code</a> tag </li> </ul> </div></div>
         
         
-        <div class="info">Tags: <a title="All pages tagged 'TypeScript-Notes'." href="../tags/TypeScript-Notes.html">TypeScript-Notes</a></div>
+        <div class="info">Tags: <a title="All pages tagged 'TypeScript-Notes'." href="../tags/TypeScript-Notes.html">TypeScript-Notes</a>, <a title="All pages tagged 'patterns-of-erroneous-code'." href="../tags/patterns-of-erroneous-code.html">patterns-of-erroneous-code</a></div>
         
     </section>
     <section>
@@ -1743,10 +2053,10 @@ I like to think about a modernized definition of the KISS principle: “Simple�
         
         
         
-        <div class="changelog"> <div>Revision History: <ul> <li> (2021.12.24) modified historical note about office.js. Linked Part 2. Planned future content adjustment.</li> <li> (2021.12.26) <a href="#fn1">footnote [1]</a> <li> (2022.01.03 - 2022.05.31) Changes are documented in <a href="#summary-of-final-edits">Summary of final edits</a>. <li> (2022.05.29) Draft warning removed </li> </ul> </div></div>
+        <div class="changelog"> <div>Revision History: <ul> <li> (2021.12.24) modified historical note about office.js. Linked Part 2. Planned future content adjustment.</li> <li> (2021.12.26) <a href="#fn1">footnote [1]</a> <li> (2022.01.03 - 2022.05.29) Changes are documented in <a href="#summary-of-final-edits">Summary of final edits</a>. <li> (2022.05.29) Draft warning removed </li> <li> (2022.08.30) added <a href="../tags/patterns-of-erroneous-code.html">patterns-of-erroneous-code</a> tag</li> </ul> </div></div>
         
         
-        <div class="info">Tags: <a title="All pages tagged 'TypeScript-Notes'." href="../tags/TypeScript-Notes.html">TypeScript-Notes</a></div>
+        <div class="info">Tags: <a title="All pages tagged 'TypeScript-Notes'." href="../tags/TypeScript-Notes.html">TypeScript-Notes</a>, <a title="All pages tagged 'patterns-of-erroneous-code'." href="../tags/patterns-of-erroneous-code.html">patterns-of-erroneous-code</a></div>
         
     </section>
     <section>
@@ -1785,10 +2095,10 @@ Most of the code examples are published in <a href="https://github.com/rpeszek/t
 <p>I wanted to write a short post about my experience with TS types, I ended up with a draft the size of a short book. I decided to split it into digestible installments and publish it as a series of shorter posts. The series will be about the <em>powerful, interesting and messy</em> types in TS. This post is the first in that series.</p>
 <p>Here is my plan:</p>
 <ul>
-<li>Part 1 (this post). Is a warm-up. Part 1 has been motivated by a project at my work that uses TS. I will show code examples that are hard to compile. I will discuss strategies and methods for resolving compilation issues. I will present code examples that compile but is clearly wrong, and code examples that should compile but surprisingly don’t. I will also summarize my overall experience of working with TS.<br />
+<li>Part 1 (this post). Is a warm-up. Part 1 has been motivated by a project at my work that uses TS. I will show code examples that are hard to compile. I will discuss strategies and methods for resolving compilation issues. I will present code examples that compile but really, really should not, and code examples that should compile but surprisingly don’t. I will also summarize my overall experience of working with TS.<br />
 This series needed a JS library with TS bindings to draw examples from, I decided to use <em>office.js</em> and Part 1 introduces it.</li>
 <li><a href="2021-12-24-ts-types-part2.html" target="_blank">Part 2</a>. Will be about keeping types honest. Are runtime values consistent with the types? We hope they always are but, especially in a gradually typed language like TS, types will sometimes lie. We will see concrete examples of type dishonesty from <em>office.js</em>. Part 2 will cover the notorious <code>any</code> and its safer cousin <code>unknown</code>, the type coercion (casting), and TS’s type guards. I will also discuss (or rather rant about) coding conventions for transparent, self documenting types.</li>
-<li><a href="2022-01-03-ts-types-part3.html" target="_blank">Part 3</a>. Will cover some of the TS type safety features that I absolutely love. Throughout the series, we will encounter several examples where TS compiler does not work as expected. This part will discuss questionable (and arguably incorrect) semantics of subtyping variance and of narrowing. It will argue that what TS is and does it quite complex. Complexity is a likely cause of errors in TS programs and in the language itself.</li>
+<li><a href="2022-01-03-ts-types-part3.html" target="_blank">Part 3</a>. Will cover some of the TS type safety features that I absolutely love. Throughout the series, we will encounter several examples where TS compiler does not work as expected. This part will discuss questionable (and arguably incorrect) semantics of subtyping variance and of narrowing. It will argue that what TS is and does it quite complex. Complexity is the likely cause of errors in TS programs and in the language itself.</li>
 <li><a href="2022-01-09-ts-types-part4.html" target="_blank">Part 4</a>, <a href="2022-02-13-ts-types-part5.html" target="_blank">Part 5</a>. Will be more theoretical. Notes in Parts 4-5 will discuss topics such as TS’s structural, recursive types, subtyping, phantom types, type variable scoping, higher-rank polymorphism (TS supports a version of it!), and type level programming. I will show a trick to increase type safety that prevents widening to <code>unknown</code> or other supertypes.<br />
 </li>
 <li><a href="2022-03-13-ts-types-part6.html" target="_blank">Part 6</a>. Will be a wrap-up with some final thoughts.</li>
@@ -1960,7 +2270,7 @@ Overloading is known for being not type inference friendly (incidentally, that i
 <div class="sourceCode" id="cb16"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true"></a><span class="co">//this compiles by using a wrong input parameter type and returns 'body4: unknown'</span></span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true"></a><span class="kw">const</span> crazyConfig <span class="op">:</span> (_<span class="op">:</span> Office<span class="op">.</span><span class="at">AsyncResult</span><span class="op">&lt;</span>string<span class="op">&gt;</span>) <span class="kw">=&gt;</span> <span class="kw">void</span> <span class="op">=</span> x <span class="kw">=&gt;</span> <span class="st">&quot;&quot;</span></span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true"></a><span class="kw">const</span> body4 <span class="op">=</span> <span class="cf">await</span> <span class="fu">officePromise</span> (<span class="fu">curry3</span>(item<span class="op">.</span><span class="at">body</span><span class="op">.</span><span class="at">getAsync</span>)(Office<span class="op">.</span><span class="at">CoercionType</span><span class="op">.</span><span class="at">Html</span>)(crazyConfig)) </span></code></pre></div>
-<p>Accepting an invalid code by inferring the <code>unknown</code> type appears to be a pattern to how TS sometimes works. We will come back to this example later in this post and we will discuss the <code>unknown</code> problem more in future notes.<br />
+<p>Accepting invalid <code>unknown</code> appears to be a common pattern to how TS sometimes works. We will come back to this example later in this post and we will discuss the <code>unknown</code> problem more in future notes.<br />
  </div></p>
 <p>Was this enough gore for you? You say it was not? I say you did not see the content of that email!</p>
 <h3 id="bump-leveling-tools">Bump leveling tools</h3>
@@ -2907,449 +3217,6 @@ The differences are not just in the use of arrows vs monads. The effects are dec
 It will require much more footwork to be able to do it piece by piece.</p>
 <p>The <code>Eff2</code> / <code>Eff2Free</code> tooling is not really arrow specific. I believe, it could be used with other things. That is the reason behind the names (for not using something like <code>EffArr</code>). However, whatever you come up with (e.g. a free Profunctor construction) this will be just dressing a monad in some other clothing - it will be syntactic only. The <code>Arrow</code> seems to be the only meaningful exception, because it comes with the syntax extension (the Arrows pragma).</p>
 <p>This was all very much a quick prototype. I am sure the presented code can be improved in many ways. I hope it was good enough to allow for an interesting reading.</p>
-
-    </section>
-</article>
-]]></summary>
-</entry>
-<entry>
-    <title>Is Alternative a Wrong Abstraction for Handling Failures?</title>
-    <link href="https://rpeszek.github.io//posts/2021-02-13-alternative.html" />
-    <id>https://rpeszek.github.io//posts/2021-02-13-alternative.html</id>
-    <published>2021-02-13T00:00:00Z</published>
-    <updated>2021-02-13T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<article>
-    <section class="header">
-        Posted on February 13, 2021
-        
-            by Robert Peszek
-        
-        
-          <br /> Last Modified on February 17, 2021
-        
-        
-        <div class="changelog"> <div>Revision History: <ul> <li> (2021.02.13) Edited <a href="#pessimistic-instances">Pessimistic Instances</a> top section</li> <li> (2021.02.14) <a href="#pessimists-intro-to-alternative">Intro</a> adds a clarification paragraph linking failures to instances (prompted by reddit), <a href="#nutshell">Nutshell</a> clearly lists goals </li> <li> (2021.02.15-16) Added <a href="#readers-response">Reader's Response</a> section</li> <li> (2021.02.16) Laws&colon; clarified some text</li> <li> (2021.02.17) <a href="#rethinking-the-typeclass-itself">Rethinking</a> section reworded a little</li> </ul> </div></div>
-        
-        
-        <div class="info">Tags: <a title="All pages tagged 'Haskell'." href="../tags/Haskell.html">Haskell</a>, <a title="All pages tagged 'error-messages'." href="../tags/error-messages.html">error-messages</a>, <a title="All pages tagged 'maintainability'." href="../tags/maintainability.html">maintainability</a>, <a title="All pages tagged 'correctness'." href="../tags/correctness.html">correctness</a></div>
-        
-    </section>
-    <section>
-
-    </section>
-    <section>
-        <div class="toc"><div class="header">Table of Contents</div>
-<ul>
-<li><a href="#nutshell">Nutshell</a></li>
-<li><a href="#pessimists-intro-to-alternative">Pessimist’s Intro to <code>Alternative</code></a></li>
-<li><a href="#alternative-laws-pessimistically">Alternative Laws, Pessimistically</a></li>
-<li><a href="#real-world-alternative-optimism-with-experience">Real-World <code>Alternative</code> (Optimism with Experience)</a>
-<ul>
-<li><a href="#failure-at-the-end">Failure at the end</a></li>
-<li><a href="#permissive-computation-at-the-end">Permissive computation at the end</a></li>
-</ul></li>
-<li><a href="#pessimistic-instances">Pessimistic Instances</a>
-<ul>
-<li><a href="#either-e-a"><code>Either [e] a</code></a></li>
-<li><a href="#a-decent-blueprint-either-e-e-a">A Decent Blueprint: <code>Either [e] ([e], a)</code></a></li>
-<li><a href="#code-example">Code Example</a></li>
-<li><a href="#extending-either-e-e-a">Extending <code>Either [e] ([e], a)</code></a></li>
-</ul></li>
-<li><a href="#rethinking-the-typeclass-itself">Rethinking the Typeclass Itself</a></li>
-<li><a href="#alternative-beyond-parsing"><code>Alternative</code> Beyond Parsing</a></li>
-<li><a href="#relevant-work-on-hackage">Relevant work on Hackage</a></li>
-<li><a href="#conclusions-thoughts">Conclusions, Thoughts</a>
-<ul>
-<li><a href="#readers-response">Reader’s Response</a></li>
-</ul></li>
-</ul>
-</div>
-<p><strong><em>subtitle:</em> A Constructive <del>Criticism</del> Pessimism about the Alternative Typeclass</strong></p>
-<p>Code for this project can be found in my <a href="https://github.com/rpeszek/experiments" target="_blank">experiments</a> repo (<a href="https://github.com/rpeszek/experiments/tree/master/alternative" target="_blank">alternative</a> folder).<br />
-This is my second post dedicated to the <em>error information loss</em> in Haskell (the first was about <a href="https://rpeszek.github.io/posts/2021-01-17-maybe-overuse.html" target="_blank">Maybe Overuse</a>).</p>
-<h2 id="nutshell">Nutshell</h2>
-<p><code>Alternative</code> is a popular functional programming concept and the name of a frequently used Haskell typeclass. <code>Alternative</code> helps in writing elegant, concise code. <code>Alternative</code> instances are also known for producing confusing errors. In this post, we do a deep dive into the alternative thinking only about the errors.</p>
-<p>The goals for this post are:</p>
-<ul>
-<li>discuss how <code>Alternative</code> laws impact the instance ability to keep error information</li>
-<li>provide examples of how some <code>Alternative</code> instances can get programmers in trouble</li>
-<li>show a ‘blueprint’ <a href="#a-decent-blueprint-either-e-e-a"><code>Either [e] ([e],_)</code></a> instance with a strong ability to preserve error information. This blueprint can be extended to a transformer, parser, etc.</li>
-<li>very briefly discuss extending or rethinking the <code>Alternative</code> typeclass itself</li>
-</ul>
-<p>I realized that there is an interesting connection between many <code>Alternative</code> instances and optimism:<br />
-Thinking about <em>the glass being half empty or half full</em>, look at this computation: <code>a &lt;|&gt; b</code> and assume that <code>a</code> fails and <code>b</code> succeeds.<br />
-<em>A half empty glass</em> makes us think about the failure of <code>a</code>:<br />
-<em>Why</em> did <code>a</code> fail?<br />
-Would it not be better if some <code>a</code> failures caused the whole computation to fail?…<br />
-<em>A half full glass</em> makes us ignore the failure and focus on <code>b</code>… this is exactly the semantics of <code>&lt;|&gt;</code>.<br />
-A half full glass is not what you always want. This post looks at the alternative, its laws, and its instances from the “pessimistic” point of view. In this post pessimism is defined as, simply, thinking about the errors.</p>
-<p>This is a long post. You may prefer to pick a section you consider interesting and backtrack from it. The information is largely self-contained (except for referring to the laws).</p>
-<p>Implementing good error messages is not trivial. This post should not be viewed as criticism but as a challenge.</p>
-<p>I am using the term <em>error</em> colloquially, the correct term is <em>exception</em>. <em>Exception information loss</em> just does not have a ring to it.</p>
-<h2 id="pessimists-intro-to-alternative">Pessimist’s Intro to <code>Alternative</code></h2>
-<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">class</span> <span class="dt">Applicative</span> f <span class="ot">=&gt;</span> <span class="dt">Alternative</span> f <span class="kw">where</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a><span class="ot">  empty ::</span> f a</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a><span class="ot">  (&lt;|&gt;) ::</span> f a <span class="ot">-&gt;</span> f a <span class="ot">-&gt;</span> f a</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a><span class="ot">  some ::</span> f a <span class="ot">-&gt;</span> f [a] <span class="co">-- optional</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a><span class="ot">  many ::</span> f a <span class="ot">-&gt;</span> f [a] <span class="co">-- optional</span></span></code></pre></div>
-<p>The typeclass does not specify the semantics of <code>empty</code> and <code>&lt;|&gt;</code> other than their monoidal nature.<br />
-However, many instances link the <code>empty</code> and <code>&lt;|&gt;</code> semantics to computation failures.</p>
-<p><em>Optimist, First Look</em>:</p>
-<ul>
-<li><code>empty</code> typically represents a failed computation</li>
-<li><code>(&lt;|&gt;)</code> combines 2 alternatives returning one that is successful. The most common approach is to return the left-to-right first success. This is called left-bias, I like to think about it as <em>right-catch semantics</em>.</li>
-<li><code>some</code> and <code>many</code> run the computation until first failure and return the successful results, <code>some</code> expects at least one success, otherwise it will fail. <code>some</code> and <code>many</code> are a nod towards parsers or other computations that change state. <code>some</code> and <code>many</code> are likely to yield bottom (e.g. <code>many (Just 1)</code> does not terminate).</li>
-</ul>
-<p><code>Alternative</code> is the <code>Monoid</code> for the <code>* -&gt; *</code> types, <code>empty</code> representing <code>mempty</code> and <code>&lt;|&gt;</code> representing <code>mappend</code>. This equivalence is “witnessed” by the <a href="https://hackage.haskell.org/package/base-4.14.1.0/docs/Data-Monoid.html#t:Alt" target="_blank"><code>Data.Monoid.Alt</code></a> monoid instance. The left-bias semantics is equivalent to the <a href="https://hackage.haskell.org/package/base-4.14.1.0/docs/Data-Monoid.html#t:First." target="_blank"><code>Data.Monoid.First</code></a> monoid.</p>
-<p>The definition of <code>Alternative</code> begs this question: Why the <code>Applicative</code> superclass? As far as I know this is because the intended use of <code>empty</code> and <code>&lt;|&gt;</code> is in the applicative context. More on this later.</p>
-<p>As we know, <code>MonadPlus</code> provides a similar semantics for monads. <code>Alternative</code> and <code>MonadPlus</code> are most commonly used with parsers. You are likely to use it with <em>aeson</em>, <em>parsec</em> / <em>megaparsec</em>, <em>attoparsec</em>, etc.<br />
-In this post the focus is the <code>Alternative</code> with the typical right-catching, left-biased <code>&lt;|&gt;</code> and the examples typically use <em>attoparsec</em>.</p>
-<p><em>Pessimist, First Look</em>:</p>
-<ul>
-<li><code>empty</code> does not accept any error information. It represents a failure of some unknown reason.<br />
-I consider this problematic and an oversimplification.<br />
-Unless we introduce a zero-information (let me call it <em>noOp</em>) failure, this probably will bite.<br />
-I will leave it to you to ponder philosophical questions about <em>noOp</em> (e.g. <code>Left []</code>) failure.<br />
-What does: nothing went wrong but the computation failed mean?<br />
-</li>
-<li><code>(&lt;|&gt;)</code> semantics is unclear about error information.</li>
-<li><code>some</code> and <code>many</code> provide no error information about the failure that ended the production of the result list. I will not discuss <code>some</code> or <code>many</code> in this post.</li>
-</ul>
-<p>A somewhat popular behavior is: If all alternatives fail, then the error information comes from the last tried computation. Examples of alternatives that behave this way are: <em>attoparsec</em> <code>Parser</code>, <em>aeson</em> <code>Parser</code>, <code>IO</code>.</p>
-<p>I am not that deeply familiar with GHC internals. However, as a black box, the GHC compiler often behaves in a very similar way. For example, GHC message could indicate a problem with unifying types; it may suggest that my function needs to be applied to more arguments; … while the real issue is that I am missing a typeclass instance somewhere or something else is happening that is completely not related to the error message. Generating useful compiler messages must be very hard and this is not a criticism of GHC but a familiar UX example.<br />
-From time to time, GHC will throw Haskell developers for a loop.</p>
-<p><strong>Side-Note:</strong> <em>parsec</em> and <em>megaparsec</em> packages implemented sophisticated ways to provide better error messages by looking at things like longest parsed path. Lack of backtracking is what makes the <em>(maga)parsec</em> <code>Parser</code> not a fully lawful <em>Alternative/MonadPlus</em> (violating <em>right zero</em>). The <em>megaparsec</em> haddock suggest adding <code>try</code> to improve the lawfulness. Adding <code>try</code> can mess up error messages. There appears to be an interesting pragmatic trade-off: <em>good error messages</em> vs <em>more lawful alternative behavior</em>.<br />
-A great, related, reading is: <a href="http://blog.ezyang.com/2014/05/parsec-try-a-or-b-considered-harmful/" target="_blank">Parsec: “try a &lt;|&gt; b” considered harmful</a>.</p>
-<p>A random advice from a discussion about <em>attoparsec</em> errors:</p>
-<blockquote>
-<p><em>The trick is to use the parsers library, which lets you switch out parsing backends. You can prototype with the trifecta library (which has good error messages) and then switch to attoparsec when you’re done</em></p>
-</blockquote>
-<p>(I assume that the author was thinking about parsing something, like a standard protocol, where user input cannot cause errors.)<br />
-So, this is clearly a bit of a mess and we are looking for crazy workarounds. I will delve deeper into alternative error outputs by looking at the alternative laws next.</p>
-<h2 id="alternative-laws-pessimistically">Alternative Laws, Pessimistically</h2>
-<p>The required laws (copied from <a href="https://wiki.haskell.org/Typeclassopedia#Laws_6" target="_blank">Typeclassopedia</a>, see also <a href="https://en.wikibooks.org/wiki/Haskell/Alternative_and_MonadPlus#Alternative_and_MonadPlus_laws" target="_blank">Haskell wikibooks</a>) are:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a>empty <span class="op">&lt;|&gt;</span> u  <span class="ot">=</span>  u    <span class="co">-- (1)</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a>u <span class="op">&lt;|&gt;</span> empty  <span class="ot">=</span>  u    <span class="co">-- (2)</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a>u <span class="op">&lt;|&gt;</span> (v <span class="op">&lt;|&gt;</span> w)  <span class="ot">=</span>  (u <span class="op">&lt;|&gt;</span> v) <span class="op">&lt;|&gt;</span> w  <span class="co">-- (3)</span></span></code></pre></div>
-<p>Note that these laws do not link <code>Applicative</code> and <code>Alternative</code> in any way. That happens in the following, optional, set of laws:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a>f <span class="op">&lt;*&gt;</span> empty <span class="ot">=</span> empty                        <span class="co">-- (4) Rigth Zero</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a>(a <span class="op">&lt;|&gt;</span> b) <span class="op">&lt;*&gt;</span> c <span class="ot">=</span> (a <span class="op">&lt;*&gt;</span> c) <span class="op">&lt;|&gt;</span> (b <span class="op">&lt;*&gt;</span> c)  <span class="co">-- (5) Left Distribution</span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a>a <span class="op">&lt;*&gt;</span> (b <span class="op">&lt;|&gt;</span> c) <span class="ot">=</span> (a <span class="op">&lt;*&gt;</span> b) <span class="op">&lt;|&gt;</span> (a <span class="op">&lt;*&gt;</span> c)  <span class="co">-- (6) Right Distribution</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a>(<span class="fu">pure</span> a) <span class="op">&lt;|&gt;</span> x <span class="ot">=</span> <span class="fu">pure</span> a                    <span class="co">-- (7) Left catch</span></span></code></pre></div>
-<p>For example, when writing a parser you may decide to use one of these approaches:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a>p1 <span class="ot">=</span> <span class="dt">Employee</span> <span class="op">&lt;$&gt;</span> employeeIdParser <span class="op">&lt;*&gt;</span> (nameParser1 <span class="op">&lt;|&gt;</span> nameParser2)</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a>p2 <span class="ot">=</span> (<span class="dt">Employee</span> <span class="op">&lt;$&gt;</span> employeeIdParser <span class="op">&lt;*&gt;</span> nameParser1) <span class="op">&lt;|&gt;</span> (<span class="dt">Employee</span> <span class="op">&lt;$&gt;</span> employeeIdParser <span class="op">&lt;*&gt;</span> nameParser2)</span></code></pre></div>
-<p>it is good to know that these approaches are equivalent.</p>
-<p>The laws are strong enough to restrict what failures can be (this is not necessarily a bad thing). For example, <em>(1)</em> and <em>(4)</em> prevent expressing the concept of a critical failure. A sane definition would be: <code>f</code> is a critical failure if <code>f &lt;|&gt; a = f</code> and <code>f &lt;*&gt; a = f</code> for any <code>a</code>.<br />
-<code>empty</code> cannot represent a critical failure because of <em>(1)</em><br />
-non-<code>empty</code> cannot represent a critical failure because of <em>(4)</em>.<br />
-Critical failures are simply not what <code>Alternative</code> is about and that is OK.</p>
-<p><em>Pessimist’s Concerns</em>:</p>
-<ul>
-<li><code>empty</code> typically represents a failure. <em>(4)</em> is problematic if you want to have other possible failures (e.g. failures with different error messages):<br />
-<code>otherFailure &lt;*&gt; empty</code> is likely to be <code>otherFailure</code> not <code>empty</code>.<br />
-</li>
-<li><em>(1 - 3)</em> force a monoidal structure on the failures themselves (under a reasonable assumption that <code>empty</code> is a failure and alternating two failures produces a failure). This is a good property but instances often ignore it. A semigroup structure would make more pragmatic sense (i.e. what is <code>empty</code> error?).<br />
-</li>
-<li>Note that any instance of <code>Alternative</code> that tries to accumulate failures is likely to have a problem satisfying the distribution laws <em>(5,6)</em>, as the <em>rhs</em> combines 4 potential failures and <em>lhs</em> combines 3.<br />
-Would you expect <em>(5,6)</em> to hold in the context of a failure (e.g. parser error messages)? My answer is: I do not! Violating these laws is not necessarily a bad thing. The end result is that the programmer needs to make an explicit choice between <code>p1</code> and <code>p2</code> selecting one with the more desirable error output. The trade-off is similar to one made by the <em>monad_validate</em> package linked at the end of this article.</li>
-</ul>
-<p>Let me return to the basic laws, particularly <em>(2)</em>: <code>u &lt;|&gt; empty  =  u</code>:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Attoparsec.ByteString</span> <span class="kw">as</span> <span class="dt">A</span> </span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a><span class="ot">testSuccess ::</span> <span class="dt">A.Parser</span> a <span class="ot">-&gt;</span> <span class="dt">A.Result</span> a</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true"></a>testSuccess p <span class="ot">=</span> A.parse p <span class="st">&quot;foo&quot;</span></span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true"></a></span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true"></a><span class="ot">testFail ::</span> <span class="dt">A.Parser</span> a <span class="ot">-&gt;</span> <span class="dt">A.Result</span> a</span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true"></a>testFail p <span class="ot">=</span> A.parse p <span class="st">&quot;bar&quot;</span></span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true"></a></span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true"></a>u <span class="ot">=</span> A.string <span class="st">&quot;foo&quot;</span></span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true"></a></span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true"></a>lhs <span class="ot">=</span> u <span class="op">&lt;|&gt;</span> empty</span>
-<span id="cb5-12"><a href="#cb5-12" aria-hidden="true"></a>rhs <span class="ot">=</span> u</span></code></pre></div>
-<p>Here are the results:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a><span class="co">-- &gt;&gt;&gt; testFail lhs</span></span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a><span class="co">-- Fail &quot;bar&quot; [] &quot;Failed reading: empty&quot;</span></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true"></a></span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true"></a><span class="co">-- &gt;&gt;&gt;  testFail rhs</span></span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true"></a><span class="co">-- Fail &quot;bar&quot; [] &quot;string&quot;</span></span></code></pre></div>
-<p>So we broke the required second law. Incidentally, we would not be able to break this law using <code>testSuccess</code>.<br />
-This should not be surprising, (1-3) imply a monoidal structure on failures and this is not what <em>attoparsec</em> does.</p>
-<p><em>attoparsec</em> gets a lot of blame for its error output. Let’s try the <code>IO</code> alternative:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a>uIO <span class="ot">=</span> <span class="fu">fail</span> <span class="st">&quot;foo&quot;</span><span class="ot"> ::</span> <span class="dt">IO</span> a</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true"></a></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true"></a>lhsIO <span class="ot">=</span> uIO <span class="op">&lt;|&gt;</span> empty</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true"></a>rhsIO <span class="ot">=</span> uIO</span></code></pre></div>
-<p>ghci:</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true"></a><span class="op">&gt;&gt;&gt;</span> lhsIO</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true"></a><span class="op">***</span> <span class="dt">Exception</span><span class="op">:</span> user <span class="fu">error</span> (mzero)</span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true"></a><span class="op">&gt;&gt;&gt;</span> rhsIO</span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true"></a><span class="op">***</span> <span class="dt">Exception</span><span class="op">:</span> user <span class="fu">error</span> (foo)</span></code></pre></div>
-<p>We see the same issue.</p>
-<p>One way to look at this, and I believe this is how some programmers are looking at this issue, is that any failure with any error message is considered equivalent to <code>empty</code>. The laws hold if the error information is ignored. Somewhat of a downer if you care about errors.</p>
-<p><strong>Side-Note:</strong> Numerous instances of <code>Alternative</code> manage to satisfy <em>(2)</em>.<br />
-That includes <code>ExceptT</code>, the <code>Validatation</code> type listed at the end of this post. Here is the law working for ‘trifecta’</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Text.Trifecta</span></span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true"></a>u <span class="ot">=</span> string <span class="st">&quot;foo&quot;</span></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true"></a></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true"></a>lhs <span class="ot">=</span> parseTest (u <span class="op">&lt;|&gt;</span> empty) <span class="st">&quot;bar&quot;</span><span class="ot"> ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true"></a>rhs <span class="ot">=</span> parseTest u <span class="st">&quot;bar&quot;</span><span class="ot"> ::</span> <span class="dt">IO</span> ()</span></code></pre></div>
-<p>ghci:</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true"></a><span class="op">&gt;&gt;&gt;</span> lhs</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true"></a>(interactive)<span class="op">:</span><span class="dv">1</span><span class="op">:</span><span class="dv">1</span><span class="op">:</span> <span class="fu">error</span><span class="op">:</span> expected<span class="op">:</span> <span class="st">&quot;foo&quot;</span></span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true"></a><span class="dv">1</span> <span class="op">|</span> bar<span class="op">&lt;</span><span class="dt">EOF</span><span class="op">&gt;</span> </span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true"></a>  <span class="op">|</span> <span class="op">^</span>        </span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true"></a><span class="op">&gt;&gt;&gt;</span> rhs</span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true"></a>(interactive)<span class="op">:</span><span class="dv">1</span><span class="op">:</span><span class="dv">1</span><span class="op">:</span> <span class="fu">error</span><span class="op">:</span> expected<span class="op">:</span> <span class="st">&quot;foo&quot;</span></span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true"></a><span class="dv">1</span> <span class="op">|</span> bar<span class="op">&lt;</span><span class="dt">EOF</span><span class="op">&gt;</span> </span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true"></a>  <span class="op">|</span> <span class="op">^</span>    </span></code></pre></div>
-<p>We will see the blueprint <code>Monoid</code> fix for <em>(2)</em> in the <a href="#either-e-a"><code>Either [e] a</code></a> section.</p>
-<h2 id="real-world-alternative-optimism-with-experience">Real-World <code>Alternative</code> (Optimism with Experience)</h2>
-<p>Here are some examples of problems arising from the use of <code>Alternative</code> semantics</p>
-<h3 id="failure-at-the-end">Failure at the end</h3>
-<p>Laws are important, functional programmers use laws (sometimes even subconsciously) when thinking about, implementing, or designing the code. The second law tells us that we can slap a computation that always errors out at the end without messing things up.</p>
-<p>Consider this (a slightly adjusted real-world) situation: your app needs to talk to an external website which can decide to do A, B, or C and will reply with A, B, or C json message. Based on what happened, your app will need to do different things. You need to parse the reply to know how to proceed.<br />
-The good news is that only A and B are needed in the short term, C can wait. For now, you are only required to tell the user when C happens.</p>
-<p>This should be <em>aeson</em> but I keep <em>attoparsec</em> for consistency (the behavior is the same):</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true"></a>parseReply <span class="ot">=</span> parseA <span class="op">&lt;|&gt;</span> parseB <span class="op">&lt;|&gt;</span> parseC </span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true"></a>  <span class="kw">where</span></span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true"></a>    parseA <span class="ot">=</span> <span class="op">...</span></span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true"></a>    parseB <span class="ot">=</span> <span class="op">...</span></span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true"></a>    parseC <span class="ot">=</span> <span class="fu">fail</span> <span class="st">&quot;C is not supported yet!&quot;</span></span></code></pre></div>
-<p>The external website changed how they report A, now when A is processed <code>parseA</code> fails, the user sees: “C is not supported yet!”.</p>
-<p>The following would be a slightly better code, the user would see <code>parseB</code> error message instead:</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true"></a>parseReply <span class="ot">=</span> parseC <span class="op">&lt;|&gt;</span> parseA <span class="op">&lt;|&gt;</span> parseB </span></code></pre></div>
-<p><em>(sigh)</em></p>
-<p>One way out is to parse A, B, and C separately and handle the results (and the parsing errors) outside of the <code>Parser</code>.</p>
-<p>The other design risk is in thinking about the second law as ‘stable’: We will not disturb the computation too much if we append (add at the end of the <code>&lt;|&gt;</code> chain) a very restrictive parser that fails most of the time.<br />
-An example would be fixing an existing parser <code>p</code> with a missed corner case parser, <code>p &lt;|&gt; cornerCaseP</code>. Errors from <code>p</code> are now almost not visible.</p>
-<p>So would <code>cornerCaseP &lt;|&gt; p</code> be a better solution? Next section covers that case.</p>
-<h3 id="permissive-computation-at-the-end">Permissive computation at the end</h3>
-<p>This is the example I started with. Consider code like this:</p>
-<div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true"></a>specificComputation <span class="op">&lt;|&gt;</span> bestEffortComputation</span></code></pre></div>
-<p>The specs may change and you will never learn that <code>specificComputation</code> no longer works because <code>bestEffortComputation</code> effectively hides the issue.</p>
-<p>The way out is to run <code>specificComputation</code> and <code>bestEffortComputation</code> separately and handle results (e.g. parsing errors if the computation is a parser) outside, or come up with a different way of not using the alternative.</p>
-<p><em>Failure at the end</em> situation improves a bit with certain (other than <em>aeson</em> or <em>attoparsec</em>) alternatives, <em>Permissive computation at the end</em> does not seem to have a good available solution.</p>
-<h2 id="pessimistic-instances">Pessimistic Instances</h2>
-<p>It would be ideal if the following property was true:</p>
-<p><em>If a typeclass A is defined in the <strong>base</strong> package and A has something to do with failures, then there exist at least one instance of <em>A</em> in the <strong>base</strong> allowing to recover the error information</em></p>
-<p><code>MonadFail</code> fails this property (especially when combined with <code>MonadPlus</code>: <a href="https://rpeszek.github.io/posts/2021-01-17-maybe-overuse.html#monadfail-and-maybe" target="_blank">Maybe Overuse - MonadFail</a>).</p>
-<p><code>Alternative</code> <del>fails it as well</del>. (<strong>EDIT Feb 13, 2021</strong>: It has been pointed out to me on <a href="https://www.reddit.com/r/haskell/comments/lj3h47/is_alternative_a_wrong_abstraction_for_handling/gnas3y2?utm_source=share&amp;utm_medium=web2x&amp;context=3" target="_blank">reddit by u/gcross</a> that this is <strong>not a fair criticism</strong>. <em>base</em> typeclass definition does not really claim any relationship to failures. I stand corrected on this. I still think that it would be very nice to have error information friendly instance of Alternative in <em>base</em>.)</p>
-<p>Can we come up with <code>Alternative</code> instances that do a decent job of maintaining error information? It seems that the answer is yes.</p>
-<h3 id="either-e-a"><code>Either [e] a</code></h3>
-<p>This is a warm-up.</p>
-<p>This instance is not new. It matches the <code>ExceptT</code> alternative instance from <em>transformers</em> / <em>mtl</em>. It uses standard <code>Either</code> monad and this is a <code>MonadPlus</code> (with a somewhat questionable right-zero law):</p>
-<div class="sourceCode" id="cb14"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true"></a><span class="kw">instance</span> <span class="dt">Monoid</span> e <span class="ot">=&gt;</span> <span class="dt">Alternative</span> (<span class="dt">Either</span> e) <span class="kw">where</span> </span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true"></a>    empty  <span class="ot">=</span> <span class="dt">Left</span> <span class="fu">mempty</span></span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true"></a>    <span class="dt">Left</span> e1 <span class="op">&lt;|&gt;</span> <span class="dt">Left</span> e2 <span class="ot">=</span> <span class="dt">Left</span> <span class="op">$</span> e1 <span class="op">&lt;&gt;</span> e2</span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true"></a>    (<span class="dt">Left</span> _) <span class="op">&lt;|&gt;</span> r <span class="ot">=</span> r</span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true"></a>    r <span class="op">&lt;|&gt;</span> _ <span class="ot">=</span> r</span></code></pre></div>
-<p><em>(Note: transformers package has a conflicting instance in the deprecated <code>Control.Monad.Trans.Error</code> module, in a real code a <code>newtype</code> would be needed to avoid this conflict)</em></p>
-<p>I have included <code>Monoid e =&gt; Alternative (Either e)</code> instance as a warm-up and to discuss the laws.</p>
-<p><strong>Laws:</strong><br />
-The required <em>(1-3)</em> laws are satisfied without resorting to any sort of questionable reasoning that treats all errors as <code>empty</code>. However, <code>empty</code> represents a <em>noOp failure</em> computation (somewhat questionable meaning).</p>
-<p>Optional <em>(4 Right Zero)</em> law (<code>f &lt;*&gt; empty = empty</code>) is questionable (consider <code>f = Left e</code> with a non-trivial <code>e</code>).<br />
-<em>(7 Left Catch)</em> is OK.<br />
-As we have predicted, the distribution laws are not satisfied.<br />
-<em>(5)</em> is NOT satisfied:</p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true"></a>(f <span class="op">&lt;|&gt;</span> g) <span class="op">&lt;*&gt;</span> a <span class="ot">=</span> (f <span class="op">&lt;*&gt;</span> a) <span class="op">&lt;|&gt;</span> (g <span class="op">&lt;*&gt;</span> a) </span></code></pre></div>
-<p>If <code>f</code> and <code>g</code> represent successful computation and <code>a</code> is a list of errors then the <em>rhs</em> has twice as many errors as the <em>lhs</em>.</p>
-<p><em>(6)</em> is not satisfied either:</p>
-<div class="sourceCode" id="cb16"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true"></a>f <span class="op">&lt;*&gt;</span> (b <span class="op">&lt;|&gt;</span> c) <span class="ot">=</span> (f <span class="op">&lt;*&gt;</span> b) <span class="op">&lt;|&gt;</span> (f <span class="op">&lt;*&gt;</span> c) </span></code></pre></div>
-<p>If <code>f</code> represents a failed computation then <em>rhs</em> will duplicate <code>f</code> errors.<br />
-This looks like a bigger problem than it really is. The <em>lhs</em> and <em>rhs</em> contain the same amount of error information.</p>
-<p>So, overall, <code>Either [e] a</code> has done quite well as an alternative!</p>
-<h3 id="a-decent-blueprint-either-e-e-a">A Decent Blueprint: <code>Either [e] ([e], a)</code></h3>
-<p>What would really be nice, is to have a standard “right-catch with warnings” <code>Alternative</code> instance (please let me know if you have seen it somewhere on Hackage):</p>
-<div class="sourceCode" id="cb17"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true"></a><span class="kw">newtype</span> <span class="dt">ErrWarn</span> e w a <span class="ot">=</span> <span class="dt">EW</span> {<span class="ot">runEW ::</span> <span class="dt">Either</span> e (w, a)} <span class="kw">deriving</span> (<span class="dt">Eq</span>, <span class="dt">Show</span>, <span class="dt">Functor</span>)</span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true"></a>  </span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true"></a><span class="kw">instance</span> (<span class="dt">Monoid</span> e) <span class="ot">=&gt;</span> <span class="dt">Alternative</span> (<span class="dt">ErrWarn</span> e e) <span class="kw">where</span> </span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true"></a>    empty  <span class="ot">=</span> <span class="dt">EW</span> <span class="op">$</span> <span class="dt">Left</span> <span class="fu">mempty</span></span>
-<span id="cb17-5"><a href="#cb17-5" aria-hidden="true"></a>    <span class="dt">EW</span> (<span class="dt">Left</span> e1) <span class="op">&lt;|&gt;</span> <span class="dt">EW</span> (<span class="dt">Left</span> e2) <span class="ot">=</span> <span class="dt">EW</span> (<span class="dt">Left</span> <span class="op">$</span> e1 <span class="op">&lt;&gt;</span> e2)</span>
-<span id="cb17-6"><a href="#cb17-6" aria-hidden="true"></a>    <span class="dt">EW</span> (<span class="dt">Left</span> e1) <span class="op">&lt;|&gt;</span> <span class="dt">EW</span> (<span class="dt">Right</span> (w2, r)) <span class="ot">=</span> <span class="dt">EW</span> <span class="op">$</span> <span class="dt">Right</span> (e1 <span class="op">&lt;&gt;</span> w2, r) <span class="co">-- coupling between @Either e@ and @(e,)@</span></span>
-<span id="cb17-7"><a href="#cb17-7" aria-hidden="true"></a>    r<span class="op">@</span>(<span class="dt">EW</span> (<span class="dt">Right</span> _)) <span class="op">&lt;|&gt;</span> _ <span class="ot">=</span> r</span></code></pre></div>
-<p>This approach, when computing <code>a &lt;|&gt; b</code>, does not try to compute <code>b</code> if <code>a</code> succeeds. Thus, this instance matches the common left bias semantics. The approach accumulates all errors encountered up to the point of the first success and returns them as warnings.<br />
-This is a lawful <code>Alternative</code> (satisfies required laws <em>(1-3)</em>) and it does not rely on any questionable unification of <code>empty</code> with non-trivial errors.</p>
-<p>I now feel justified using <code>Monoid e</code> constraint. Empty failure makes no sense, but empty warnings make a lot of sense!</p>
-<p>But wait! To have <code>Alternative</code> we need <code>Applicative</code>. It is possible to implement <code>Applicative</code> for this type in more than one way, one even leads to a valid <code>Monad</code> and <code>MonadPlus</code> (with the right-zero caveat discussed above).<br />
-That approach is equivalent to <code>WriterT w (Except e)</code>, it does not try to <code>&lt;*&gt;</code>-accumulate <code>e</code>-s, it only accumulates <code>w</code>-s:</p>
-<div class="sourceCode" id="cb18"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true"></a><span class="kw">instance</span> (<span class="dt">Monoid</span> w) <span class="ot">=&gt;</span> <span class="dt">Applicative</span> (<span class="dt">ErrWarn</span> e w) <span class="kw">where</span></span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true"></a>    <span class="fu">pure</span> x <span class="ot">=</span> <span class="dt">EW</span> <span class="op">$</span> <span class="dt">Right</span> (<span class="fu">mempty</span>, x)</span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true"></a>    <span class="dt">EW</span> (<span class="dt">Left</span> e) <span class="op">&lt;*&gt;</span> _ <span class="ot">=</span> <span class="dt">EW</span> <span class="op">$</span> <span class="dt">Left</span> e</span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true"></a>    <span class="dt">EW</span> (<span class="dt">Right</span> (u, f)) <span class="op">&lt;*&gt;</span> <span class="dt">EW</span> (<span class="dt">Right</span> (v, x)) <span class="ot">=</span> <span class="dt">EW</span> (<span class="dt">Right</span> (u <span class="op">&lt;&gt;</span> v, f x))</span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true"></a>    <span class="dt">EW</span> (<span class="dt">Right</span> (u, f)) <span class="op">&lt;*&gt;</span> <span class="dt">EW</span> (<span class="dt">Left</span> e)  <span class="ot">=</span> <span class="dt">EW</span> <span class="op">$</span> <span class="dt">Left</span> e</span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true"></a></span>
-<span id="cb18-7"><a href="#cb18-7" aria-hidden="true"></a><span class="kw">instance</span> (<span class="dt">Monoid</span> w) <span class="ot">=&gt;</span> <span class="dt">Monad</span> (<span class="dt">ErrWarn</span> e w) <span class="kw">where</span> </span>
-<span id="cb18-8"><a href="#cb18-8" aria-hidden="true"></a>    <span class="dt">EW</span> (<span class="dt">Left</span> e) <span class="op">&gt;&gt;=</span> _  <span class="ot">=</span> <span class="dt">EW</span> <span class="op">$</span> <span class="dt">Left</span> e</span>
-<span id="cb18-9"><a href="#cb18-9" aria-hidden="true"></a>    <span class="dt">EW</span> (<span class="dt">Right</span> (u, x)) <span class="op">&gt;&gt;=</span> k <span class="ot">=</span> </span>
-<span id="cb18-10"><a href="#cb18-10" aria-hidden="true"></a>        <span class="kw">case</span> k x <span class="kw">of</span> </span>
-<span id="cb18-11"><a href="#cb18-11" aria-hidden="true"></a>            <span class="dt">EW</span> (<span class="dt">Right</span> (v, b)) <span class="ot">-&gt;</span> <span class="dt">EW</span> (<span class="dt">Right</span> (u <span class="op">&lt;&gt;</span> v, b))</span>
-<span id="cb18-12"><a href="#cb18-12" aria-hidden="true"></a>            <span class="dt">EW</span> (<span class="dt">Left</span> e) <span class="ot">-&gt;</span> <span class="dt">EW</span> (<span class="dt">Left</span> e)</span>
-<span id="cb18-13"><a href="#cb18-13" aria-hidden="true"></a></span>
-<span id="cb18-14"><a href="#cb18-14" aria-hidden="true"></a><span class="kw">instance</span> (<span class="dt">Monoid</span> e) <span class="ot">=&gt;</span> <span class="dt">MonadPlus</span> (<span class="dt">ErrWarn</span> e e)    </span></code></pre></div>
-<p>Please note the small difference. Standard <em>transformers</em> / <em>mtl</em> <code>ExeptT</code> and <code>WriterT</code> both support <code>Alternative</code></p>
-<div class="sourceCode" id="cb19"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true"></a> (<span class="dt">Monad</span> m, <span class="dt">Monoid</span> e) <span class="ot">=&gt;</span> <span class="dt">Alternative</span> (<span class="dt">ExceptT</span> e m)	</span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true"></a> (<span class="dt">Monoid</span> w, <span class="dt">Alternative</span> m) <span class="ot">=&gt;</span> <span class="dt">Alternative</span> (<span class="dt">WriterT</span> w m) <span class="co">-- Monoid only used to define @empty@</span></span></code></pre></div>
-<p>but in a decoupled way, <code>ErrWarn</code> couples these two by “writing” <code>e</code>-s.</p>
-<p>This instance exhibits similar problems with matching the <code>&lt;*&gt;</code> semantics as the <code>Monoid e =&gt; Either e</code> instance from the previous section (i.e. <em>(5,6)</em> are not satisfied). Overall it is a very well behaved alternative.</p>
-<h3 id="code-example">Code Example</h3>
-<p>Here is a very convoluted (and not very good) parsing code that is intended only to demonstrate how <code>ErrWarn</code> works. This code creates a natural transformation from the <em>attoparsec</em> parser to <code>ErrWarn</code> and compares the error outputs from both.</p>
-<p>This code will parse <em>ByteStrings</em> like “id last-first-name dept boss2” to produce, if successful, a hard-coded <em>id, name, department, and boss name</em>:</p>
-<div class="sourceCode" id="cb20"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true"></a>idP <span class="ot">=</span> <span class="dv">123</span> <span class="ot">`onKeyword`</span> <span class="st">&quot;id&quot;</span></span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true"></a>nameP1 <span class="ot">=</span> <span class="st">&quot;Smith John&quot;</span>  <span class="ot">`onKeyword`</span> <span class="st">&quot;last-first-name&quot;</span></span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true"></a>nameP2 <span class="ot">=</span> <span class="fu">fail</span> <span class="st">&quot;first-last-name not implemented yet&quot;</span></span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true"></a>deptP <span class="ot">=</span>  <span class="st">&quot;Billing&quot;</span> <span class="ot">`onKeyword`</span> <span class="st">&quot;dept&quot;</span></span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true"></a>bossP1 <span class="ot">=</span> <span class="st">&quot;Jim K&quot;</span> <span class="ot">`onKeyword`</span> <span class="st">&quot;boss1&quot;</span>     </span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true"></a>bossP2 <span class="ot">=</span> <span class="st">&quot;Kim J&quot;</span> <span class="ot">`onKeyword`</span> <span class="st">&quot;boss2&quot;</span>    </span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true"></a>bossP3 <span class="ot">=</span> <span class="fu">pure</span> <span class="st">&quot;Mij K bosses everyone&quot;</span> </span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true"></a></span>
-<span id="cb20-9"><a href="#cb20-9" aria-hidden="true"></a><span class="ot">onKeyword ::</span> a <span class="ot">-&gt;</span> <span class="dt">B.ByteString</span> <span class="ot">-&gt;</span> <span class="dt">AT.Parser</span> <span class="dt">B.ByteString</span> a</span>
-<span id="cb20-10"><a href="#cb20-10" aria-hidden="true"></a>onKeyword val key <span class="ot">=</span> <span class="fu">const</span> val <span class="op">&lt;$&gt;</span> A.manyTill ACh.anyChar</span>
-<span id="cb20-11"><a href="#cb20-11" aria-hidden="true"></a>                    (A.lookAhead <span class="op">$</span> A.string key)</span>
-<span id="cb20-12"><a href="#cb20-12" aria-hidden="true"></a>                    <span class="op">A.&lt;?&gt;</span> <span class="fu">show</span> key</span>
-<span id="cb20-13"><a href="#cb20-13" aria-hidden="true"></a></span>
-<span id="cb20-14"><a href="#cb20-14" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Employee</span> <span class="ot">=</span> <span class="dt">Employee</span> {</span>
-<span id="cb20-15"><a href="#cb20-15" aria-hidden="true"></a><span class="ot">    id ::</span> <span class="dt">Int</span></span>
-<span id="cb20-16"><a href="#cb20-16" aria-hidden="true"></a>    ,<span class="ot"> name ::</span> <span class="dt">String</span></span>
-<span id="cb20-17"><a href="#cb20-17" aria-hidden="true"></a>    ,<span class="ot"> dept  ::</span> <span class="dt">String</span></span>
-<span id="cb20-18"><a href="#cb20-18" aria-hidden="true"></a>    ,<span class="ot"> boss ::</span> <span class="dt">String</span></span>
-<span id="cb20-19"><a href="#cb20-19" aria-hidden="true"></a>   } <span class="kw">deriving</span> <span class="dt">Show</span></span>
-<span id="cb20-20"><a href="#cb20-20" aria-hidden="true"></a></span>
-<span id="cb20-21"><a href="#cb20-21" aria-hidden="true"></a><span class="ot">emplP ::</span> <span class="dt">A.Parser</span> <span class="dt">B.ByteString</span> <span class="dt">Employee</span></span>
-<span id="cb20-22"><a href="#cb20-22" aria-hidden="true"></a>emplP <span class="ot">=</span> </span>
-<span id="cb20-23"><a href="#cb20-23" aria-hidden="true"></a>   <span class="dt">Employee</span> </span>
-<span id="cb20-24"><a href="#cb20-24" aria-hidden="true"></a>   <span class="op">&lt;$&gt;</span> idP</span>
-<span id="cb20-25"><a href="#cb20-25" aria-hidden="true"></a>   <span class="op">&lt;*&gt;</span> (nameP1 <span class="op">&lt;|&gt;</span> nameP2)</span>
-<span id="cb20-26"><a href="#cb20-26" aria-hidden="true"></a>   <span class="op">&lt;*&gt;</span> deptP</span>
-<span id="cb20-27"><a href="#cb20-27" aria-hidden="true"></a>   <span class="op">&lt;*&gt;</span> (bossP1 <span class="op">&lt;|&gt;</span> bossP2 <span class="op">&lt;|&gt;</span> bossP3) </span>
-<span id="cb20-28"><a href="#cb20-28" aria-hidden="true"></a></span>
-<span id="cb20-29"><a href="#cb20-29" aria-hidden="true"></a><span class="ot">emplP' ::</span> <span class="dt">B.ByteString</span> <span class="ot">-&gt;</span> <span class="dt">ErrWarn</span> [<span class="dt">String</span>] [<span class="dt">String</span>] <span class="dt">Employee</span></span>
-<span id="cb20-30"><a href="#cb20-30" aria-hidden="true"></a>emplP' txt <span class="ot">=</span> </span>
-<span id="cb20-31"><a href="#cb20-31" aria-hidden="true"></a>   <span class="dt">Employee</span> </span>
-<span id="cb20-32"><a href="#cb20-32" aria-hidden="true"></a>   <span class="op">&lt;$&gt;</span> ew idP </span>
-<span id="cb20-33"><a href="#cb20-33" aria-hidden="true"></a>   <span class="op">&lt;*&gt;</span> (ew nameP1  <span class="op">&lt;|&gt;</span> ew nameP2 )</span>
-<span id="cb20-34"><a href="#cb20-34" aria-hidden="true"></a>   <span class="op">&lt;*&gt;</span> ew deptP </span>
-<span id="cb20-35"><a href="#cb20-35" aria-hidden="true"></a>   <span class="op">&lt;*&gt;</span> (ew bossP1  <span class="op">&lt;|&gt;</span> ew bossP2 <span class="op">&lt;|&gt;</span> ew bossP3)</span>
-<span id="cb20-36"><a href="#cb20-36" aria-hidden="true"></a>   <span class="kw">where</span></span>
-<span id="cb20-37"><a href="#cb20-37" aria-hidden="true"></a><span class="ot">        ew ::</span> <span class="dt">A.Parser</span> a  <span class="ot">-&gt;</span> <span class="dt">ErrWarn</span> [<span class="dt">String</span>] [<span class="dt">String</span>] a</span>
-<span id="cb20-38"><a href="#cb20-38" aria-hidden="true"></a>        ew p <span class="ot">=</span> singleErr <span class="op">$</span> A.parseOnly p txt</span>
-<span id="cb20-39"><a href="#cb20-39" aria-hidden="true"></a></span>
-<span id="cb20-40"><a href="#cb20-40" aria-hidden="true"></a><span class="ot">        singleErr ::</span> <span class="dt">Either</span> e a <span class="ot">-&gt;</span> <span class="dt">ErrWarn</span> [e] [e] a</span>
-<span id="cb20-41"><a href="#cb20-41" aria-hidden="true"></a>        singleErr (<span class="dt">Left</span> e) <span class="ot">=</span> <span class="dt">EW</span> <span class="op">$</span> <span class="dt">Left</span> [e]</span>
-<span id="cb20-42"><a href="#cb20-42" aria-hidden="true"></a>        singleErr (<span class="dt">Right</span> r) <span class="ot">=</span> <span class="dt">EW</span> <span class="op">$</span> <span class="dt">Right</span> ([], r)</span></code></pre></div>
-<p>Trying it with a good input:</p>
-<div class="sourceCode" id="cb21"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true"></a><span class="co">-- &gt;&gt;&gt; A.parseOnly emplP &quot;id last-first-name dept boss1&quot;</span></span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true"></a><span class="co">-- Right (Employee {id = 123, name = &quot;Smith John&quot;, dept = &quot;Billing&quot;, boss = &quot;Jim K&quot;})</span></span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true"></a></span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true"></a><span class="co">-- &gt;&gt;&gt; emplP' &quot;id last-first-name dept boss1&quot;</span></span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true"></a><span class="co">-- EW {runEW = Right ([],Employee {id = 123, name = &quot;Smith John&quot;, dept = &quot;Billing&quot;, boss = &quot;Jim K&quot;})}</span></span></code></pre></div>
-<p>Trying <a href="#failure-at-the-end">failure at the end</a> situation (typo in <code>"last-first-name"</code>):</p>
-<div class="sourceCode" id="cb22"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true"></a><span class="co">-- &gt;&gt;&gt; A.parseOnly emplP &quot;id last-firs-name dept boss2&quot;</span></span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true"></a><span class="co">-- Left &quot;Failed reading: first-last-name not implemented yet&quot;</span></span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true"></a></span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true"></a><span class="co">-- &gt;&gt;&gt; runEW $ emplP' &quot;id last-firs-name dept boss2&quot;</span></span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true"></a><span class="co">-- Left [&quot;\&quot;last-first-name\&quot;: not enough input&quot;,&quot;Failed reading: first-last-name not implemented yet&quot;]</span></span></code></pre></div>
-<p>(A similar benefit can be achieved by using one of the Hackage <em>validation</em> packages listed at the end of this post or using the <code>ExceptT</code> alternative.)</p>
-<p>Trying <a href="#permissive-computation-at-the-end">permissive computation at the end</a> situation (<code>"boss"</code> parsing error):</p>
-<div class="sourceCode" id="cb23"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true"></a><span class="co">-- &gt;&gt;&gt; A.parseOnly emplP &quot;id last-first-name dept boss&quot;</span></span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true"></a><span class="co">-- Right (Employee {id = 123, name = &quot;Smith John&quot;, dept = &quot;Billing&quot;, boss = &quot;Mij K bosses everyone&quot;})</span></span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true"></a></span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true"></a><span class="co">-- &gt;&gt;&gt;runEW $ emplP' &quot;id last-first-name dept boss&quot;</span></span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true"></a><span class="co">-- Right ([&quot;\&quot;boss1\&quot;: not enough input&quot;,&quot;\&quot;boss2\&quot;: not enough input&quot;],Employee {id = 123, name = &quot;Smith John&quot;, dept = &quot;Billing&quot;, boss = &quot;Mij K bosses everyone&quot;})</span></span></code></pre></div>
-<p>(A similar benefit cannot be achieved by using a <em>validation</em> package from the list at the end of this post or a <em>transformers</em> stack. Please let me know if something like this exists elsewhere.)</p>
-<p>We are no longer being thrown for a loop!</p>
-<h3 id="extending-either-e-e-a">Extending <code>Either [e] ([e], a)</code></h3>
-<p>The <em>right-catch with warnings</em> semantics of <code>Either [e] ([e], a)</code> is a decent principled computation that can be extended to other types. For example, a similar semantics could find its way into some parser internals.</p>
-<p>I have created several prototype alternative instances (including a primitive <code>WarnParser</code> parser and <code>ErrWarnT</code> transformer) that follow the same semantics, they can be found in the linked <a href="https://github.com/rpeszek/experiments/tree/master/alternative" target="_blank">repo</a>.</p>
-<p><code>ErrWarnT</code> allows to program in a <code>ErrWarnT e e f</code> alternative (e.g. <code>ErrWarnT e e Parser</code>) and annotate additional error information on <code>f</code> (e.g. during parsing). This allows, for example, to <em>pattern match on errors</em> to figure out which alternatives in <code>&lt;|&gt;</code> have failed even if the overall computation has succeeded.<br />
-<code>WarnParser</code> accumulates <code>&lt;|&gt;</code> similar errors and warnings out of the box.</p>
-<h2 id="rethinking-the-typeclass-itself">Rethinking the Typeclass Itself</h2>
-<p>Is <code>Alternative</code> a wrong abstraction for alternating failing computations? I think it is. IMO any abstraction used for working with failures should include failures in its semantics. <code>Alternative</code> typeclass does not do that.</p>
-<p><code>Alternative</code> is widely used and creating an ‘alternative’ to it will, probably, be very hard or even impossible. That typeclass would be useful only if the ecosystem accepted it.</p>
-<p>One conceptually simple improvement would be to split <code>Alternative</code> to mimic the <code>Semigoup</code> / <code>Monoid</code> split (<em>semigroupoids</em> has <code>Data.Functor.Alt</code> which seems to fit the bill).<br />
-This would clean up some instances like <code>ExceptT</code> (the above <a href="#either-e-a"><code>Either [e]</code></a>) or <a href="#relevant-work-on-hackage"><code>Validation</code></a> by reducing the need for questionable <code>empty</code> definitions like <code>Left []</code>. Incidentally, this would be the opposite of the <a href="https://wiki.haskell.org/MonadPlus_reform_proposal" target="_blank"><code>MonadZero</code></a> proposal.</p>
-<p>I would really like to see <code>e</code>-s in the typeclass definition:</p>
-<div class="sourceCode" id="cb24"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true"></a><span class="kw">class</span> <span class="dt">Applicative</span> f <span class="ot">=&gt;</span> <span class="dt">Semigroup1</span> f <span class="kw">where</span></span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true"></a><span class="ot">   (&lt;|&gt;)  ::</span> f a <span class="ot">-&gt;</span> f a <span class="ot">-&gt;</span> f a </span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true"></a></span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true"></a><span class="kw">class</span> <span class="dt">Applicative</span> (f e) <span class="ot">=&gt;</span> <span class="dt">Semigroup2</span> e f <span class="kw">where</span></span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true"></a><span class="ot">   (&lt;||&gt;)  ::</span> f e a <span class="ot">-&gt;</span> f e a <span class="ot">-&gt;</span> f e a </span></code></pre></div>
-<p>The linked <a href="https://github.com/rpeszek/experiments/tree/master/alternative" target="_blank">repo</a> contains some loose replacement ideas for <code>Alternative</code> and <code>MonadPlus</code>. It is a work in progress.</p>
-<h2 id="alternative-beyond-parsing"><code>Alternative</code> Beyond Parsing</h2>
-<p>It should be mentioned that there are instances of <code>Alternative</code> such as the list <code>[]</code>, or <code>ZipList</code> where failures are not a concern. Sorting algorithms using MonadPlus are thumbs up. Examples like <code>LogicT</code> or other backtracking search mechanisms should be in the same boat (at least from the failure point of view, other aspects can be questionable and fascinating <a href="https://stackoverflow.com/questions/15722906/must-mplus-always-be-associative-haskell-wiki-vs-oleg-kiselyov" target="_blank">stackoverflow on mplus associativity</a>).</p>
-<p>Also, these instances are rather cool.<br />
-Languages like JavaScript, Python, Groovy have a concept of <em>truthiness</em>. <em>Truthy</em> <em>Falsy</em> are a thing and come with a Boolean algebra of sorts. Try evaluating this in you browser’s console:</p>
-<div class="sourceCode" id="cb25"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true"></a><span class="op">&gt;</span> <span class="st">&quot;hello&quot;</span> <span class="op">||</span> <span class="st">&quot;&quot;</span></span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true"></a><span class="st">&quot;hello&quot;</span></span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true"></a><span class="op">&gt;</span> <span class="st">&quot;&quot;</span> <span class="op">||</span> <span class="st">&quot;hello&quot;</span></span>
-<span id="cb25-4"><a href="#cb25-4" aria-hidden="true"></a><span class="st">&quot;hello&quot;</span></span></code></pre></div>
-<p><em>Truthiness</em> is questionable because the Boolean algebra laws (like <code>a || b = b || a</code>) no longer hold.</p>
-<p>Now try these in ghci:</p>
-<div class="sourceCode" id="cb26"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true"></a><span class="op">&gt;&gt;&gt;</span> <span class="st">&quot;&quot;</span> <span class="op">&lt;|&gt;</span> <span class="st">&quot;hello&quot;</span></span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true"></a><span class="st">&quot;hello&quot;</span></span>
-<span id="cb26-3"><a href="#cb26-3" aria-hidden="true"></a><span class="op">&gt;&gt;&gt;</span> <span class="st">&quot;hello&quot;</span> <span class="op">&lt;|&gt;</span> <span class="st">&quot;&quot;</span></span>
-<span id="cb26-4"><a href="#cb26-4" aria-hidden="true"></a><span class="st">&quot;hello&quot;</span></span></code></pre></div>
-<p>Alternative is a principled version of the <em>truthiness</em>. The laws properly state the algebra limitations.<br />
-As we have seen, the problem is in going with this generalization too far.</p>
-<p><em>async</em> package uses <code>&lt;|&gt;</code> to return result form the computation that finishes first. This seems a good use to me.</p>
-<p>Several types like <code>ExceptT</code>, <code>Validation</code> (see <a href="#relevant-work-on-hackage">hackage section</a> below) allow to use user defined monoid error types. <code>mempty</code> may not have much sense as an error, but this setup offers interesting options for accumulating errors. For example, using it with <code>Data.Monoid.Max</code> could be very interesting.</p>
-<p><strong>Not so good:</strong><br />
-An interesting case is the <code>STM</code> monad. <code>a &lt;|&gt; b</code> is used to chain computations that may want to <code>retry</code>. I imagine, composing <code>STM</code> computations this way is rare. If you wanted to communicate why <code>a</code> has decided to retry, how would you do that? I consider <code>STM</code> use of alternatives problematic.</p>
-<p><code>IO</code> itself is an <code>Alternative</code> and uses <code>&lt;|&gt;</code> as a <code>catch</code> that throws away the error information. I dislike the <code>IO</code> instance. “Launching missiles” and not knowing what went wrong seems not ideal.</p>
-<h2 id="relevant-work-on-hackage">Relevant work on Hackage</h2>
-<p><a href="https://hackage.haskell.org/package/free" target="_blank"><em>free</em></a> package contains a semantic (free) version of <em>Alternative</em>.</p>
-<p><a href="https://hackage.haskell.org/package/semigroupoids-5.3.5/docs/Data-Functor-Alt.html" target="_blank"><em>semigroupoids</em></a> offers <em>Alt</em> that is just a <em>Functor</em> and does not need to have <code>empty</code>.</p>
-<p><a href="https://hackage.haskell.org/package/transformers-0.5.6.2" target="_blank"><em>transformers</em></a> ExceptT implements <code>Alternative</code> which accumulates “Lefts”.</p>
-<p>A list of interesting packages that implement <code>Monoid</code>-like semantics for <code>Applicative</code> (most also implement <code>Alternative</code>) to accumulate errors provided by <a href="https://www.reddit.com/user/affinehyperplane/" target="_blank">u/affinehyperplane</a> on <a href="https://www.reddit.com/r/haskell/comments/kyo4xk/maybe_considered_harmful/gji7fmx?utm_source=share&amp;utm_medium=web2x&amp;context=3" target="_blank">reddit</a>:</p>
-<p><a href="https://hackage.haskell.org/package/either-5.0.1.1/docs/Data-Either-Validation.html" target="_blank"><em>either</em></a> defines <code>Either</code> like <code>Validation e a</code> applicative, both <code>&lt;|&gt;</code> and <code>&lt;*&gt;</code> accumulate errors<br />
-<a href="https://hackage.haskell.org/package/validation-1.1/docs/Data-Validation.html" target="_blank"><em>validation</em></a> defines a similar <code>Validation</code> type, it does not define alternative instance.<br />
-<a href="https://hackage.haskell.org/package/validation-selective-0.1.0.0/docs/Validation.html" target="_blank"><em>validation-selective</em></a> defines a similar <code>Validation</code> type loaded with (non-monad) instances<br />
-<a href="https://hackage.haskell.org/package/monad-validate-1.2.0.0/docs/Control-Monad-Validate.html" target="_blank"><em>monad-validate</em></a> provides an interesting and very useful validation <em>monad</em> transformer (this is lawful if you do not compare error outputs) that can accumulate errors, it does not implement <code>Alternative</code>.</p>
-<p>In the context of parsers, it should be noted that packages like <em>trifecta</em>, <em>(mega)parsec</em> do nice job returning error messages when <code>&lt;|&gt;</code> fails.</p>
-<p>A good references about Alternative and MonadPlus in general is the <a href="https://wiki.haskell.org/Typeclassopedia#Failure_and_choice:_Alternative.2C_MonadPlus.2C_ArrowPlus" target="_blank">Typeclassopedia</a> and <a href="https://en.wikibooks.org/wiki/Haskell/Alternative_and_MonadPlus" target="_blank">wikibooks</a>, both contain interesting links.</p>
-<p>There are many stackoverflow answers about Haskell solutions to accumulating errors. These typically refer to some of the packages in the above list, I am not linking them here.<br />
-There are many, many discussions about error output from different parsing libraries. These are typically focused on criticizing a particular package (typically <em>attoparsec</em>) not the <code>Alternative</code> typeclass itself.<br />
-I am sure, this list is not complete. Please let me know if you see a relevant work elsewhere.</p>
-<h2 id="conclusions-thoughts">Conclusions, Thoughts</h2>
-<p>It is possible to implement instances that do a decent error management but it feels like this is accomplished despite of the <code>Alternative</code> typeclass definition and its laws. To answer my title: IMO <code>Alternative</code> is a wrong abstraction for managing computational failures.</p>
-<p>The more I program in Haskell the more I view Functional Programming as a branch of Applied Mathematics.<br />
-Criticizing mathematical abstractions does not make much sense. Criticism of how well an abstraction fits is application if a fair game.</p>
-<p>Why errors are being overlooked? I assembled a possible list when writing about the <a href="https://rpeszek.github.io/posts/2021-01-17-maybe-overuse.html#why-maybe-is-overused-possible-explanations" target="_blank">Maybe Overuse</a> and that list seems to translate well to the alternative typeclass. For example, code using <code>&lt;|&gt;</code> is very terse, something with a stronger error semantics will most likely be more verbose; coding with <code>&lt;|&gt;</code> is simple, stronger error semantics will likely be more complex …<br />
-I could be wrong on this: the original usages of MonadPlus were probably related to sorting/searching and lists. Alternative computations with more complex error structure were probably introduced later? … and, the instances ended up outgrowing the typeclass?</p>
-<p>The <em>pessimist</em> theme was partially inspired by the following two concepts:<br />
-<a href="https://link.springer.com/referenceworkentry/10.1007%2F978-94-007-0753-5_2219#:~:text=Definition,favor%20positive%20information%20in%20reasoning." target="_blank"><em>Positivity Bias</em></a> and, its opposite, the <a href="https://en.wikipedia.org/wiki/Negativity_bias" target="_blank"><em>Negativity Bias</em></a> are psychological notions that, I believe, have a deep relevance to the programming in general.<br />
-<em>Positivity Bias</em> includes a <em>tendency to favor positive information in reasoning</em> and, by definition, will make you think about “happy path” and “sunny day scenarios”.<br />
-<em>Negativity Bias</em> includes a <em>tendency to favor negative information in reasoning</em> and, by definition, will make you consider “rainy day scenarios”, corner cases, error handling, error information.<br />
-I think we should embrace some form of <em>pessimism</em> and put in on the pedestal next to the principled construction.</p>
-<p>I hope this post will motivate more discussion about the <em>error information</em> handling in Haskell.<br />
-My particular interest is in discussing:</p>
-<ul>
-<li>your views about rethinking the <code>Alternative</code> typeclass</li>
-<li>your views on pessimism in programming</li>
-<li>your views on the error information loss in Haskell code</li>
-<li>is <code>ErrWarn</code> somewhere on Hackage and I did not see it?</li>
-<li>other interesting <code>Alternative</code> instances that care about errors</li>
-<li>obviously, anything that I got wrong</li>
-</ul>
-<p><a href="https://www.reddit.com/r/haskell/comments/lj3h47/is_alternative_a_wrong_abstraction_for_handling/" target="_blank">reddit</a> discussion<br />
-github <a href="https://github.com/rpeszek/rpeszek.github.io/discussions/1" target="_blank">discussions</a></p>
-<p>Thank you for reading!</p>
-<h3 id="readers-response">Reader’s Response</h3>
-<p>Common critical response on reddit (2021-02-15) can be summarized as: Alternative should not be used like this and there are better ways of writing such code.</p>
-<blockquote>
-<p>“it seems a bit odd, to me, to criticize and talk about rethinking a typeclass because it does something that it was never intended to do”<br />
-“people should be using a typeclass designed for handling errors”<br />
-“maybe you are asking too much to Alternative”</p>
-</blockquote>
-<p>The <code>ErrWarn</code> blueprint or other instances with strong error information preserving abilities were not discussed.</p>
-<p>There appears to be mixed response to the error information loss being a problem in general. Some readers claim that this is not a problem, some seem to share my concern.</p>
-<p><strong>Author’s Defense</strong></p>
-<p>I agree with the: “Alternative should not be used like this”.</p>
-<p>Alternative is an example of an abstraction that is very easy to use, it makes coding fast.<br />
-It most likely will end up being used (I have seen it) in ways similar to what I described in this post.<br />
-It is important that the developers are aware of the gotchas that come with some of the instances.</p>
-<p>Any code (alternative or not) producing confusing error output is a concern.<br />
-IMO, every abstraction and every instance needs to be concerned about the error output quality. <em>Not being designed for error handling</em> should not be a thing. At the same time, error friendlier instances should be a good thing.</p>
 
     </section>
 </article>
