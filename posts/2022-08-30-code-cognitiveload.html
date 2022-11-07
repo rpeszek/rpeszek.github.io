@@ -41,11 +41,13 @@
         Posted on August 30, 2022
         
         
-          <br /> Last Modified on Aug 30, 2022
+          <br /> Last Modified on Nov 07, 2022
         
         
+        <div class="changelog"> <div>Revision History: <ul> <li> (2022.11.07) Draft warning removed, minor changes only </li> </ul> </div></div>
         
-        <div class="info">Tags: <a title="All pages tagged 'patterns-of-erroneous-code'." href="../tags/patterns-of-erroneous-code.html">patterns-of-erroneous-code</a></div>
+        
+        <div class="info">Tags: <a title="All pages tagged 'patterns-of-erroneous-code'." href="../tags/patterns-of-erroneous-code.html">patterns-of-erroneous-code</a>, <a title="All pages tagged 'communication'." href="../tags/communication.html">communication</a></div>
         
     </section>
     <section>
@@ -70,7 +72,6 @@
 <p>  <em>“My brain hurts”, a quote from a code review</em></p>
 </blockquote>
 </blockquote>
-<p><strong>DRAFT version:</strong> <em>This post is a work-in-progress. I am publishing it to solicit early feedback.</em></p>
 <p>This long post presents programming in a different light than what is commonly considered. We will look at cognitive aspects of interacting with code.</p>
 <p>We will examine cognitive effort that goes into the implementation and cognitive loads on these poor souls who need to work on that code later. We will consider the programming language, its libraries, and implemented programs as <em>instructional materials</em>. We will view the developer as both an <em>instructional designer</em> and a <em>learner</em>. We will think about bugs as cognitive overload and a missed learning opportunity. We will discuss the cognitive impact of abstractions, types, and programming principles.</p>
 <p>Cognitive load of working with code is rarely considered in actual project work. We ask “How long will it take?” (in fibonacci numbers, of course), we do not ask “How will it impact the overall complexity?”.<br />
@@ -125,7 +126,7 @@ However, psychology is not a simple arithmetic, some programmers learn how to pr
 Sadly, RNT seems to be a condition that really good programmers are likely to experience. Good programmers think about rainy day scenarios, notice design flaws, can anticipate program issues… My pet peeve, <a href="../tags/patterns-of-erroneous-code.html" target="_blank">patterns of erroneous code</a>, is an RNT. It seems important that we talk about RNT.</p>
 <p>You may want to think about <em>working memory</em> and <em>cognitive loads</em> as something akin to <em>RAM</em> in a computer.<br />
 What is the equivalent of a CPU cost? In this post I use <em>cognitive effort</em>, the usage of this term is not very consistent<a href="#fn8" class="footnote-ref" id="fnref8" role="doc-noteref"><sup>8</sup></a> in the literature.</p>
-<p>These were cliff notes written by a non expert. There are many tricky and relevant bits like <em>information retrieval from long term memory</em>. Things I am progressively less and less component to describe in psychological context.</p>
+<p>These were cliff notes written by a non expert. There are many tricky and relevant bits like <em>information retrieval from long term memory</em>. Things I am progressively less and less competent to describe in psychological context.</p>
 <h2 id="easy-vs-simple">Easy vs Simple</h2>
 <p>If you have looked at my <a href="../tags/TypeScript-Notes.html" target="_blank">TypeScript types</a> series, you have seen me <a href="2022-03-13-ts-types-part6.html#about-simplicity" target="_blank">write about it already</a>. I do not claim that my definitions are the only correct way that these terms should be interpreted. However, I have seen other programmers use a similar disambiguation so I am including it here.</p>
 <p>I consider the terms simple and easy to have a different meaning.<br />
@@ -146,6 +147,9 @@ Simple means low extraneous load, complex means high extraneous load.</p>
 <p>An interesting way to look at easy vs simple is to think about a creative process like writing a book. Easy to write is clearly very different from simple to read. In programming these two are bundled together, a program created by one developer needs to be consumed by another dev who needs to modify it or interact with it. The term “readable code” comes to mind. I consider it different from simple. E.g. readable code does not mean no subtle bugs. Message is readable if you know what it conveys, but what it conveys could be complex or even misleading.</p>
 <p>IMO, the popularity of easy and the unpopularity of simple are a systemic problem in today’s programming and elsewhere.</p>
 <p>Next section discusses examples of code which was intended to be easy and ended up complex.</p>
+<blockquote>
+<p>  <em>“Simplicity is a great virtue but it requires hard work to achieve it and education to appreciate it. And to make matters worse: complexity sells better.”</em> Dijkstra</p>
+</blockquote>
 <h2 id="extraneous-loads-that-grow">Extraneous loads that grow</h2>
 <p>What was the most complex code you’ve worked on?<br />
 I can think about a number of contenders, but my answer will be very unimpressive: I had to maintain a web page (just one page), it was implemented using Java Struts 1. This code used no advanced concepts, all ingredients were easy: control statements, instance variables, lots of protected methods with typically no arguments and void returns that read and set the instance variables.<br />
@@ -242,7 +246,7 @@ IMO the one thing we can do about it is to be aware. More diligence + awareness 
 <p><strong>Section Summary</strong><br />
 Some developers react to gotchas with something akin to <em>omission neglect</em>, while other developers appear to create a mental store of gotchas and their potential impacts. I am in the second group. Maintaining this store is not necessarily easy. I will also note a possible relationship to <em>repetitive negative thinking</em>.</p>
 <p>Gotchas presented to us (thank you very much) by language designers or library implementers should technically be classified as <em>intrinsic</em> since a common bloke like me can’t do much about them other than look for a job that has a better tooling. If you look at programming as a whole, these are extraneous loads.</p>
-<p>I have left the subject of abstraction vs imperative (abstractions being less straightforward and harder to map to actual execution) untouched. I plan to return to this and to the topic of gotchas in my next post.</p>
+<p>I have left the subject of abstraction vs imperative (abstractions being less straightforward and harder to map to actual execution) untouched. I plan to return to this in my next post.</p>
 <p> <div class="side-note"><strong>There is a planet</strong> where PL designers treat all programming abstractions and types with respect. Only sound, correctly implemented abstractions are used.<br />
 As a result, this planet has only unpopular languages, their TIOBE index starts at number 100. 🌠  </div></p>
 <h2 id="germane-and-intrinsic-load-of-fp">Germane and intrinsic load of FP</h2>
@@ -279,8 +283,7 @@ Some places separate a possibly very advanced implementation from a simple to us
 <blockquote>
 <p>  <em>“Esme Weatherwax hadn’t done nice. She’d done what was needed.”</em></p>
 </blockquote>
-<p>Wanted means popular, needed means stable. However, basic principles of FP will probably find a wider use (as discussed in <a href="#extraneous-loads-that-grow">Extraneous loads that grow</a>).<br />
-I plan to return to discussion of cognitive aspects of FP in my next post.</p>
+<p>Wanted means popular, needed means stable. However, basic principles of FP will probably find a wider use (as discussed in <a href="#extraneous-loads-that-grow">Extraneous loads that grow</a>).</p>
 <p> <div class="side-note"><strong>In a parallel dimension</strong> Alonso Church did not take a temporary break from lambda calculus and showed it to his student, Alan Turning. The first computer hardware was based on SKI calculus. In that dimension kids learn mathematics with proofs, imperative programming is considered a great addition after programmers learn the principles. In that dimension software has very few bugs, however, this universe has fewer programs, even fewer programmers, and the error messages suck. 🌌  </div></p>
 <h2 id="post-summary">Post Summary</h2>
 <p>My readers may get the impression that this post is a criticism of imperative programming. Applying cognitive load theory to programming does not translate to “imperative is complex”, rather it translates to “too much of imperative in one place (logically coupled) is complex”. IMO, some amount of imperative is often helpful.<br />
@@ -289,6 +292,11 @@ I plan to return to this topic in my next blog.</p>
 <p>It has dawned on me that my dislike of code complexity may not be shared by others. <em>False consensus effect</em> is assuming that everyone else thinks like me.<br />
 I remain convinced that some programmers react negatively to code complexity, but now I think that many programmers feel at home in code with a high cognitive load. This motivated me to work on this and the next post. IMO it is important that we try to understand each other a little better.</p>
 <p>Are we doing a good job in managing code complexity? I think this a fair question to ask even if you think that simplicity is not crucially important. This post has argued that we are mostly failing on that front. In this post, we looked at how project complexity grows unnoticed, how bugs are a missed opportunity to learn about how we fail, and how FP changes the cognitive process but can be hard to learn. As a whole this post has been a bit of <em>repetitive negative thinking</em>, but I hope you found some positives and useful ideas in it as well. The main point of this post was to advocate for including cognitive aspects of programming projects into consideration and to present some useful terminology for doing it.</p>
+<blockquote>
+<blockquote>
+<p>  <em>“It is time to unmask the computing community as a Secret Society for the Creation and Preservation of Artificial Complexity”</em> Dijkstra (of course).</p>
+</blockquote>
+</blockquote>
 <h2 id="there-is-much-more-to-it">There is much more to it</h2>
 <p>This post took a very narrow path through the very broad subject of cognitive aspects of programming.</p>
 <p>These were observations of a programmer, this post does not try to cover research on this topic or provide a good list of reading materials. I do not feel qualified to provide either. This topic is also related to code quality and this has been vastly discussed.</p>
@@ -298,7 +306,7 @@ I remain convinced that some programmers react negatively to code complexity, bu
 <p>Coding efficiency and the 10X programmer in the context of cognitive loads is an interesting (but contentious) topic.</p>
 <p>Low Code: The idea of distributing cognitive load across different components is not new. The terms “decoupling” or “isolation of concerns” are in this space. Low code is an idea of a very lopsided distribution in which most of the complexity falls onto the infrastructure. I started writing about it but decided to remove my notes as this post feels already too long.</p>
 <p>Some PLs (Haskell is a good example of this) suffer from what some people call the <em>Lisp curse</em>. Instead of using established libraries, proprietary or one-off tools are often created. It is interesting why this happens and what to do about it. Could love of abstractions be causing it (reuse abstractions, not a code)? Is writing it from scratch a lower cognitive effort than learning and applying an existing solution? The end result, obviously, increases the cognitive load.</p>
-<p>Cognitive load should be viewed as a resource problem, one that does not scale very well, and one that is not well understood. Cognitive load is greatly impacted by turn over rates, switching of code ownership, and by installed processes. Context switching is very expensive, the programmer’s inability to find contiguous blocks of time to focus could be viewed as an indication of an under-resourced project.</p>
+<p>Cognitive load should be viewed as a resource problem, one that does not scale very well, and one that is not well understood. Cognitive load is greatly impacted by turn over rates, switching of code ownership, and by installed processes. Context switching is very expensive, the programmer’s inability to find contiguous blocks of time to focus could be viewed as an indication of an under-resourced project. Needless to say, under-resourced yields quick and dirty code.</p>
 <p>Linting, formatting, aesthetics are all very interesting cognitive load topics. Most programmers seem to be very sensitive to how the code is presented, (e.g. would you ever use a light background in your code editor?). Similarly, syntax vs semantics, it seems syntax has a huge cognitive role even if we think about it as bikeshed.</p>
 <p>Habit formation and unlearning are a big and very interesting topic.</p>
 <p>Cognitive biases in the context of coding seem like very interesting topics too. In particular <em>bandwagon effect</em> (TypeScript is popular and hence must be very good), <em>framing effect</em> (new cool technology), <em>commitment bias</em> (we done it like this before, it has been tried and tested), <em>functional fixedness</em> (we do not need another PL), <em>omission neglect</em> (things we do not know are not important), <em>groupthink</em> (we want to work with people who think like us), <em>bikeshedding</em> (possibly most of this post 🙂).</p>
