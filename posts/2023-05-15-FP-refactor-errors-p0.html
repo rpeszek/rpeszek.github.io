@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Infrequent, Pragmatic, Lambda Blog - Refactoring error messages in Haskell programs. Who cares about K9 composers?</title>
+        <link rel="alternate" type="application/atom+xml" href="https://rpeszek.github.io/atom.xml" title="atom" />
+        <link rel="alternate" type="application/rss+xml" href="https://rpeszek.github.io/RSS.xml" title="rss" />
+        <!-- <link rel="alternate" type="application/atom+xml" href="/atom.xml" title="atom"/>
+        <link rel="alternate" type="application/rss+xml" href="/RSS.xml" title="rss"/> -->
+        <link rel="stylesheet" href="../css/reset.css" />
+        <link rel="stylesheet" href="../css/predefault.css" />
+        <link rel="stylesheet" href="../css/default.css" />
+         
+        <link rel="stylesheet" href="../css/syntax.css" /> 
+        
+        
+    </head>
+    <body>
+        <header>
+            <div class="motto">
+                <a href="../">hmm >>= oh!</a>
+            </div>
+            <div class="logo">
+                <a href="../">Infrequent, Pragmatic, Lambda Blog</a>
+            </div>
+            <nav>
+                <!-- <a href="/">Home</a> -->
+                <a href="../thoughts.html">Semiserious</a>
+                <a href="../about.html">About</a>
+                <!-- <a href="/contact.html">Contact</a> -->
+                <a href="../archive.html">Archive</a>
+            </nav>
+        </header>
+
+        <main role="main">
+            <h1>Refactoring error messages in Haskell programs. Who cares about K9 composers?</h1>
+            <article>
+    <section class="header">
+        Posted on May 15, 2023
+        
+        
+        
+        
+        <div class="info">Tags: <a title="All pages tagged 'patterns-of-erroneous-code'." href="../tags/patterns-of-erroneous-code.html">patterns-of-erroneous-code</a>, <a title="All pages tagged 'Haskell'." href="../tags/Haskell.html">Haskell</a>, <a title="All pages tagged 'error-messages'." href="../tags/error-messages.html">error-messages</a></div>
+        
+    </section>
+    <section>
+
+    </section>
+    <section>
+        <div class="toc"><div class="header">Table of Contents</div>
+<ul>
+<li><a href="#historical-notes">Historical notes</a></li>
+<li><a href="#criticism-outlined">Criticism outlined</a></li>
+<li><a href="#monadplus-error-laws">MonadPlus error laws</a></li>
+<li><a href="#alternative-dog-music.-a-use-of-is-considered-harmful">Alternative dog music. A use of <code>&lt;|&gt;</code> is considered harmful</a></li>
+<li><a href="#overloaded-errors">Overloaded errors</a></li>
+<li><a href="#topics-to-discuss">Topics to discuss</a></li>
+</ul>
+</div>
+<blockquote>
+<p><em>Great programming is mathematics. … Except, all falsehoods are the same and error messages are not. Otherwise, great programming is mathematics.</em><br />
+    A quote that I wish someone whom I could quote had said</p>
+</blockquote>
+<p><strong>DRAFT version:</strong> <em>Awaiting Initial Feedback.</em></p>
+<p>In this post I will talk about improving error messages. We will also discuss dogs which compose music.</p>
+<p>I wrote about error messages in Haskell before, I decided to give it one more go. I am working on a slowly progressing task: rewriting code to improve the quality of error messages across projects I contribute to (… and log messages too, but I will focus on the error outputs here). I try to dedicate a few hours every sprint to it. This work often includes rethinking parts of <em>aeson</em> or <em>Parsec</em> code that use <code>MonadPlus</code> / <code>Alternative</code> when the resulting error message is likely to throw anyone for a loop, or re-implementing code that uses <code>Maybe</code> where something like <code>Either</code> would be a better choice, or where errors were never caught… This work also involves adding a decent amount of context to the messages. I have been trying to fix up the errors for several years now and I am starting to believe that this work may never end. You roll this rock uphill and it rolls back down. Can Functional Programming create quality error outputs? Of course it can! But, for this to happen on the level of projects … I think that the community needs to talk about it more.</p>
+<p>The (low) quality of error messages I witness in functional code is something that has puzzled me for a very long time. I wrote about <a href="2021-01-17-maybe-overuse.html" target="_blank">Maybe Overuse</a> and <a href="2021-02-13-alternative.html" target="_blank">Alternative Overuse</a> in the past. The first received a very mixed response (including very positive and very negative), the response to the second was flat negative. I decided that the reasons for what I am observing are probably mostly not technical. This (at least partially) motivated me to look into cognitive psychology (<a href="2022-08-30-code-cognitiveload.html" target="_blank">Cognitive Loads in Programming</a>), and I came up with “a theory” about <a href="2022-11-07-empirical-programming.html" target="_blank">Theorists vs Pragmatists</a>. I cannot claim that I understand what is happening, I can only claim spending literally years thinking about it.</p>
+<p>I want to try one more time to talk about my experience with errors and troubleshooting with some examples and thoughts. My current plan is that with this series (or with this post) I will end my blogging.</p>
+<p>This post is also about conveniences. It shows a few examples where established parts of the Haskell ecosystem make it easy to be careless about errors or where providing decent error messages is simply hard.</p>
+<p>I will mostly focus on <em>aeson</em> (the premier Haskell package for working with JSON) with short mentions outside of this library. This is because code that uses <em>aeson</em> has been my more recent refactoring effort and is fresh on my mind.</p>
+<h2 id="historical-notes">Historical notes</h2>
+<p>These are my (Haskell user) observations about the history of error messages in the Haskell ecosystem. If you have been using Haskell for a long time, you probably remember that <em>aeson</em> did not have <code>eitherDecode</code> at the beginning. <code>eitherDecode</code> was added in <code>0.6.1.0</code> (about two years after the initial release). What it did have (and unfortunately still does) is a more nicely named</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="ot">decode ::</span> <span class="dt">FromJSON</span> a <span class="ot">=&gt;</span> <span class="dt">ByteString</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a</span></code></pre></div>
+<p>If I did my hackage archaeology correctly, an ability to output error messages was added in <code>0.2.0.0</code> with the introduction of <code>parse :: (a -&gt; Parser b) -&gt; a -&gt; Result b</code> which has been hiding in <a href="https://hackage.haskell.org/package/aeson-0.2.0.0/docs/Data-Aeson-Types.html" target="_blank"><code>Data.Aeson.Types</code></a>. The commonly imported <code>Data.Aeson</code> module did not have an error message producing combinator until <code>0.6.1.0</code>.</p>
+<p>If you look over the documentation of the older versions of <em>aeson</em> you will see the following code as the suggested implementation for <a href="https://hackage.haskell.org/package/aeson-0.6.0.0/docs/Data-Aeson.html#t:FromJSON" target="_blank"><code>FromJSON</code></a>:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="co">-- A non-Object value is of the wrong type, so use mzero to fail.</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a>   parseJSON _          <span class="ot">=</span> mzero</span></code></pre></div>
+<p>I am still finding (and fixing) similar code despite a past effort to eradicate these. It is not easy to troubleshoot a bug if the message handed to you says only “mzero”.</p>
+<p>With respect to error messages, <em>aeson</em> clearly went a long way since the old days. If you look at aeson’s Haddock <a href="https://hackage.haskell.org/package/aeson-2.1.2.1/docs/Data-Aeson.html#t:FromJSON" target="_blank">today</a> you will find the use of <code>mzero</code> discouraged!:</p>
+<blockquote>
+<p>"The basic ways to signal a failed conversion are as follows:</p>
+<ul>
+<li><code>fail</code> yields a custom error message: it is the recommended way of reporting a failure;</li>
+<li><code>empty</code> (or <code>mzero</code>) is uninformative: use it when the error is meant to be caught by some <code>(&lt;|&gt;)</code>;</li>
+<li><code>typeMismatch</code> can be used to report a failure when the encountered value is not of the expected JSON type; unexpected is an appropriate alternative when more than one type may be expected, or to keep the expected type implicit.</li>
+</ul>
+<p><code>prependFailure</code> (or <code>modifyFailure</code>) add more information to a parser’s error messages."</p>
+</blockquote>
+<p>However, I still find the recommended use of <code>&lt;|&gt;</code> for working with errors an odd design choice. I will explain shortly why.</p>
+<p>There are other libraries where an ability to get or provide crucial error information has been added only recently (e.g <em>servant-multipart</em>). At the same time, there are many examples where <code>Maybe</code> has been overused in the past and still is. My <a href="2021-01-17-maybe-overuse.html" target="_blank">Maybe overuse</a> post has a few examples like these<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>.</p>
+<h2 id="criticism-outlined">Criticism outlined</h2>
+<p><strong><code>Maybe</code> criticism:</strong> Legacy <code>Maybe</code> combinators should be causing some concern. In programming, legacy is inertia. <code>Maybe</code> is not the correct type to represent something like a parsing failure, it can be useful to describe missing data but not for situations where <em>we care</em> about what went wrong (like parsing errors). <em>A decoding function that returns <code>Maybe</code> should be marked deprecated and eventually removed.</em> Functions like these are found in many libraries, not just <em>aeson</em>, and this is not just about parsing. One can even see it as a pattern across the whole Haskell ecosystem.</p>
+<p>Anyone in a desperate need of dropping the error information can do that with an easy to create natural transformation like:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="ot">errInfoDon'tCare ::</span> <span class="dt">Either</span> e a <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a</span></code></pre></div>
+<p>I am not trying to be sarcastic, IMO <em>“who cares?”</em> is a fair question to ask. It would be loud enough and useful in PR reviews.</p>
+<p><strong>Hyrum’s Law and friends:</strong> If you believe there is some truth to the <a href="https://www.hyrumslaw.com/" target="_blank">Hyrum’s Law</a> (the law which states that all, even the unintended ways to use a library will be exploited by its users) you will probably agree with my stance on this. I like to think about Hyrum’s Law using words that end with “use”: use, overuse, misuse, and abuse. Programming concepts often end up being misused and abused, it is enough for a library like <em>aeson</em> to provide an opening.</p>
+<p>I do believe in (or rather, have been observing) something similar to Hyrum’s Law, namely:</p>
+<blockquote>
+<p>  <em>Developers are likely to choose convenience over correctness</em></p>
+</blockquote>
+<p>I call it <em>The Law of Convenience</em> and note that <code>Maybe</code> is much more convenient to use then <code>Either</code>.</p>
+<p>I also believe that writing code has a significant habitual factor. Ignoring error messages is a concerning habit to have.</p>
+<p>And, finally, I believe that major libraries lead the ecosystem by example.</p>
+<p>Haskell is converting from a research language to a language that is used commercially and topics like efficient ability to troubleshoot production issues are becoming important. The changes I am observing are good, I only hope that the community will get more aggressive on this front.<br />
+In particular, it would be nice to see more error types that are semantically richer than <code>String</code>. We do not want <code>String</code> to become the type of choice for errors and I am happy to see when this is not the case (Megaparsec, yaml, amqp, …). I would also love to see more of standard type level consideration for errors (e.g. standard typeclasses for working with them that go beyond the <code>Exception</code> typeclass)<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a>.</p>
+<h2 id="monadplus-error-laws">MonadPlus error laws</h2>
+<p>I am fixing a lot of code that uses <code>Alternative</code> / <code>MonadPlus</code> abstractions. The next section will show a code that produces wrong error messages by misusing these abstractions. In this section I will discuss <code>MonadPlus</code> in more general terms.</p>
+<p><code>MonadPlus</code> is a very convenient and easy to use <code>Monoid</code> like abstraction. It comes with <code>mzero</code> which is often used to represent a failure without any error information. It is supposed to be a principled abstraction that needs to follow certain monoid-like laws (see <a href="https://hackage.haskell.org/package/base-4.18.0.0/docs/Control-Monad.html#t:MonadPlus" target="_blank"><code>MonadPlus</code></a>, <a href="https://wiki.haskell.org/Typeclassopedia#Failure_and_choice:_Alternative.2C_MonadPlus.2C_ArrowPlus" target="_blank">Laws</a>). Does this abstraction play well with computations that also can emit nontrivial errors?</p>
+<p>To dig this rabbit hole a little deeper, let’s try to test the second law for <em>mzero</em> (<code>v &gt;&gt; mzero = mzero</code>) polymorphically by adding <code>MonadFail</code> constraint:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="ot">tst ::</span> (<span class="dt">MonadFail</span> m, <span class="dt">MonadPlus</span> m) <span class="ot">=&gt;</span> m b</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a>tst <span class="ot">=</span> <span class="fu">fail</span> <span class="st">&quot;not mzero&quot;</span> <span class="op">&gt;&gt;</span> mzero</span></code></pre></div>
+<p>Now I can try it with different monads to see if its error output is the same as <code>mzero</code>’s. E.g.:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="ot">{-# LANGUAGE TypeApplications #-}</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Text.Megaparsec</span> <span class="kw">as</span> <span class="dt">MP</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Data.Void</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true"></a></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true"></a><span class="co">-- |</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true"></a><span class="co">-- &gt;&gt;&gt; verifyMP</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true"></a><span class="co">-- False</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true"></a><span class="ot">verifyMP ::</span> <span class="dt">Bool</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true"></a>verifyMP <span class="ot">=</span> runTest tst <span class="op">==</span> runTest mzero </span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true"></a>  <span class="kw">where</span> </span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true"></a>    runTest p <span class="ot">=</span> MP.parse <span class="op">@</span><span class="dt">Void</span> <span class="op">@</span><span class="dt">String</span> <span class="op">@</span><span class="dt">Int</span> p <span class="st">&quot;test&quot;</span> <span class="st">&quot;&quot;</span></span></code></pre></div>
+<p> <div class="side-note">Side note: <a href="https://hackage.haskell.org/package/megaparsec-9.3.0/docs/Text-Megaparsec.html#t:ParsecT" target="_blank">Megaparsec haddock</a> on the <code>MonadPlus</code> instance of <code>ParsecT</code> states:</p>
+<blockquote>
+<p><em>“strictly speaking, this instance is unlawful. The right identity law does not hold, e.g. in general this is not true: <code>v &gt;&gt; mzero = mero</code>. However the following holds: <code>try v &gt;&gt; mzero = mzero</code>”</em></p>
+</blockquote>
+<p>Obviously, there is no magic here, backtracking or not the error message from <code>try v &gt;&gt; mzero</code> may be different than <code>mzero</code>, making a simple change to the above test verifies this as well.  </div></p>
+<p>Examples that fail <em>“<code>tst</code> output is the same as <code>mzero</code> output”</em> tests:</p>
+<ul>
+<li><code>IO</code></li>
+<li><code>Parser</code> from <code>Data.Aeson.Types</code></li>
+<li><code>Parec</code> from say <code>Text.Megaparsec</code></li>
+<li><code>Parser</code> from <em>attoparsec</em></li>
+</ul>
+<p>Examples that pass such test:</p>
+<ul>
+<li><code>Maybe</code></li>
+<li><code>ReadP</code> and <code>ReadPrec</code> from <code>Text.ParserCombinators</code></li>
+</ul>
+<p><code>Maybe</code> has no error information, <code>Text.ParserCombinators</code> implement <code>mzero</code> as a <a href="https://hackage.haskell.org/package/base-4.18.0.0/docs/src/Text.ParserCombinators.ReadP.html#P" target="_blank">no-message failure</a>.</p>
+<p><strong>Question:</strong> Can we find an example where a monadic computation allows for nontrivial error messages and passes this test?</p>
+<p><strong>Answer:</strong> For a failing computation <code>v</code>, we would expect<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a> <code>v &gt;&gt; anything = v</code>. This, combined with the second mzero law (<code>v &gt;&gt; mzero = mzero</code>) implies that any failing computation is equivalent to <code>mzero</code>. So, we either need to think about the second mzero law “modulo errors” or we have to accept that any lawful <code>MonadPlus</code> computation will suppress error information.</p>
+<p>I believe developers are divided into these 2 camps: those that think about and implement laws, and those who do not, but are nevertheless surprised when computations behave in unlawful ways. We consciously or subconsciously assume various computational properties when we reason about the computations. Partially lawful is concerning. If you care about error output, “lawful modulo errors” should be concerning, having such limitation undocumented is concerning too.</p>
+<p>Principled computations give us abstractions to work with, like theorems are tools to a mathematician. We do not need to think about the details, just apply them to create new code. When we do that with <code>MonadPlus</code> error messages can fall through the cracks. I am dealing with quite a bit of code that has fallen into this trap. Next section will show one such example.</p>
+<p><strong><em>Who cares</em></strong> about errors?: I hope we will come up with principled abstractions that are error message friendly. I am looking forward to a day where <em>aeson</em> will stop recommending the use of <code>&lt;|&gt;</code> as an error message signaling abstraction.</p>
+<p> <div class="side-note">On a more positive note: A somewhat more principled (and interesting) approach would seem to be to require monoidal structure on the underlying error messages. We would require that <code>mzero</code> results in <code>mempty</code> error, and <code>f1 &lt;|&gt; f2</code> results in <code>e1 &lt;&gt; e2</code> if both fail. Alternative can be viewed as a “higher order monoid”, it only makes sense that its errors should be a Monoid as well. Note <code>(Monad m, Monoid e) =&gt; MonadPlus (ExceptT e m)</code>. However, _appending error messages tends to produce not very user friendly results.  </div></p>
+<p> <div class="side-note">Side note: (Mostly for grins.) Polymorphic implementation of the proposed <code>errInfoDon'tCare</code> combinator.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a><span class="ot">errInfoDon'tCare ::</span> <span class="dt">Alternative</span> f <span class="ot">=&gt;</span> <span class="dt">Either</span> e a <span class="ot">-&gt;</span> f a</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a>errInfoDon'tCare <span class="ot">=</span> <span class="fu">either</span> (<span class="fu">const</span> empty) <span class="fu">pure</span></span></code></pre></div>
+<p>It dumps any error information you might have.  </div></p>
+<h2 id="alternative-dog-music.-a-use-of-is-considered-harmful">Alternative dog music. A use of <code>&lt;|&gt;</code> is considered harmful</h2>
+<p>Let’s sketch a contrived code to illustrate a use of <code>&lt;|&gt;</code>:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Pet</span> <span class="ot">=</span> <span class="dt">MkPet</span> {</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true"></a><span class="ot">  breed ::</span> <span class="dt">Breed</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true"></a>  ,<span class="ot"> species ::</span> <span class="dt">Species</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true"></a>  ,<span class="ot"> petname ::</span> <span class="dt">Text</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true"></a>}</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true"></a></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Composer</span> <span class="ot">=</span> <span class="dt">MkComposer</span> {</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true"></a><span class="ot">    genre ::</span> <span class="dt">Genre</span> </span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true"></a>    ,<span class="ot"> composername ::</span> <span class="dt">Text</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true"></a>}</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true"></a></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Favorite</span> <span class="ot">=</span> </span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true"></a>  <span class="dt">MkFavoritePet</span> <span class="dt">Pet</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true"></a>  <span class="op">...</span> <span class="co">-- there are other favorite things </span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true"></a>  <span class="op">|</span> <span class="dt">MkFavoriteComposer</span> <span class="dt">Composer</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true"></a></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true"></a><span class="co">-- Constituent types (Pet, Composer) intances are not shown</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true"></a><span class="co">-- Assume these types have unique (different) JSON representations</span></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true"></a></span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true"></a><span class="kw">instance</span> <span class="dt">FromJSON</span> <span class="dt">Favorite</span> <span class="kw">where</span> </span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true"></a>  parseJSON v <span class="ot">=</span> </span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true"></a>     <span class="dt">MkFavoritePet</span> <span class="op">&lt;$&gt;</span> (A.parseJSON v) </span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true"></a>     <span class="op">&lt;|&gt;</span> <span class="op">...</span> <span class="co">-- parse other things</span></span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true"></a>     <span class="op">&lt;|&gt;</span> <span class="dt">MkFavoriteComposer</span> <span class="op">&lt;$&gt;</span> (A.parseJSON v)   </span></code></pre></div>
+<p>Note the above <em>Law of Convenience</em> applies here: this code reuses existing JSON parsers to create the parser for <code>Favorite</code>, and this parser is very easy to implement. This also looks elegant, and seems to principally fit the <code>Alternative</code> very well. There is no special JSON representation of <code>Favorite</code>, rather we use JSON representations of the constituent types <code>Pet</code>, <code>Composer</code>, etc. This approach does not fuss with data constructor tags eliminating some JSON size overhead and looks ideal for structurally typed callers (e.g. TypeScript). But, this approach has issues.</p>
+<p>Assume this has some frontend UI. Assume that a user enters information about her favorite four legged friend and that does not parse for some reason (e.g. frontend JSON encoding of <code>Pet</code> is incorrect). The error message from the parser will say something like</p>
+<pre><code>&quot;Composer needs a genre&quot;</code></pre>
+<p>(or whatever error <code>FromJSON</code> for <code>Composer</code> returns if it is given an unexpected JSON object).</p>
+<p>We see a couple of problems: the message is misleading and it lacks context (there is nothing in this message to indicate that it came from the JSON parser for <code>Favorite</code>). I will focus on it being misleading because, believe me, this coding pattern can produce very confusing errors in real life. Code like this is something I am slowly working to fix in projects I contribute to. Fixing such code is often not easy.</p>
+<p> <div class="side-note">Common solution to the above parsing issue is to add a tag to JSON data to disambiguate the data constructor. In fact, this is what happens if you use default generic JSON instances. You no longer use <code>&lt;|&gt;</code> if you know which constructor is being parsed.<br />
+However, fixing such code gets more tricky if you have to consider backward compatibility, or when parsing into an extensibly defined (e.g. using something like <em>vinyl</em>) coproduct type (basically when adding tags to JSON representation is harder). In worst cases returning error messages from all alternatives may need to be considered (not a user frienly option but better than lying).</p>
+<p><strong>Exercise:</strong> Try to implement JSON boilerplate for <a href="https://hackage.haskell.org/package/base-4.18.0.0/docs/Data-Functor-Sum.html" target="_blank">Data.Functor.Sum</a> that would be friendly for non-Haskellers and provide clear error messages (“InL” and “InR” tags would not be very friendly). (I do not have a good solution.)</p>
+<p>Adding tags to JSON representation of constituent types can also be considered<a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a>.  </div></p>
+<p> <div class="side-note">The alternative game is somewhat different when using Parsec or Megaparsec (the differences are related to backtracking and input consumption). Interestingly, the <code>a &lt;|&gt; b</code> phenomenology we are discussing is very similar to Parsec’s <code>try a &lt;|&gt; b</code>.<br />
+This post does a great job explaining the complexity: <a href="http://blog.ezyang.com/2014/05/parsec-try-a-or-b-considered-harmful/" target="_blank">Parsec: “try a &lt;|&gt; b” considered harmful</a>. Fixing <code>try a &lt;|&gt; b</code> anti-pattern can be not trivial.  </div></p>
+<p> <div class="side-note">Side note: The scenario I described in this example is what I call: <em>Unexpected input test</em>. Such tests can pin-point problems with error message response to a programming bug. Some readers will argue that improving error messages caused by development time issues is an overkill. However, this should be a case by case decision, e.g. such tests can be very relevant when programmers are the users (implementing a new programming language, a low-code infrastructure, etc) or when bugs are observed frequently.  </div></p>
+<p> <div class="side-note">Side note: Another danger of the described approach: consider constituent (<code>Pet</code>, <code>Composer</code>) type JSON specs that do not tag type information and have partially overlapping data definitions (e.g. think about not overlapping fields being nullable).  </div></p>
+<p>Are developers aware of this <code>&lt;|&gt;</code> issue? Probably some are and some are not. Code like this is probably written because JSON parser errors are unlikely to be viewed by the end user, <em>aeson</em> makes code like this easy to implement, the code looks elegant, and error messages are the last thing on people’s minds.</p>
+<p>Which leads to another question:<br />
+Q: How would we guard against issues like this? A common practice for avoiding program issues is writing tests. How do I write a non-brittle test that checks the quality of <em>aeson</em> error messages? Do I write message parsers?</p>
+<p>Let’s forget about <code>&lt;|&gt;</code> for a moment and try to formalize what a parser error message is: Consider the input document specification as a collection of sets of detailed specs <em>S<sub>T</sub></em>, one for each parsed type <em>T</em> (e.g. “Composer has a not-nullable ‘genre’ field of type Genere” is an element of <em>S<sub>Composer</sub></em>) . An error message pin-points an<a href="#fn5" class="footnote-ref" id="fnref5" role="doc-noteref"><sup>5</sup></a> element in one of these sets marking it as failed (e.g. “Composer needs a genre”).</p>
+<p>To return a user-friendly error message, the parser needs to choose <em>S<sub>T</sub></em> wisely by matching the data the user is working on. Parser needs to have access to enough information about this context to compute which <em>S<sub>T</sub></em> to use (data constructor tags is an example of how such context is provided to the parser). Thus,</p>
+<blockquote>
+<p>  <em>thinking about user friendly error messages needs to be a part of software design and input specification</em>.</p>
+</blockquote>
+<p>The point I have been trying to make is that using <code>Alternative</code> / <code>MonadPlus</code> in computations where error information is important (like parsing) can be very tricky. It requires thinking about and testing error outputs, not something developers typically do.</p>
+<blockquote>
+<p>  <em>Hmm, I think Snuffy’s genre would be hard rock. But what if the dog’s name is Beethoven?</em></p>
+</blockquote>
+<h2 id="overloaded-errors">Overloaded errors</h2>
+<p>This section will be more subtle. <em>Programs sometimes need to be selective about which error condition is handled</em>.</p>
+<p>We will try to write a program that checks if the local config file <em>“.my.yaml”</em> exists and if not, uses <em>“~/.my.yaml”</em>, and returns an error if there is an issue with any of the files.</p>
+<p> <div class="side-note">Side note: Making issues “loud” helps in troubleshooting. Returning an error if there is a problem with the local file instead of alternating to a backup file is one way to be loud about configuration problems.  </div></p>
+<p>We will use <code>MonadPlus</code> instance of <code>IO</code>. Here is standard library <a href="https://hackage.haskell.org/package/base-4.18.0.0/docs/src/GHC.IO.html#mplusIO" target="_blank">implementation</a> of <code>mplus</code> or <code>&lt;|&gt;</code> for the <code>IO</code> Monad:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true"></a><span class="ot">mplusIO ::</span> <span class="dt">IO</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> a</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true"></a>mplusIO m n <span class="ot">=</span> m <span class="ot">`catchException`</span> \ (<span class="ot">_ ::</span> <span class="dt">IOError</span>) <span class="ot">-&gt;</span> n</span></code></pre></div>
+<p> <div class="side-note">Side note: this code silences the first error which could be not ideal if you care about what went wrong. It becomes the responsibility of the caller do deal with this (e.g. at least log the error in the computation passed to <code>mplus</code>).<br />
+Also, this <code>MonadPlus</code> instance is unlawful: <code>launchMissiles &gt;&gt; mzero</code> is not <code>mzero</code>.  </div></p>
+<p>Let’s take a journey trying to do implement this and see some nuances and how complex using <code>IO</code> with <code>&lt;|&gt;</code> can be:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Yaml</span> <span class="kw">as</span> <span class="dt">Y</span> <span class="co">-- yaml package dep</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Control.Applicative</span> ((&lt;|&gt;))</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">System.FilePath</span> ((&lt;/&gt;))  <span class="co">-- filepath package dep</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Data.ByteString</span> <span class="kw">as</span> <span class="dt">BS</span>    <span class="co">-- bytestring package dep</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Control.Exception</span> ( throwIO )</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true"></a></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true"></a><span class="co">-- MyConfig and its instances not shown, home directory is passed as argument for simplicity</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true"></a></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true"></a><span class="co">-- will not alternate to home directory file no matter what the issue with the local file is</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true"></a><span class="co">-- because Y.decodeFileThrow is not throwing IOError, it throws Y.ParseException  </span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true"></a><span class="ot">won'tWork ::</span> <span class="dt">FilePath</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">MyConfig</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true"></a>won'tWork homedir <span class="ot">=</span> </span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true"></a>    Y.decodeFileThrow <span class="st">&quot;.my.yaml&quot;</span> </span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true"></a>    <span class="op">&lt;|&gt;</span> Y.decodeFileThrow (homedir <span class="op">&lt;/&gt;</span> <span class="st">&quot;.my.yaml&quot;</span>)</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true"></a></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true"></a><span class="co">-- Y.decodeFileEither :: FromJSON a =&gt; FilePath -&gt; IO (Either ParseException a) </span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true"></a><span class="co">-- uses ParseException to also signal readFile issues like missing file</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true"></a><span class="co">-- this puts all problems in one bucket and alternates to home directory on any issue with the local file</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true"></a><span class="ot">conflateAllIssues ::</span> <span class="dt">FilePath</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">MyConfig</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true"></a>conflateAllIssues homedir <span class="ot">=</span> decode <span class="st">&quot;.my.yaml&quot;</span></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true"></a>    <span class="op">&lt;|&gt;</span> decode (homedir <span class="op">&lt;/&gt;</span> <span class="st">&quot;.my.yaml&quot;</span>)</span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true"></a>  <span class="kw">where</span> </span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true"></a><span class="ot">    decode ::</span> <span class="dt">FilePath</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">MyConfig</span></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true"></a>    decode file <span class="ot">=</span> Y.decodeFileEither file <span class="op">&gt;&gt;=</span> <span class="fu">either</span> (<span class="fu">ioError</span> <span class="op">.</span> parseErrToIOError) <span class="fu">pure</span>  </span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true"></a><span class="ot">    parseErrToIOError ::</span> <span class="dt">Y.ParseException</span> <span class="ot">-&gt;</span> <span class="dt">IOError</span></span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true"></a>    parseErrToIOError <span class="ot">=</span> <span class="fu">userError</span> <span class="op">.</span> <span class="fu">show</span> <span class="co">-- for illustration only</span></span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true"></a></span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true"></a></span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true"></a><span class="co">-- still not ideal, it conflates any IOError issued from BS.readFile and alternates on any of them</span></span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true"></a><span class="co">-- however invalid syntax in local file will now cause an error</span></span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true"></a><span class="ot">isolateIOErrors ::</span> <span class="dt">FilePath</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">MyConfig</span></span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true"></a>isolateIOErrors homedir <span class="ot">=</span> </span>
+<span id="cb10-33"><a href="#cb10-33" aria-hidden="true"></a>    decodeFileIsolateIOErrors <span class="st">&quot;.my.yaml&quot;</span> </span>
+<span id="cb10-34"><a href="#cb10-34" aria-hidden="true"></a>    <span class="op">&lt;|&gt;</span> decodeFileIsolateIOErrors (homedir <span class="op">&lt;/&gt;</span> <span class="st">&quot;.my.yaml&quot;</span>)</span>
+<span id="cb10-35"><a href="#cb10-35" aria-hidden="true"></a></span>
+<span id="cb10-36"><a href="#cb10-36" aria-hidden="true"></a><span class="co">-- override what yaml package provides</span></span>
+<span id="cb10-37"><a href="#cb10-37" aria-hidden="true"></a><span class="ot">decodeFileIsolateIOErrors ::</span> <span class="dt">FilePath</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">MyConfig</span></span>
+<span id="cb10-38"><a href="#cb10-38" aria-hidden="true"></a>decodeFileIsolateIOErrors file <span class="ot">=</span> <span class="kw">do</span> </span>
+<span id="cb10-39"><a href="#cb10-39" aria-hidden="true"></a>    bytes <span class="ot">&lt;-</span> BS.readFile file      <span class="co">-- possible IOError</span></span>
+<span id="cb10-40"><a href="#cb10-40" aria-hidden="true"></a>    <span class="fu">either</span> throwIO <span class="fu">pure</span> <span class="op">$</span> Y.decodeEither' bytes <span class="co">-- not IOError</span></span></code></pre></div>
+<p>If you dislike this code, then I am with you. This example’s goal is to illustrate a thought process that goes into handling errors, so let’s focus on that process only.</p>
+<p><code>conflateAllIssues</code> example conflates (and silences) all of these things:</p>
+<ul>
+<li>local file is missing</li>
+<li>invalid yaml syntax in the local file</li>
+<li>local file yaml has valid syntactically but does not represent <code>MyConfig</code></li>
+<li>other IO issues related to the local file, e.g. file access problems, file corruption …</li>
+</ul>
+<p>The requirement is to alternate to the home directory file only when the local file is missing and output an error message otherwise. <code>isolateIOErrors</code> moves in this direction, but is still not right (it will alternate if there is anything wrong with <code>readFile</code>). Obviously there are ways to move forward, e.g. explore <code>Y.ParseException</code> constructors (there is more than one!) and make decisions whether to convert to <code>IOError</code> to alternate or not, or explore the content of the <code>IOError</code> returned from <code>readFile</code> and flip some of it outside of <code>IOError</code>.</p>
+<p>I hope this shows that things can get complex.</p>
+<p>My hidden goal behind this exercise was to have us notice something that applies to a wider range of <code>MonadPlus</code> / <code>Alternative</code> instances. In particular, it is related to the previous example. The impression I probably left on you in the previous section was: a naive use of <em>Alternative</em> results in bad error messages.</p>
+<p>I look at the “Who cares about K9 composers” as a deeper issue of 2 conflated errors. The code in the previous section conflates errors from parsing JSON data representing one of the possible constituent types (parsing wrong branch), with errors from parsing JSON data that does not represent any of the constituent types (parsing unexpected data). This code cannot distinguish between these errors and alternates on both. Ideally we would only alternate on the first but there is no obvious way to do that (<em>aeson</em> errors are <code>String</code>s).</p>
+<p>Overloaded errors is a concern when programming parsers using <code>MonadPlus</code> instances. This is subtle and, probably, I have not explained it clearly enough. Please give it some thought before dismissing it.</p>
+<h2 id="topics-to-discuss">Topics to discuss</h2>
+<p>In this post I wrote about things that irk me at the present moment. I think that the overall situation with error messages is getting better and better, but IMO we are far from being where we should be. Haskell does not have expressive stack traces or convenient debuggers. One would assume the community will try to compensate with clear error messages and great log outputs to make up for these limitations. I believe this topic needs more attention.</p>
+<p>Here is a broader list of engineering topics that are IMO worth discussing:</p>
+<ul>
+<li>Overuse of <code>String</code> / <code>Text</code> as the error type.<br />
+</li>
+<li>Programming approach where <code>Either</code> Monad / <code>MonadError</code>-like computations augment error outputs with additional context at every opportunity. Strategies for compounding error information.</li>
+<li>More about code that incorrectly uses wide ranging instead of specific errors and how abstractions fit into this.</li>
+<li>I dislike the non-termination <code>throw</code> <code>catch</code> games. Throwing errors effectively bypasses the type checker. If you think of types as propositions and programs as proofs, you can prove any nonsense by throwing an error. IMO, explicit <code>Either</code> type (or its close friends <code>ExceptT</code>/<code>MonadError</code>) are a better way to write code. To me, throwing errors is not FP (think about Idris or even Rust for alternative ideas). IMO, the same goes for effect systems: I prefer no <code>throw</code> <code>catch</code> games. I would like to see the use of <code>error :: String -&gt; a</code>, or even things like <code>IOError</code> eradicated from the ecosystem, (e.g.  <code>readFile :: FilePath -&gt; IO (Either IOFileErr ByteString)</code>). (I unloaded a lot from my chest here 🙂)</li>
+<li>Type level consideration for errors.</li>
+<li>Strategies for dealing with non termination caused by use of <code>error :: String -&gt; a</code> (a pure function, I call it 😉 “pure evil”).</li>
+<li>More about <code>Maybe</code>, <code>MonadPlus</code>, <code>Alternative</code> when they are, in addition to being very convenient, completely OK to use.</li>
+<li>More about <code>MonadPlus</code>, <code>Alternative</code> when their use is concerning (e.g. are you using <code>guard :: Alternative f =&gt; Bool -&gt; f ()</code> in parsers? If so, how?).</li>
+<li>Strategies for refactoring code overusing <code>Alternative</code> in parsers. Writing parsers without using <code>&lt;|&gt;</code>.</li>
+<li>Monadic vs Applicative parsers comparison from the error messages standpoint.</li>
+</ul>
+<p>It would be nice to know if I am alone in my views and if these topics are of interest for anyone out there. If not, I will probably make this my last blog post, blogging is costing a little bit too much energy. If yes, I will select one of these topics and try to write more over the summer.</p>
+<p>Was this post negative? IMO, there is a difference between negativity and frustration. Frustration can result in something positive, negativity cannot. Frustration seeks understanding, negativity does not. Frustration can unite, negativity can only divide.</p>
+<p>If you agree with some of the things I wrote here, please try to focus on these and let me know! Thank you for reading and for your feedback.</p>
+<p>I am a concerned Haskeller who loves and adores this language.</p>
+<p>To all my readers: thank you for reading my posts and for your constructive comments and for your encouragement.</p>
+<section class="footnotes" role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1" role="doc-endnote"><p>Of course, <em>aeson</em> historical record cannot be generalized to all libraries (e.g. Parsec was clearly concerned about error outputs from day one.).<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2" role="doc-endnote"><p>I am sure some readers are going to point out the sophisticated open union approach that went into the design of Haskell exceptions. I agree.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn3" role="doc-endnote"><p>e.g. <a href="https://wiki.haskell.org/Typeclassopedia#MonadFail" target="_blank">Monad Fail Law</a><a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn4" role="doc-endnote"><p>E.g. in structurally typed environments there are no data constructors. Adding a type disambiguating property to all objects in the union types is a programming pattern in TypeScript.<a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn5" role="doc-endnote"><p>this assumes, for simplicity, that we are listing only one (e.g. first encountered) violation of the spec.<a href="#fnref5" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
+
+    </section>
+</article>
+
+        </main>
+
+        <footer>
+             <span><a href="../atom.xml">Atom</a></span>
+             <span><a href="../RSS.xml">RSS</a></span>
+             <span>Site generated by <a href="http://jaspervdj.be/hakyll">Hakyll</a></span>
+        </footer>
+    </body>
+</html>
