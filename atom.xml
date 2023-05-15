@@ -261,6 +261,7 @@ Also, this <code>MonadPlus</code> instance is unlawful: <code>launchMissiles &gt
 <li>More about <code>MonadPlus</code>, <code>Alternative</code> when their use is concerning (e.g. are you using <code>guard :: Alternative f =&gt; Bool -&gt; f ()</code> in parsers? If so, how?).</li>
 <li>Strategies for refactoring code overusing <code>Alternative</code> in parsers. Writing parsers without using <code>&lt;|&gt;</code>.</li>
 <li>Monadic vs Applicative parsers comparison from the error messages standpoint.</li>
+<li>Strategies for input spec designs (e.g. for JSON representations, tagging constructors vs tagging types).</li>
 </ul>
 <p>It would be nice to know if I am alone in my views and if these topics are of interest for anyone out there. If not, I will probably make this my last blog post, blogging is costing a little bit too much energy. If yes, I will select one of these topics and try to write more over the summer.</p>
 <p>Was this post negative? IMO, there is a difference between negativity and frustration. Frustration can result in something positive, negativity cannot. Frustration seeks understanding, negativity does not. Frustration can unite, negativity can only divide.</p>
