@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Infrequent, Pragmatic, Lambda Blog - Life after Haskell, HKT flattening (examples in Kotlin)</title>
+        <link rel="alternate" type="application/atom+xml" href="https://rpeszek.github.io/atom.xml" title="atom" />
+        <link rel="alternate" type="application/rss+xml" href="https://rpeszek.github.io/RSS.xml" title="rss" />
+        <!-- <link rel="alternate" type="application/atom+xml" href="/atom.xml" title="atom"/>
+        <link rel="alternate" type="application/rss+xml" href="/RSS.xml" title="rss"/> -->
+        <link rel="stylesheet" href="../css/reset.css" />
+        <link rel="stylesheet" href="../css/predefault.css" />
+        <link rel="stylesheet" href="../css/default.css" />
+        
+        <link rel="stylesheet" href="../css/newstyle.css" />
+        
+        
+    </head>
+    <body>
+        <header>
+            <div class="motto">
+                <a href="../">hmm >>= oh!</a>
+            </div>
+            <div class="logo">
+                <a href="../">Infrequent, Pragmatic, Lambda Blog</a>
+            </div>
+            <nav>
+                <!-- <a href="/">Home</a> -->
+                <a href="../thoughts.html">Semiserious</a>
+                <a href="../about.html">About</a>
+                <!-- <a href="/contact.html">Contact</a> -->
+                <a href="../archive.html">Archive</a>
+            </nav>
+        </header>
+
+        <main role="main">
+            <h1>Life after Haskell, HKT flattening (examples in Kotlin)</h1>
+            <article>
+    <section class="header">
+        Posted on October 19, 2026
+        
+        
+        
+        
+        <div class="info">Tags: <a title="All pages tagged 'non-FP FP'." href="../tags/non-FP%20FP.html">non-FP FP</a>, <a title="All pages tagged 'Haskell'." href="../tags/Haskell.html">Haskell</a></div>
+        
+    </section>
+    <section>
+
+    </section>
+    <section>
+        <div class="toc"><div class="header">Table of Contents</div>
+<ul>
+<li><a href="#my-frustration">My frustration</a></li>
+<li><a href="#higher-order-functions">Higher-order functions</a></li>
+<li><a href="#setter-the-hkt-flattening-case-study"><code>Setter</code> the HKT flattening case study</a></li>
+<li><a href="#scrap-your-ad-hoc">Scrap your ad-hoc</a></li>
+<li><a href="#composing-setter">Composing <code>Setter</code></a></li>
+<li><a href="#using-llms">Using LLMs</a></li>
+<li><a href="#closing-thoughts">Closing thoughts</a></li>
+</ul>
+</div>
+<p><strong>DRAFT STATUS</strong></p>
+<blockquote>
+<p><em>It’s no use trying to eat a steak with a teaspoon, and a straw.</em><br />
+    - Anthony T. Hincks</p>
+</blockquote>
+<p>This quote describes my thoughts about using mainstream languages to write functional programs. But, maybe there are some weird spoons and straws that replace some of the functional pearls?</p>
+<p>I will complain about booby-traps in popular mainstream languages. If you are tired of such complaints, go directly to <a href="#setter-the-hkt-flattening-case-study">Setter the HKT flattening case study</a> where I consider “flattening” 🔨 HKTs. I use flattening in an intuitive sense. <code>f a</code> becomes <code>fa</code> (a “big” type; <code>fa</code> is a “flattened” <code>f a</code> because it uses fewer type variables) and <code>a</code> sticks around (a “small” type). <code>(a -&gt; b) -&gt; f a -&gt; f b</code> becomes a plain <code>(a -&gt; b) -&gt; fa -&gt; fb</code>. This allows me to start using a less polymorphic but still useful <code>Setter</code> instead of a <code>Functor</code>. Similarly, the <code>Traversal</code> optic ends up replaced with a <code>Setter</code> that uses implicit IO.</p>
+<p>I advocate for avoiding type-based ad-hoc polymorphism (Context Oriented Programming in Kotlin) in favor of passing computations like <code>Setter s t a b</code> as first-class, direct arguments (a “dictionary passing”-like style). This promotes programming with higher-order functions. You may very much disagree with this approach as a good idiomatic direction. IMO, it is still worth examining.</p>
+<p>You may also find <a href="#using-llms">Using LLMs</a> interesting.</p>
+<p><em>Written for functional programmers familiar with Haskell, optics, and Rank-N who work with mainstream languages. Examples are in Kotlin (I am new to Kotlin).</em></p>
+<h2 id="my-frustration">My frustration</h2>
+<p>I work on a large Haskell code base that has been sadly shrinking over the last few years. The biggest piece still in use is a proprietary programming language that allows manipulating and combining web service endpoints in a type-safe way. It also simplifies UI development. The UI piece is our “low code” solution for fast development of mostly short-lived apps. LLMs and tooling based on LLMs are replacing the “low code”. So a large part of the Haskell code base will no longer be needed. Our language uses “big” and “small” types terminology and that seems approachable. I will explore this idea here in the context of doing FP in a popular mainstream language.</p>
+<p>A bigger issue is finding and hiring functional programmers. Our codebase does not do <a href="https://www.simplehaskell.org/" target="_blank">Simple Haskell</a> / <a href="https://www.snoyman.com/blog/2019/11/boring-haskell-manifesto/" target="_blank">Boring Haskell</a>. I am not sure if I even like these ideas. I get it. It is not easy. I have a math background and I did math research before I started software programming. Learning FP was fascinating but not easy for me. <em>It is as hard to hire developers who know FP as it is for a developer who knows FP to find an FP job.</em> At the same time (based on my past experience as an interviewer): <em>It may be easier to find a developer who knows FP than a Java/TypeScript/… developer who understands Java/TypeScript/… booby-traps.</em> IMO, this is the result of needless complexity and nuance and a problem with industry priorities. Frankly, I am scared.</p>
+<p> <div class="side-note"><strong>Not my story:</strong> Uber’s Go codebase was suffering from frequent crashes. Ignoring Turing’s Halting Problem / Rice’s Theorem as too theoretical, Uber hired a bunch of PhDs to create NilAway, a linter solution to null reference issues. It is written in Go. Apparently it is known to crash with a null reference panic from time to time 😀  </div></p>
+<p>We briefly considered Go. Go trades safety for performance and claims to be junior-programmer friendly, failing to see this as a contradiction. We rejected Go because of its safety track record in concurrent programming. The industry’s take on beginner friendliness is misguided. It can be compared to giving a sharp knife to a baby as the first toy.</p>
+<p>We probably will settle on Kotlin. It is touted as one of the safer mainstream options. But even the <code>==</code> operator is still a booby-trap.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">data</span> <span class="kw">class</span> RegularId(<span class="kw">val</span> <span class="va">value</span>: <span class="dt">Int</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a><span class="kw">data</span> <span class="kw">class</span> SpecialId(<span class="kw">val</span> <span class="va">value</span>: <span class="dt">Int</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a>list.find { it.id == foo.bar.lookupId }</span></code></pre></div>
+<p><code>list</code> has items with <code>RegularId</code>s, the <code>lookupId</code> field in <code>bar</code>’s class is refactored from <code>RegularId</code> to <code>SpecialId</code>. This breaks this code at runtime, not at compile time. Not to mention that <code>a == b</code> is not the same as <code>b == a</code> for some <code>a</code>s and <code>b</code>s in the standard Java library. We cannot stop using <code>==</code> and there is no workaround for it other than lots of diligence and testing. Any JVM PL that tries to have decent interop with Java faces such issues. Kotlin can flag some such errors but not all. I have not used Java for a long time. I do not remember all the gotchas. I am playing with Kotlin to identify booby-traps and catalogue them. After 4 hours of doing this, I wrote down 12 gotchas. 3 more the next day… In my experience, developers (junior or senior) are completely unaware of these issues.</p>
+<blockquote>
+<p>I call it <strong>The Booby-trap Principle</strong><br />
+<em>Nothing is obviously wrong except for the non-obvious.</em></p>
+</blockquote>
+<p>Kotlin’s surface area is very bloated. <code>class</code> can be: <code>open</code>, <code>abstract</code>, <code>data</code>, <code>@JvmRecord data</code>, <code>sealed</code>, <code>value</code>, <code>enum</code>, <code>annotation</code>, <code>expect</code> / <code>actual</code>, <code>external</code>, <code>inner</code>…, or just <code>class</code>. <code>interface</code> adds 3 more variants. Clearly not very approachable.</p>
+<p>I did some math research, then 2 decades of mainstream programming with many battle scars, then an 8-year-long Haskell job (some math came back only different), now I am going back to mainstream. Is some convergence possible? Can I find some middle-ground approach to programming?</p>
+<h2 id="higher-order-functions">Higher-order functions</h2>
+<p>Haskell-like FP in a non-FP language is hard to do. The biggest culprit is the lack of support for higher-kinded / second-order types. There is a technique called <em>lightweight higher-kinded types</em> or <em>defunctionalization of higher-kinded types</em>. The libraries based on this technique are hard to use and probably harder to learn than Haskell itself.</p>
+<p>There is an effort to create a more approachable FP ecosystem (e.g. arrow in Kotlin - new versions, Effect in TypeScript, returns in Python, Vavr in Java …). These libraries hide internal implementation of FP concepts behind a “frontend” that feels more idiomatic and familiar in a non-FP language. Using these libraries results in safer and cleaner code. This is a great effort.</p>
+<p>My personal preference is to work with raw computations directly. This is what attracted me to FP and Haskell in the first place. To me, FP is the study of computations; I want to see the computations, not look at some API facade.</p>
+<blockquote>
+<p><em>FP libraries are implemented in their corresponding languages.</em><br />
+<em>Should we base functional programming on higher-order functions instead of proprietary language features<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>? Can we do it in a reasonably idiomatic and simple way?</em> (Open Portability Question)</p>
+</blockquote>
+<p>The answer could be a hybrid approach exposing both cozy interfaces and raw higher-order functions for hardcore users. You can (and probably should) disagree with me on this. We can still explore the raw capabilities of higher-order functions together, ignoring the question of how these are packaged.</p>
+<p><code>(a -&gt; b) -&gt; s -&gt; t</code> is the higher-order function I will start with and focus on.</p>
+<h2 id="setter-the-hkt-flattening-case-study"><code>Setter</code> the HKT flattening case study</h2>
+<p>Consider the shape of <code>Functor</code></p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> f a <span class="ot">-&gt;</span> f b</span></code></pre></div>
+<p>Introduce type variables <code>s</code> and <code>t</code> and substitute <code>f a</code> with <code>s</code> and <code>f b</code> with <code>t</code>. We get</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> s <span class="ot">-&gt;</span> t</span></code></pre></div>
+<p>which is the definition of <code>Setter s t a b</code>.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="kw">type</span> <span class="dt">Setter</span> s t a b <span class="ot">=</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> s <span class="ot">-&gt;</span> t</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a><span class="kw">type</span> <span class="dt">Setter'</span> s a <span class="ot">=</span> <span class="dt">Setter</span> s s a a</span></code></pre></div>
+<p>Functor can be viewed as <code>forall a b . (a -&gt; b) -&gt; f a -&gt; f b</code> and we are losing this polymorphic aspect, but setters are still extremely useful.</p>
+<p><code>Traversal</code> is an interesting computation because it cannot have a HKT-free definition.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="kw">type</span> <span class="dt">Traversal</span> s t a b <span class="ot">=</span> <span class="kw">forall</span> f<span class="op">.</span> <span class="dt">Applicative</span> f <span class="ot">=&gt;</span> (a <span class="ot">-&gt;</span> f b) <span class="ot">-&gt;</span> s <span class="ot">-&gt;</span> f t</span></code></pre></div>
+<p><code>Setter</code> immediately looks more mainstream-friendly. We can <em>widen</em> <code>Traversal</code> to <code>Setter</code> without losing much of its power. I justify this by thinking about <code>forall f. Applicative f</code> as a set of effects that is replaced with implicit IO. I think of this process intuitively as <em>flattening</em> (🔨) HKT variables into plain old first-order type variables.</p>
+<p>We can think about <code>Setter</code> as an optic (as a <code>Traversal</code> 🔨 or an ordinary <code>Setter</code>) and as a computation that can replace <code>Functor</code> 🔨. We are not taking the <code>Traversable</code>, <code>mapM</code> / <code>traverse</code> point of view. If you show the Haskell definitions of <code>traverse</code> or <code>mapM</code> to a pragmatic mainstream programmer, would they see it as something relevant to their work? In my experience the answer is no. <code>Either</code>- and <code>Promise</code>-like types have become popular but come with isolated execution APIs and sometimes do not even expose a <code>mapM</code>/<code>traverse</code> equivalent. To most programmers <code>map</code> and <code>traverse</code> would be the same, and this is what we are giving them here. People who have thought much more about it than I have (maintainers of Kotlin’s arrow) have deprecated their <a href="https://old.arrow-kt.io/docs/0.12/apidocs/arrow-core-data/arrow.typeclasses/-traverse/" target="_blank"><code>Traverse</code></a>.</p>
+<p><code>Functor</code> and polymorphic <code>Traversal</code> need to satisfy certain laws. These can be intuitively expressed as <em>structure preserving</em>. <code>s</code> and <code>t</code> need to have the same shape (e.g. a tree of <code>Int</code>s and a tree of <code>String</code>s with the same shape of branches). All of this is intuitively explainable IMO.</p>
+<p>Some readers may want to cry out: but it is not the same! We are losing functionality. In particular, <code>Traversal</code> and <code>Traversable traverse</code> are powerful computations that can recover folding capabilities!</p>
+<p>This gives me an opportunity to show how pearls are replaced with spoons or how type definitions are flattened in favor of implicit IO capabilities. The pearl:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a><span class="kw">newtype</span> <span class="dt">Const</span> a b <span class="ot">=</span> <span class="dt">Const</span> a <span class="kw">deriving</span> <span class="dt">Functor</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true"></a><span class="kw">instance</span> <span class="dt">Monoid</span> m <span class="ot">=&gt;</span> <span class="dt">Applicative</span> (<span class="dt">Const</span> m) <span class="kw">where</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true"></a>    <span class="fu">pure</span> _ <span class="ot">=</span> <span class="dt">Const</span> <span class="fu">mempty</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true"></a>    <span class="dt">Const</span> f <span class="op">&lt;*&gt;</span> <span class="dt">Const</span> v <span class="ot">=</span> <span class="dt">Const</span> (f <span class="ot">`mappend`</span> v)</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true"></a><span class="ot">constClassyFoldMap ::</span> (<span class="dt">Traversable</span> t, <span class="dt">Monoid</span> m) <span class="ot">=&gt;</span> (a <span class="ot">-&gt;</span> m) <span class="ot">-&gt;</span> t a <span class="ot">-&gt;</span> m</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true"></a>constClassyFoldMap f <span class="ot">=</span> getConst <span class="op">.</span> <span class="fu">traverse</span> (<span class="dt">Const</span> <span class="op">.</span> f)</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true"></a></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true"></a><span class="co">-- notice the implementation is identical</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true"></a><span class="ot">constFoldCombinatorMap ::</span> (<span class="dt">Monoid</span> m) <span class="ot">=&gt;</span> <span class="dt">Traversal</span> s s a a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> m) <span class="ot">-&gt;</span> s <span class="ot">-&gt;</span> m</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true"></a>constFoldCombinatorMap trav f <span class="ot">=</span> getConst <span class="op">.</span> trav (<span class="dt">Const</span> <span class="op">.</span> f)</span></code></pre></div>
+<p>Here is the “spoon” (in Kotlin)</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a><span class="kw">typealias</span> Setter&lt;S, T, A, B&gt; = (f: (A) -&gt; B, s: S) -&gt; T</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true"></a></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true"></a><span class="co">// io version of foldMap based on just Setter </span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true"></a><span class="co">// hf function is needed for polyoptic to collect A's in S, not needed if we use monooptic like in constFoldCombinatorMap. </span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true"></a><span class="kw">fun</span> &lt;<span class="dt">S</span>, <span class="dt">T</span>, <span class="dt">A</span>, <span class="dt">B</span>, <span class="dt">M</span>&gt; <span class="fu">ioFoldMap</span>(</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true"></a>    <span class="va">mempty</span>: <span class="dt">M</span>,</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true"></a>    <span class="va">mappend</span>: (<span class="dt">M</span>, <span class="dt">M</span>) -&gt; <span class="dt">M</span>,</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true"></a>    <span class="va">hf</span>: (<span class="dt">A</span>) -&gt; <span class="dt">B</span>, //<span class="va">allows</span> <span class="va">A</span> <span class="va">and</span> <span class="va">B</span> <span class="va">to</span> <span class="va">be</span> <span class="va">different</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true"></a>    <span class="va">setter</span>: <span class="dt">Setter</span>&lt;<span class="va">S</span>, <span class="va">T</span>, <span class="va">A</span>, <span class="va">B</span>&gt;,</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true"></a>    <span class="va">f</span>: (<span class="dt">A</span>) -&gt; <span class="dt">M</span>,</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true"></a>    <span class="va">s</span>: <span class="dt">S</span>,</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true"></a>): <span class="dt">M</span> {</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true"></a>    <span class="kw">var</span> <span class="va">acc</span> = mempty</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true"></a>    setter({ x -&gt;</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true"></a>        acc = mappend(acc, f(x))</span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true"></a>        hf(x)</span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true"></a>    }, s)</span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true"></a>    <span class="kw">return</span> acc</span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true"></a>}</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true"></a></span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true"></a><span class="kw">fun</span> &lt;<span class="dt">A</span>&gt; <span class="fu">listMonoidEmpty</span>(): <span class="dt">List</span>&lt;<span class="dt">A</span>&gt; = emptyList()</span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true"></a></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true"></a><span class="kw">fun</span> &lt;<span class="dt">A</span>&gt; <span class="fu">listMonoidAppend</span>(<span class="va">x</span>: <span class="dt">List</span>&lt;<span class="va">A</span>&gt;, <span class="va">y</span>: <span class="dt">List</span>&lt;<span class="va">A</span>&gt;): <span class="dt">List</span>&lt;<span class="dt">A</span>&gt; = x + y</span></code></pre></div>
+<p>You can use these with monomorphic types ✅</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true"></a><span class="kw">data</span> <span class="kw">class</span> MonoTest1(<span class="kw">val</span> <span class="va">ap1</span>: <span class="dt">Int</span>, <span class="kw">val</span> <span class="va">ap2</span>: <span class="dt">Int</span>, <span class="kw">val</span> <span class="va">ap3</span>: <span class="dt">List</span>&lt;<span class="va">Int</span>&gt;)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true"></a><span class="kw">data</span> <span class="kw">class</span> MonoTest2(<span class="kw">val</span> <span class="va">bp1</span>: <span class="dt">String</span>, <span class="kw">val</span> <span class="va">bp2</span>: <span class="dt">String</span>, <span class="kw">val</span> <span class="va">bp3</span>: <span class="dt">List</span>&lt;<span class="va">String</span>&gt;)</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true"></a><span class="kw">val</span> testMonoTypeSetter: <span class="dt">Setter</span>&lt;<span class="dt">MonoTest1</span>, <span class="dt">MonoTest2</span>, <span class="dt">Int</span>, <span class="dt">String</span>&gt; = { f, s -&gt;</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true"></a>    MonoTest2(f(s.ap1), f(s.ap2), s.ap3.map(f))</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true"></a>}</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true"></a></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true"></a><span class="co">// == [1, 2, 3, 4], used to extract data</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true"></a><span class="kw">val</span> <span class="va">testmonofold</span>: List&lt;<span class="kw">Int</span>&gt; =</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true"></a>    ioFoldMap(listMonoidEmpty(), ::listMonoidAppend, <span class="kw">Int</span>::toString, testMonoTypeSetter, { listOf(it) }, MonoTest1(<span class="dv">1</span>, <span class="dv">2</span>, listOf(<span class="dv">3</span>, <span class="dv">4</span>)))</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true"></a></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true"></a></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true"></a><span class="co">// == MonoTest2(&quot;1&quot;, &quot;2&quot;, [&quot;3&quot;, &quot;4&quot;]), used as setter optic</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true"></a><span class="kw">val</span> <span class="va">testmonotraversal</span>: MonoTest2 =</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true"></a>    testMonoTypeSetter(<span class="kw">Int</span>::toString, MonoTest1(<span class="dv">1</span>, <span class="dv">2</span>, listOf(<span class="dv">3</span>, <span class="dv">4</span>)))</span></code></pre></div>
+<p>You can use these with polymorphic types ✅</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true"></a></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true"></a><span class="kw">data</span> <span class="kw">class</span> Test&lt;<span class="dt">A</span>&gt;(<span class="kw">val</span> <span class="va">p1</span>: <span class="dt">A</span>, <span class="kw">val</span> <span class="va">p2</span>: <span class="dt">A</span>, <span class="kw">val</span> <span class="va">p3</span>: <span class="dt">List</span>&lt;<span class="va">A</span>&gt;)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true"></a><span class="kw">fun</span> &lt;<span class="dt">A</span>, <span class="dt">B</span>&gt; testSetter(): <span class="dt">Setter</span>&lt;<span class="dt">Test</span>&lt;<span class="dt">A</span>&gt;, <span class="dt">Test</span>&lt;<span class="dt">B</span>&gt;, <span class="dt">A</span>, <span class="dt">B</span>&gt; = { f, s -&gt;</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true"></a>    Test(f(s.p1), f(s.p2), s.p3.map(f))</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true"></a>}</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true"></a></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true"></a><span class="co">// testfold == [1,2,3,4], fold with &quot;Setter' Test&lt;Int&gt; Int&quot;</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true"></a><span class="co">// Kotlin even infers the testSetter type</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true"></a><span class="kw">val</span> <span class="va">testfold</span>: List&lt;<span class="kw">Int</span>&gt; =</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true"></a>    ioFoldMap(listMonoidEmpty(), ::listMonoidAppend, { it }, testSetter(), { listOf(it) }, Test(<span class="dv">1</span>, <span class="dv">2</span>, listOf(<span class="dv">3</span>, <span class="dv">4</span>)))</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true"></a></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true"></a><span class="co">// testfold2 == [1,2,3,4], fold with &quot;Setter Test&lt;Int&gt; Test&lt;String&gt; Int String&quot;</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true"></a><span class="co">// Kotlin even infers the testSetter type</span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true"></a><span class="kw">val</span> <span class="va">testfold2</span>: List&lt;<span class="kw">Int</span>&gt; =</span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true"></a>    ioFoldMap(listMonoidEmpty(), ::listMonoidAppend, <span class="kw">Int</span>::toString, testSetter(), { listOf(it) }, Test(<span class="dv">1</span>, <span class="dv">2</span>, listOf(<span class="dv">3</span>, <span class="dv">4</span>)))</span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true"></a></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true"></a><span class="co">// used as setter optic</span></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true"></a><span class="co">// Kotlin's local type inference does not work here, need to explicitly apply type arguments `&lt;Int, String&gt;`</span></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true"></a><span class="kw">val</span> <span class="va">testpolytraversal</span>: Test&lt;<span class="kw">String</span>&gt; =</span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true"></a>    testSetter&lt;<span class="kw">Int</span>, <span class="kw">String</span>&gt;()(<span class="kw">Int</span>::toString, Test(<span class="dv">1</span>, <span class="dv">2</span>, listOf(<span class="dv">3</span>, <span class="dv">4</span>)))</span></code></pre></div>
+<p>No dreaded Kotlin contexts here! No ad-hoc polymorphism so no context is needed. (More on this in the next section.)</p>
+<p>Converting <code>Setter</code> to folds does not appear to be used in mainstream libraries but it could!</p>
+<p>We can add computational power to <code>Setter</code> by asking for more stuff. E.g., adding <code>s -&gt; a</code> gives us an equivalent of <code>Lens s t a b</code>. One should be somewhat careful with what is added because it is possible to add too much (e.g. Kotlin’s <em>arrow</em> <code>PTraversal&lt;S,T,A,B&gt;</code> expects to have an equivalent of <code>foldMap</code> defined for the polymorphic case <code>PTraversal&lt;S,T,A,B&gt;</code> making it different from the standard definition where <code>foldMapOf</code> can only be defined for <code>Traversal s s a a</code>).</p>
+<p>Also, <code>Setter</code> is almost first-class! You may occasionally need to pass it rank-N style after the under-the-hood HKT is fixed but this is supported in many mainstream languages (e.g. TypeScript and Kotlin; I show the Kotlin version in <a href="#composing-setter">Composing Setter</a>). Also, it composes just as regular functions do.</p>
+<p>One could argue that <code>(a -&gt; b) -&gt; s -&gt; t</code> is too abstract and hard to understand for some engineers. But we are in an environment with huge support for encapsulation. In the simplest case the user will just see <code>SimpleModifier&lt;S,A&gt;</code> with private implementation and I am not discussing how this is done.</p>
+<h2 id="scrap-your-ad-hoc">Scrap your ad-hoc</h2>
+<p>Even in Haskell there was a movement <a href="https://haskellforall.com/2012/05/scrap-your-type-classes" target="_blank">Scrap your type classes</a> to avoid ad-hoc polymorphism in favor of explicit first-class computations. I never liked this idea in Haskell but am proposing it for mainstream. The technique is often called explicit dictionary passing because of how Haskell type classes are implemented. Dictionary refers to some kind of record-type argument.  One can also pass functions directly as arguments; I ignore this slight semantic difference. In this section I will explain why ditching ad-hoc is a good idea. If you do not need convincing, then you only need the Kotlin definition of <code>Either</code> from this section to continue with <a href="#composing-setter">Composing Setter</a>.</p>
+<p>To start, consider the ability to polymorphically create values of different types (e.g. <code>Monoid</code> <code>mempty</code>) as a programming language benchmark.</p>
+<table>
+<colgroup>
+<col style="width: 22%" />
+<col style="width: 19%" />
+<col style="width: 12%" />
+<col style="width: 45%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">JVM PL</th>
+<th style="text-align: left;">Verdict</th>
+<th style="text-align: left;">Approach</th>
+<th style="text-align: left;">Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Java</td>
+<td style="text-align: left;">no</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">developers use the factory pattern</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Scala</td>
+<td style="text-align: left;">incoherent</td>
+<td style="text-align: left;"><em>implicits</em>    </td>
+<td style="text-align: left;">changing imports can change runtime behavior (spooky action at a distance)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Kotlin    </td>
+<td style="text-align: left;">cumbersome    </td>
+<td style="text-align: left;"><em>context</em></td>
+<td style="text-align: left;">developers write context code</td>
+</tr>
+</tbody>
+</table>
+<p>This does not look good.</p>
+<p>At a high level, Haskell ad-hoc polymorphism is linked to a type, OO ad-hoc polymorphism is linked to a runtime object. OO and the JVM use late binding (dynamic method dispatch), relying on runtime objects to achieve ad-hoc polymorphism. To have type-specific implementations, there need to be runtime objects on the heap that point to a vtable (virtual method table) to surrogate the types. That feels like the wrong way to go about it, because it is.</p>
+<p>Kotlin calls these <em>witness objects</em>. In addition to runtime cost, this requires explicit code specifying that surrogate/witness object (<code>context</code> in Kotlin). This ends up being <em>cumbersome</em> (especially if you try this with FP). Terminology like “context bubbling” is being used. It feels like writing compiler code, not application code. These witnesses/surrogates need to identify concrete types (e.g. <code>List&lt;String&gt;</code> not <code>List&lt;T&gt;</code>), and this gets very redundant.</p>
+<p>Scala implicits accomplish type-specific ad-hoc through compile-time resolution and rewriting, removing the boilerplate. You pay with compilation time and incoherence risk. To summarize, on the JVM we are getting a very strong signal to stay away from type-based ad-hoc polymorphism.</p>
+<p>Things improve outside the JVM: Swift supports type-based ad-hoc using <em>protocols</em> and <em>protocol extensions</em>. Swift uses witness tables, which function in a similar way to Haskell’s dictionary passing. The compiler giving up on you when you use complex extensions is a concern in Swift though (I am a Swift newb and I could be misrepresenting things here). Monomorphization could do it (modern C++ templates, Rust) but I know even less about the cost-benefit ratio there. I believe that avoiding ad-hoc could be beneficial outside the JVM, but I am not in a good position to claim this.</p>
+<p>Moving forward I will use this expression to benchmark a language’s ability to handle composable computations polymorphically on “small” types:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true"></a><span class="co">-- Benchmark:</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true"></a><span class="co">-- use this expression to define function `Either String Int -&gt; Either String Int` </span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true"></a><span class="co">-- and see how cumbersome this is</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true"></a>computation <span class="fu">length</span> <span class="op">.</span> computation (<span class="fu">map</span> <span class="fu">length</span>) <span class="op">.</span> computation (<span class="op">:</span>[]) <span class="op">.</span> computation <span class="fu">show</span> <span class="op">.</span> computation (<span class="op">+</span><span class="dv">2</span>)</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true"></a></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true"></a></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true"></a><span class="co">-- e.g.: benchmark passes in Haskell (code is simple)</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true"></a><span class="ot">testcomp ::</span> <span class="dt">Either</span> <span class="dt">String</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">String</span> <span class="dt">Int</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true"></a>testcomp <span class="ot">=</span>  computation <span class="fu">length</span> <span class="op">.</span> computation (<span class="fu">map</span> <span class="fu">length</span>) <span class="op">.</span> computation (<span class="op">:</span>[]) <span class="op">.</span> computation <span class="fu">show</span>  <span class="op">.</span>  computation  (<span class="op">+</span><span class="dv">2</span>)</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true"></a>   <span class="kw">where</span> computation <span class="ot">=</span> <span class="fu">fmap</span></span></code></pre></div>
+<p><em>If I cannot express <code>f a</code> then I can as well reason about <code>fa</code>.</em> 😀 Using <code>Setter</code> as an inspiration, I am tempted to encode <code>Functor</code> like this</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true"></a><span class="co">-- pragmas not shown (MultiParamTypeClasses, FlexibleInstances, FlexibleContexts, MonoLocalBinds, RankNTypes, ...)</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true"></a></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true"></a><span class="co">-- a classy version of Setter specialized to Functor</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true"></a><span class="kw">class</span> <span class="dt">FlatFunctor</span> fa fb a b <span class="kw">where</span> </span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true"></a><span class="ot">   flatmap ::</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> fa <span class="ot">-&gt;</span> fb</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true"></a></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true"></a><span class="co">-- less cumbersome to use version but Kotlin does not support it and I will not use it</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true"></a><span class="kw">class</span> <span class="dt">FlatFunctor'</span> fa fb a b <span class="op">|</span> fa <span class="ot">-&gt;</span> a, fa b <span class="ot">-&gt;</span> fb <span class="kw">where</span> </span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true"></a><span class="ot">   flatmap' ::</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> fa <span class="ot">-&gt;</span> fb   </span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true"></a></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true"></a><span class="co">-- Note the same `fmap` implementation works</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true"></a><span class="kw">instance</span> <span class="dt">FlatFunctor</span> (<span class="dt">Either</span> e a) (<span class="dt">Either</span> e b) a b <span class="kw">where</span> </span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true"></a>    flatmap <span class="ot">=</span> <span class="fu">fmap</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true"></a></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true"></a><span class="co">-- benchmark passes in Haskell, (computation still is simple)</span></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true"></a><span class="co">-- it will fail in Kotlin (cumbersome context code)</span></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true"></a><span class="ot">testcomp ::</span> <span class="dt">Either</span> <span class="dt">String</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">String</span> <span class="dt">Int</span></span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true"></a>testcomp <span class="ot">=</span>  computation <span class="fu">length</span> <span class="op">.</span> computation (<span class="fu">map</span> <span class="fu">length</span>) <span class="op">.</span> computation (<span class="op">:</span>[]) <span class="op">.</span> computation <span class="fu">show</span>  <span class="op">.</span>  computation  (<span class="op">+</span><span class="dv">2</span>)</span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true"></a>   <span class="kw">where</span> </span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true"></a><span class="ot">        computation ::</span> <span class="kw">forall</span> a b<span class="op">.</span> <span class="dt">FlatFunctor</span> (<span class="dt">Either</span> <span class="dt">String</span> a) (<span class="dt">Either</span> <span class="dt">String</span> b) a b <span class="ot">=&gt;</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">String</span> a <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">String</span> b</span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true"></a>        computation <span class="ot">=</span> flatmap</span></code></pre></div>
+<p>This is all doable in Kotlin</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true"></a><span class="kw">interface</span> FlatFunctor&lt;<span class="dt">MA</span>, <span class="dt">MB</span>, <span class="dt">A</span>, <span class="dt">B</span>&gt; {</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true"></a>    <span class="kw">fun</span> <span class="fu">flatmap</span>(<span class="va">f</span>: (<span class="dt">A</span>) -&gt; <span class="dt">B</span>, <span class="va">ma</span>: <span class="dt">MA</span>): <span class="dt">MB</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true"></a>}</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true"></a></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true"></a>// <span class="fu">not</span> <span class="fu">curried</span> <span class="fu">version</span> <span class="fu">of</span> <span class="fu">flatmap</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true"></a><span class="fu">context</span>(<span class="va">flat</span>: <span class="dt">FlatFunctor</span>&lt;<span class="va">MA</span>, <span class="va">MB</span>, <span class="va">A</span>, <span class="va">B</span>&gt;)</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true"></a><span class="kw">fun</span> &lt;<span class="dt">MA</span>, <span class="dt">MB</span>, <span class="dt">A</span>, <span class="dt">B</span>&gt; <span class="fu">flatmap</span>(<span class="va">f</span>: (<span class="dt">A</span>) -&gt; <span class="dt">B</span>, <span class="va">ma</span>: <span class="dt">MA</span>): <span class="dt">MB</span> = flat.flatmap(f, ma)</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true"></a></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true"></a><span class="co">// curried version of flatmap</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true"></a>context(flat: FlatFunctor&lt;MA, MB, A, B&gt;)</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true"></a><span class="kw">fun</span> &lt;<span class="dt">MA</span>, <span class="dt">MB</span>, <span class="dt">A</span>, <span class="dt">B</span>&gt; <span class="fu">flatmap</span>(<span class="va">f</span>: (<span class="dt">A</span>) -&gt; <span class="dt">B</span>): (<span class="dt">MA</span>) -&gt; <span class="dt">MB</span> = { ma -&gt; flat.flatmap(f, ma) }</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true"></a></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true"></a><span class="kw">sealed</span> <span class="kw">interface</span> Either&lt;<span class="dt">E</span>, <span class="dt">A</span>&gt; {</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true"></a>    <span class="kw">data</span> <span class="kw">class</span> Left&lt;<span class="dt">E</span>, <span class="dt">A</span>&gt;(<span class="kw">val</span> <span class="va">left</span>: <span class="dt">E</span>) : <span class="dt">Either</span>&lt;<span class="dt">E</span>, <span class="dt">A</span>&gt; // <span class="dt">Either</span>&lt;<span class="dt">E</span>, <span class="dt">Nothing</span>&gt; <span class="kw">is</span> more idiomatic, <span class="kw">Nothing</span> <span class="kw">is</span> a bottom, Void-like type.</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true"></a>    <span class="kw">data</span> <span class="kw">class</span> Right&lt;<span class="dt">E</span>, <span class="dt">A</span>&gt;(<span class="kw">val</span> <span class="va">right</span>: <span class="dt">A</span>) : <span class="dt">Either</span>&lt;<span class="dt">E</span>, <span class="dt">A</span>&gt; // <span class="dt">Either</span>&lt;<span class="dt">Nothing</span>, <span class="dt">A</span>&gt; <span class="kw">is</span> more idiomatic</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true"></a>}</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true"></a></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true"></a><span class="co">// THE CULPRIT, we will need to bring this one into scope using `context`</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true"></a><span class="kw">fun</span> &lt;<span class="dt">E</span>, <span class="dt">A</span>, <span class="dt">B</span>&gt; <span class="fu">eitherFlatFunctor</span>(): <span class="dt">FlatFunctor</span>&lt;<span class="dt">Either</span>&lt;<span class="dt">E</span>, <span class="dt">A</span>&gt;, <span class="dt">Either</span>&lt;<span class="dt">E</span>, <span class="dt">B</span>&gt;, <span class="dt">A</span>, <span class="dt">B</span>&gt; =</span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true"></a>    <span class="kw">object</span> : <span class="dt">FlatFunctor</span>&lt;<span class="dt">Either</span>&lt;<span class="dt">E</span>, <span class="dt">A</span>&gt;, <span class="dt">Either</span>&lt;<span class="dt">E</span>, <span class="dt">B</span>&gt;, <span class="dt">A</span>, <span class="dt">B</span>&gt; {</span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true"></a>        <span class="kw">override</span> <span class="kw">fun</span> <span class="fu">flatmap</span>(<span class="va">f</span>: (<span class="dt">A</span>) -&gt; <span class="dt">B</span>, <span class="va">ma</span>: <span class="dt">Either</span>&lt;<span class="va">E</span>, <span class="va">A</span>&gt;): <span class="dt">Either</span>&lt;<span class="dt">E</span>, <span class="dt">B</span>&gt; = <span class="cf">when</span> (ma) {</span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true"></a>            <span class="kw">is</span> Either.Left -&gt; Either.Left(ma.left)</span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true"></a>            <span class="kw">is</span> Either.Right -&gt; Either.Right(f(ma.right))</span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true"></a>        }</span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true"></a>    }</span></code></pre></div>
+<p> <div class="side-note"><strong>Warning:</strong> using type bounds has safety issues ❌</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true"></a><span class="kw">interface</span> FlatFunctor&lt;<span class="dt">BOUND</span>&gt; {</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true"></a>    <span class="kw">fun</span> &lt;<span class="dt">MA</span> : <span class="dt">BOUND</span>, <span class="dt">MB</span> : <span class="dt">BOUND</span>, <span class="dt">A</span>, <span class="dt">B</span>&gt; <span class="fu">flatmap</span>(<span class="va">f</span>: (<span class="dt">A</span>) -&gt; <span class="dt">B</span>, <span class="va">ma</span>: <span class="dt">MA</span>): <span class="dt">MB</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true"></a>}</span></code></pre></div>
+<p>OO often dilutes type safety, and it does so here: the caller chooses <code>MB</code>, so the implementation can only produce it with an unchecked cast.  </div></p>
+<p>With some extra boilerplate not shown (e.g. <code>compose</code> implementation), I (a Kotlin newb) end up with a very cumbersome <code>testcomp</code> because of <code>context</code> compiler obligations I need to satisfy (benchmark fails ❌).</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true"></a><span class="co">// benchmark failed, too cumbersome</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true"></a><span class="kw">fun</span> <span class="fu">testcomp</span>(<span class="va">e</span>: <span class="dt">Either</span>&lt;<span class="va">String</span>, <span class="va">Int</span>&gt;): <span class="dt">Either</span>&lt;<span class="dt">String</span>, <span class="dt">Int</span>&gt; =</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true"></a>    context(</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true"></a>        eitherFlatFunctor&lt;<span class="kw">String</span>, <span class="kw">Int</span>, <span class="kw">Int</span>&gt;(),</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true"></a>        eitherFlatFunctor&lt;<span class="kw">String</span>, <span class="kw">Int</span>, <span class="kw">String</span>&gt;(),</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true"></a>        eitherFlatFunctor&lt;<span class="kw">String</span>, <span class="kw">String</span>, List&lt;<span class="kw">String</span>&gt;&gt;(),</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true"></a>        eitherFlatFunctor&lt;<span class="kw">String</span>, List&lt;<span class="kw">String</span>&gt;, List&lt;<span class="kw">Int</span>&gt;&gt;(),</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true"></a>        eitherFlatFunctor&lt;<span class="kw">String</span>, List&lt;<span class="kw">Int</span>&gt;, <span class="kw">Int</span>&gt;(),</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true"></a>    ) {</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true"></a>        <span class="kw">val</span> <span class="va">pipeline</span>: (Either&lt;<span class="kw">String</span>, <span class="kw">Int</span>&gt;) -&gt; Either&lt;<span class="kw">String</span>, <span class="kw">Int</span>&gt; =</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true"></a>            flatmap&lt;_, _, List&lt;<span class="kw">Int</span>&gt;, <span class="kw">Int</span>&gt; { it.size } compose</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true"></a>            flatmap&lt;_, _, List&lt;<span class="kw">String</span>&gt;, List&lt;<span class="kw">Int</span>&gt;&gt; { l -&gt; l.map { it.length } } compose</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true"></a>            flatmap&lt;_, _, <span class="kw">String</span>, List&lt;<span class="kw">String</span>&gt;&gt; { listOf(it) } compose</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true"></a>            flatmap&lt;_, _, <span class="kw">Int</span>, <span class="kw">String</span>&gt; { it.toString() } compose</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true"></a>            flatmap&lt;_, _, <span class="kw">Int</span>, <span class="kw">Int</span>&gt; { it + <span class="dv">2</span> }</span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true"></a>        pipeline(e)</span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true"></a>    }</span></code></pre></div>
+<p>The same “instance” of <code>FlatFunctor</code> is used 5 times but we have to specify it for each use! There are workarounds to make this less painful.  They are complex and have type safety issues. I am advocating for avoiding ad-hoc in favor of direct “dictionary passing” style. In Haskell, typeclasses provide better safety (coherence) and lots of convenience. This type-based ad-hoc in Kotlin is still incoherent and very cumbersome. The extra cost of objects on the heap is a concern too. Let’s ditch it!</p>
+<h2 id="composing-setter">Composing <code>Setter</code></h2>
+<p>Note that we need higher rank (ability to pass a polymorphic function as an argument) so it can be used with any <code>a -&gt; b</code>s.</p>
+<p>Haskell for reference:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true"></a><span class="ot">eitherSetter ::</span> <span class="dt">Setter</span> (<span class="dt">Either</span> <span class="dt">String</span> a) (<span class="dt">Either</span> <span class="dt">String</span> b) a b </span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true"></a>eitherSetter <span class="ot">=</span> <span class="fu">fmap</span> <span class="co">-- it's all the same</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true"></a></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true"></a><span class="co">-- benchmark passes in Haskell (requires rank-N but code remains simple)</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true"></a><span class="ot">testcomp ::</span> (<span class="kw">forall</span> a b <span class="op">.</span> <span class="dt">Setter</span> (<span class="dt">Either</span> <span class="dt">String</span> a) (<span class="dt">Either</span> <span class="dt">String</span> b) a b) <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">String</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">String</span> <span class="dt">Int</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true"></a>testcomp setter <span class="ot">=</span> computation <span class="fu">length</span> <span class="op">.</span> computation (<span class="fu">map</span> <span class="fu">length</span>) <span class="op">.</span> computation (<span class="op">:</span>[]) <span class="op">.</span> computation <span class="fu">show</span> <span class="op">.</span> computation (<span class="op">+</span><span class="dv">2</span>)</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true"></a>   <span class="kw">where</span> computation <span class="ot">=</span> setter</span></code></pre></div>
+<p>Kotlin:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true"></a><span class="co">// Either (a rather standard definition) can be found in the previous section</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true"></a><span class="kw">fun</span> &lt;<span class="dt">E</span>, <span class="dt">A</span>, <span class="dt">B</span>&gt; <span class="fu">eitherSetter</span>(): <span class="dt">Setter</span>&lt;<span class="dt">Either</span>&lt;<span class="dt">E</span>, <span class="dt">A</span>&gt;, <span class="dt">Either</span>&lt;<span class="dt">E</span>, <span class="dt">B</span>&gt;, <span class="dt">A</span>, <span class="dt">B</span>&gt; = { f, s -&gt;</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true"></a>    <span class="cf">when</span> (s) {</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true"></a>        <span class="kw">is</span> Either.Left -&gt; Either.Left(s.left)</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true"></a>        <span class="kw">is</span> Either.Right -&gt; Either.Right(f(s.right))</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true"></a>    }</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true"></a>}</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true"></a></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true"></a><span class="co">// we need a wrapper to pass Setter polymorphically for &quot;small&quot; `A`s and `B`s </span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true"></a><span class="co">// this is the rank-N definition, in Kotlin you do this with a wrapping interface</span></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true"></a><span class="co">// comp(f) is syntax sugar for comp.invoke(f), similar to Scala apply.</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true"></a><span class="kw">interface</span> PolyEitherSetter&lt;<span class="dt">E</span>&gt; {</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true"></a>    <span class="kw">operator</span> <span class="kw">fun</span> &lt;<span class="dt">A</span>, <span class="dt">B</span>&gt; <span class="fu">invoke</span>(<span class="va">f</span>: (<span class="dt">A</span>) -&gt; <span class="dt">B</span>): (<span class="dt">Either</span>&lt;<span class="dt">E</span>, <span class="dt">A</span>&gt;) -&gt; <span class="dt">Either</span>&lt;<span class="dt">E</span>, <span class="dt">B</span>&gt;</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true"></a>}</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true"></a></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true"></a><span class="kw">fun</span> &lt;<span class="dt">E</span>&gt; <span class="fu">polyEitherSetter</span>(): <span class="dt">PolyEitherSetter</span>&lt;<span class="dt">E</span>&gt; = <span class="kw">object</span> : <span class="dt">PolyEitherSetter</span>&lt;<span class="dt">E</span>&gt; {</span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true"></a>    <span class="kw">override</span> <span class="kw">fun</span> &lt;<span class="dt">A</span>, <span class="dt">B</span>&gt; <span class="fu">invoke</span>(<span class="va">f</span>: (<span class="dt">A</span>) -&gt; <span class="dt">B</span>): (<span class="dt">Either</span>&lt;<span class="dt">E</span>, <span class="dt">A</span>&gt;) -&gt; <span class="dt">Either</span>&lt;<span class="dt">E</span>, <span class="dt">B</span>&gt; = { s -&gt; eitherSetter&lt;E, A, B&gt;()(f, s) }</span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true"></a>}</span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true"></a></span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true"></a><span class="co">// now we have a cleaner testcomp benchmark pass!</span></span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true"></a><span class="co">// Kotlin still has issues with inferring types but this is much better</span></span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true"></a><span class="co">// 1 = testcomp(polyEitherSetter&lt;String&gt;())(Either.Right(4))</span></span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true"></a><span class="kw">fun</span> &lt;<span class="dt">E</span>&gt; <span class="fu">testcomp</span>(<span class="va">smap</span>: <span class="dt">PolyEitherSetter</span>&lt;<span class="va">E</span>&gt;): (<span class="dt">Either</span>&lt;<span class="dt">E</span>, <span class="dt">Int</span>&gt;) -&gt; <span class="dt">Either</span>&lt;<span class="dt">E</span>, <span class="dt">Int</span>&gt; =</span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true"></a>    smap { l: List&lt;<span class="kw">Int</span>&gt; -&gt; l.size } compose</span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true"></a>        smap { l: List&lt;<span class="kw">String</span>&gt; -&gt; l.map { it.length } } compose</span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true"></a>        smap { s: <span class="kw">String</span> -&gt; listOf(s) } compose</span>
+<span id="cb16-27"><a href="#cb16-27" aria-hidden="true"></a>        smap { x: <span class="kw">Int</span> -&gt; x.toString() } compose</span>
+<span id="cb16-28"><a href="#cb16-28" aria-hidden="true"></a>        smap { x: <span class="kw">Int</span> -&gt; x + <span class="dv">2</span> }</span></code></pre></div>
+<p>The <code>testcomp</code> benchmark passes ✅. IMO, we have a much saner coding environment. <code>testcomp</code> is effectively a higher-order function with <code>interface PolyEitherSetter</code> used to pass the <code>Setter</code> polymorphically. We avoid ad-hoc, we avoid <code>context</code>!</p>
+<h2 id="using-llms">Using LLMs</h2>
+<p>I am new to Kotlin and I am using LLMs to learn Kotlin and its quirks. I am observing that the answers depend on the lingo I use in my prompts. I noticed that using Kotlin lingo when querying for Kotlin gotchas does not give me the best answers. A prompt like this “Are there any issues with inference widening in Kotlin” could give a much better answer. Asking for unsafe coercion may give different results than asking about casting. Downcasts or narrowing… etc. The lingo you use in the prompt probably changes what parts of the original training dataset impact the token generation. This would also suggest that Kotlin programmers do not know the issues I am trying to identify.</p>
+<p>In my testing, interactive vibe coding with <code>Setter</code> is giving me good results. I see very mixed results with generating code based on Kotlin <em>arrow</em> library’s <code>PTraversal&lt;S,T,A,B&gt;</code>. The LLM seems to get confused much less with <code>Setter&lt;S,T,A,B&gt;</code> as I defined it above. I think this is again explained by where the LLM pulls the patterns from. With <code>Setter</code> it could be pulling more from Haskell and translating to Kotlin. Kotlin language complexity probably makes it confused (e.g. coding with <code>class</code> vs <code>data class</code> has nuanced differences, <code>class</code> has over 14 variants with sometimes subtle differences, <code>interface</code> adds 3 more). The nuance of the same code pattern being correct in some cases and not in others is hard on humans; it is probably hard on LLMs too. FP could circumvent this nuance.</p>
+<p>It is also interesting to think about the long-term effects of vibe coding on code quality. My prompts about concurrency in Kotlin often produce examples with obvious race conditions. I expect this situation to get worse when vibe coding replicates these bugs, causing models to collapse on wrong solutions. Maybe not surprisingly, if I ask for concurrency program examples using the Kotlin <em>arrow</em> library (an FP library that tries to be Kotlin-idiomatic and approachable), I get what look like bug-free examples. We are starting to observe a decrease in overall software quality and this trend now has a self-feeding loop. In not easily testable areas, vibe coding could lead to quality collapse and model collapse at the same time. Possibly, vibe coding functional programs will still produce OK results. At the end, we may see a reemergence of FP, and this time with even stricter types 😀 to improve the situation (I am sure someone is noticing the role <em>Lean</em> plays in LLMs doing math).</p>
+<p>Vibe coding is such a game changer. I am completely new to Kotlin and can explore its capabilities in depth. I can prompt on a conceptual level and then dive deep into generated Kotlin code, exploring its limitations. I can prompt by writing Haskell (even Idris) code snippets, prompt with PLT terminology, and even use operational semantics. Claude Code even told me that one of my construction rules was not constructive and found a nuanced code issue based on semantic definitions. How impressive is that! People are vibe coding open-source Rust replacements of whole application suites like Adobe or Microsoft Office. There is undeniable power there and finding effective and safe ways of using this tech can lead us into more FP. No one has a crystal ball. Hopefully the unemployment period will not be too long.</p>
+<h2 id="closing-thoughts">Closing thoughts</h2>
+<p>Why did a Kotlin newb write about Kotlin? Answer: I do not know a lot about Kotlin; I wrote about higher-order functions. But I am finding that Kotlin has a huge amount of nuance and cognitive bloat. Lots of this is a result of Java interop doom. Some is probably of Kotlin’s own making. I have mixed feelings about selecting it for backend development.</p>
+<p>I have advocated here for ditching type-based ad-hoc (known in Kotlin as Context Oriented Programming) in favor of using higher-order functions and passing instance definitions directly (“dictionary passing” style). Consider that Kotlin <em>arrow</em>’s own <code>PTraversal</code> is defined as an <em>interface</em> in terms of (using Haskell syntax)</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true"></a><span class="co">-- arrow's PTraversal in Haskell syntax</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true"></a><span class="fu">foldMap</span><span class="ot"> ::</span> m <span class="ot">-&gt;</span> ((m,m) <span class="ot">-&gt;</span> m) <span class="ot">-&gt;</span> s <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> m) <span class="ot">-&gt;</span> m</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true"></a><span class="ot">modify ::</span> s <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> t</span></code></pre></div>
+<p>Note that the <code>Monoid</code> constraint is replaced with two explicit arguments <code>m, (m,m) -&gt; m</code>. That is consistent with the direction I would like to see. I am not a Kotlin dev. However, my reading tells me the community has largely abandoned using contexts for more polymorphic expressions. It is still considered very beneficial for certain coding tasks. Me doing deep sigh “yet another booby-trap complexity to know about”.</p>
+<blockquote>
+<p><em>Not fully safe, very inconvenient to use, what are we waiting for?</em><br />
+    - Gimli’s early excitement about Kotlin contexts</p>
+</blockquote>
+<p>As a side note on <code>PTraversal</code>: I would prefer to define it as a higher-order function <code>(a -&gt; b) -&gt; s -&gt; t</code>. These 2 approaches are not equivalent (mine is closer to the Haskell <em>lens</em> library or van Laarhoven definition) but are close. I like to favor raw functions. <em>arrow</em> maintainers, I am sure, have done a lot of thinking about it and selected an interface and a different set of underlying computations. The <code>PTraversal</code> interface defines 41 additional methods. My preference is to have separate combinators but this is not a widely shared preference outside of FP. IMO, the less magic the better, but I see the benefits of hiding FP as well.</p>
+<p>I have discussed flattening HKTs using <code>Setter</code>. Here are some non-<code>Setter</code> examples that flatten HKTs</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true"></a><span class="kw">type</span> <span class="dt">FlatFold</span> ta a <span class="ot">=</span> <span class="kw">forall</span> m <span class="op">.</span> m <span class="ot">-&gt;</span> ((m,m) <span class="ot">-&gt;</span> m) <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> m) <span class="ot">-&gt;</span> ta <span class="ot">-&gt;</span> m</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true"></a></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true"></a><span class="kw">type</span> <span class="dt">Embed</span> ta a <span class="ot">=</span> a <span class="ot">-&gt;</span> ta</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true"></a><span class="kw">type</span> <span class="dt">Flatten</span> ta a <span class="ot">=</span> ta <span class="ot">-&gt;</span> a </span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true"></a></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true"></a><span class="co">-- Example: Setter, Embed, Flatten lets you express an awkward-to-use Monad e.g. `Either e`  by passing these 3 args</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true"></a><span class="co">--</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true"></a><span class="co">-- (forall a b . Setter (Either e a) (Either e b) a b)</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true"></a><span class="co">-- (forall a . Embed (Either e a) a)</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true"></a><span class="co">-- (forall a . Flatten (Either e (Either e a)) (Either e a))</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true"></a></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true"></a><span class="ot">flatBind ::</span> <span class="dt">Flatten</span> mmb mb <span class="ot">-&gt;</span> <span class="dt">Setter</span> ma mmb a mb <span class="ot">-&gt;</span>  (a <span class="ot">-&gt;</span> mb) <span class="ot">-&gt;</span> ma <span class="ot">-&gt;</span> mb</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true"></a>flatBind flatten <span class="fu">map</span> f <span class="ot">=</span> flatten <span class="op">.</span> <span class="fu">map</span> f</span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true"></a></span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true"></a><span class="co">-- &gt;&gt;&gt; test pure join fmap (Right 1)</span></span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true"></a><span class="co">-- Right &quot;1&quot;</span></span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true"></a><span class="ot">test ::</span> </span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true"></a>    (<span class="kw">forall</span> a <span class="op">.</span> <span class="dt">Embed</span> (<span class="dt">Either</span> e a) a) <span class="ot">-&gt;</span>    </span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true"></a>    (<span class="kw">forall</span> a <span class="op">.</span> <span class="dt">Flatten</span> (<span class="dt">Either</span> e (<span class="dt">Either</span> e a)) (<span class="dt">Either</span> e a)) <span class="ot">-&gt;</span></span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true"></a>    (<span class="kw">forall</span> a b <span class="op">.</span> <span class="dt">Setter</span> (<span class="dt">Either</span> e a) (<span class="dt">Either</span> e b) a b) <span class="ot">-&gt;</span> </span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true"></a>    (<span class="dt">Either</span> e <span class="dt">Int</span>) <span class="ot">-&gt;</span> (<span class="dt">Either</span> e <span class="dt">String</span>)</span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true"></a>test embed flatten setter e <span class="ot">=</span> flatBind flatten setter (embed <span class="op">.</span> <span class="fu">show</span>) e </span></code></pre></div>
+<p><code>Bifunctor</code>, <code>Profunctor</code>, … The list of what can be easily flattened will probably not be long. Also, I am not suggesting using all of it. It is important to be selective. Otherwise it is easier to stay with Haskell.</p>
+<p><em>Using a non-FP language makes FP coding harder rather than easier.</em></p>
+<p>I like to distinguish <em>easy</em> (to learn) from <em>simple</em> (to understand) (see <a href="2022-08-30-code-cognitiveload.html#easy-vs-simple" target="_blank">Easy vs Simple</a>). Easy ~= knowledge, simple ~= understanding. IMO, flattening HKTs does not make things <em>easier</em>. HKTs abstract over type construction, which is one side of the construction coin. Flattening hides the learning path to one of the cornerstones of programming (for me <em>construction is the foundation</em>).<br />
+Probably, when designing a library we have interfaces = easy, higher-order functions = simple. However, my portability question is valid here:</p>
+<blockquote>
+<p><em>Should we base functional programming on higher-order functions instead of proprietary language features?</em></p>
+</blockquote>
+<p>I have not done much mainstream programming for a while now. But I had a brief interlude with TypeScript The Horrible, 4 years ago (<a href="../tags/TypeScript-Notes.html" target="_blank">TypeScript Notes</a>). I tried to write more functional code but mostly gave up as the language and ecosystem fought against me. Creating an FP library in such an ecosystem is a nuanced task.</p>
+<p>Higher-order functions would force programmers to think more deeply about computations. They are not <em>easy</em>.</p>
+<blockquote>
+<p><em>Certainty of PR rejection, small chance of success. What are we waiting for?</em></p>
+</blockquote>
+<p>A hybrid approach providing both interfaces and raw computations?<br />
+Your feedback is appreciated: <a href="https://github.com/rpeszek/rpeszek.github.io/discussions/7" target="_blank">GitHub discussion</a>.</p>
+<section class="footnotes" role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1" role="doc-endnote"><p>This assumes a pragmatic approach to deciding what is proprietary; it is not a turtles-all-the-way-down proposal.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
+
+    </section>
+</article>
+
+        </main>
+
+        <footer>
+             <span><a href="../atom.xml">Atom</a></span>
+             <span><a href="../RSS.xml">RSS</a></span>
+             <span>Site generated by <a href="http://jaspervdj.be/hakyll">Hakyll</a></span>
+        </footer>
+    </body>
+</html>
